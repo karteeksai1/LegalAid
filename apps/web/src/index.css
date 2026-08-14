@@ -1,0 +1,107 @@
+/* LegalAid visual system: editorial forensic modernism. Ink-black grounds the interface; bone acts as paper; chartreuse means verified signal; cobalt means retrieval. */
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --primary: #d7ff52;
+  --primary-foreground: #101412;
+  --sidebar-primary: #3158ff;
+  --sidebar-primary-foreground: #f8f6f0;
+  --chart-1: #3158ff;
+  --chart-2: #d7ff52;
+  --chart-3: #f06455;
+  --chart-4: #101412;
+  --chart-5: #626860;
+  --radius: 0.25rem;
+  --background: #f1eee6;
+  --foreground: #101412;
+  --card: #f8f6f0;
+  --card-foreground: #101412;
+  --popover: #f8f6f0;
+  --popover-foreground: #101412;
+  --secondary: #e6e2d8;
+  --secondary-foreground: #39403b;
+  --muted: #e6e2d8;
+  --muted-foreground: #626860;
+  --accent: #d7ff52;
+  --accent-foreground: #101412;
+  --destructive: #f06455;
+  --destructive-foreground: #101412;
+  --border: #d6d2c8;
+  --input: #d6d2c8;
+  --ring: #3158ff;
+  --sidebar: #f8f6f0;
+  --sidebar-foreground: #101412;
+  --sidebar-accent: #e6e2d8;
+  --sidebar-accent-foreground: #101412;
+  --sidebar-border: #d6d2c8;
+  --sidebar-ring: #3158ff;
+}
+
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  html { scroll-behavior: smooth; }
+  body {
+    @apply bg-background text-foreground;
+    font-family: "IBM Plex Sans", sans-serif;
+    background-image: radial-gradient(rgba(16, 20, 18, 0.06) 0.65px, transparent 0.65px);
+    background-size: 7px 7px;
+  }
+  button:not(:disabled), [role="button"]:not([aria-disabled="true"]), [type="button"]:not(:disabled), [type="submit"]:not(:disabled), a[href] { @apply cursor-pointer; }
+}
+
+@layer components {
+  .font-display { font-family: "Space Grotesk", sans-serif; }
+  .font-mono { font-family: "IBM Plex Mono", monospace; }
+  .eyebrow { font-family: "IBM Plex Mono", monospace; font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; }
+  .paper-grid { background-image: linear-gradient(rgba(16,20,18,.055) 1px, transparent 1px), linear-gradient(90deg, rgba(16,20,18,.055) 1px, transparent 1px); background-size: 28px 28px; }
+  .container { width: 100%; margin-left: auto; margin-right: auto; padding-left: 1rem; padding-right: 1rem; }
+  @media (min-width: 640px) { .container { padding-left: 1.5rem; padding-right: 1.5rem; } }
+  @media (min-width: 1024px) { .container { max-width: 1280px; padding-left: 2rem; padding-right: 2rem; } }
+}
+
+@keyframes signal-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(215,255,82,.3); } 50% { box-shadow: 0 0 0 7px rgba(215,255,82,0); } }
+.signal-pulse { animation: signal-pulse 4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; } }
+#access > .absolute { display: none; }
