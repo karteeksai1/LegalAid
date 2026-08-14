@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=("../../.env", ".env"), extra="ignore")
 
     database_url: str = Field(alias="DATABASE_URL")
     groq_api_key: str = Field(default="", alias="GROQ_API_KEY")
@@ -17,4 +17,3 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
-
