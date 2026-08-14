@@ -1,0 +1,17 @@
+{
+  "name": "legal-aid-platform",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev:web": "pnpm --filter @legal-aid/web dev",
+    "dev:backend": "pnpm --filter @legal-aid/backend dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r build"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}
+
