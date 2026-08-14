@@ -1,0 +1,58 @@
+# Environment
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+**/node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+*.egg-info/
+.python-version
+
+# FastAPI and local runtime
+*.log
+logs/
+.uvicorn/
+
+# Vite
+.vite/
+
+# OS and editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local database and uploads
+*.sqlite
+*.sqlite3
+uploads/
+tmp/
+
+# Secrets and certificates
+*.pem
+*.key
+*.crt
+
