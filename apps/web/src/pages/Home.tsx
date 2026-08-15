@@ -22,7 +22,7 @@ export default function Home() {
       <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[#101412]/90 text-[#f1eee6] backdrop-blur-xl">
         <div className="container flex h-[72px] items-center justify-between">
           <button onClick={() => goTo("top")} className="flex items-center gap-3" aria-label="LegalAid home">
-            <span className="grid h-9 w-9 place-items-center bg-[#d7ff52] text-[#101412]"><img src="/manus-storage/legalaid-mark_b55dadd3.png" alt="" className="h-7 w-7 object-contain" /></span>
+            <span className="grid h-9 w-9 place-items-center bg-[#d7ff52] text-[#101412]"><img src="/legalaid-mark.jpg" alt="" className="h-7 w-7 object-contain" /></span>
             <span className="font-display text-[18px] font-bold tracking-[-0.04em]">LegalAid<span className="text-[#d7ff52]">.</span></span>
           </button>
           <nav className="hidden items-center gap-8 md:flex" aria-label="Main navigation">

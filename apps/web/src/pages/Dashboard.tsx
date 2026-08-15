@@ -35,7 +35,7 @@ export default function Dashboard() {
       <header className="border-b border-[#d6d2c8] bg-[#101412] text-[#f1eee6]">
         <div className="container flex min-h-[76px] items-center justify-between gap-6">
           <Link href="/dashboard" className="flex items-center gap-3" aria-label="LegalAid dashboard home">
-            <span className="grid h-9 w-9 place-items-center bg-[#d7ff52]"><img src="/manus-storage/legalaid-mark_b55dadd3.png" alt="" className="h-7 w-7 object-contain" /></span>
+            <span className="grid h-9 w-9 place-items-center bg-[#d7ff52]"><img src="/legalaid-mark.jpg" alt="" className="h-7 w-7 object-contain" /></span>
             <span className="font-display text-[18px] font-bold tracking-[-0.04em]">LegalAid<span className="text-[#d7ff52]">.</span></span>
           </Link>
           <div className="flex items-center gap-4"><span className="hidden font-mono text-[10px] uppercase tracking-[0.12em] text-[#626b61] sm:block">{session.email}</span><button onClick={signOut} className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.12em] text-[#8f978e] transition-colors hover:text-[#d7ff52]"><LogOut className="h-3.5 w-3.5" /> Sign out</button></div>

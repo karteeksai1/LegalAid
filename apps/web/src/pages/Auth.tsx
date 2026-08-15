@@ -30,7 +30,7 @@ export default function Auth({ mode }: { mode: AuthMode }) {
         <section className="relative z-10 flex min-h-screen flex-col border-r border-white/10 bg-[#101412]/95 px-6 py-6 sm:px-10 lg:px-16">
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center gap-3" aria-label="Back to LegalAid home">
-              <span className="grid h-9 w-9 place-items-center bg-[#d7ff52]"><img src="/manus-storage/legalaid-mark_b55dadd3.png" alt="" className="h-7 w-7 object-contain" /></span>
+              <span className="grid h-9 w-9 place-items-center bg-[#d7ff52]"><img src="/legalaid-mark.jpg" alt="" className="h-7 w-7 object-contain" /></span>
               <span className="font-display text-[18px] font-bold tracking-[-0.04em]">LegalAid<span className="text-[#d7ff52]">.</span></span>
             </Link>
             <span className="eyebrow hidden text-[#626b61] sm:block">Secure review infrastructure</span>
