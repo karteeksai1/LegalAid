@@ -37,6 +37,10 @@ logs/
 # Vite
 .vite/
 
+# Imported preview/debug artifacts
+.manus-logs/
+__manus__/
+
 # OS and editor
 .DS_Store
 Thumbs.db
@@ -55,4 +59,3 @@ tmp/
 *.pem
 *.key
 *.crt
-

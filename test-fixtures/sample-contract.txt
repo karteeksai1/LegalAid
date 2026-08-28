@@ -1,0 +1,9 @@
+MASTER SERVICES AGREEMENT
+
+Indemnification. The supplier shall indemnify the customer for all losses, whether direct, indirect, incidental, consequential, or punitive, arising from or relating to the agreement.
+
+Limitation of Liability. Liability cap shall not apply to payment obligations, confidentiality, data misuse, or any breach deemed material by the customer.
+
+Termination. Either party may terminate for convenience with ninety days written notice after the initial service period.
+
+Governing Law. This agreement is governed by the laws of Delaware without regard to conflict of laws principles.
