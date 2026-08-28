@@ -4,10 +4,6 @@ import { ArrowDownRight, ArrowUpRight, Check, ChevronRight, CircleDot, FileSearc
 import { useState } from "react";
 import { useLocation } from "wouter";
 
-/**
- * All content in this page are only for example, replace with your own feature implementation
- * When building pages, remember your instructions in Frontend Best Practices, Design Guide and Common Pitfalls
- */
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [, setLocation] = useLocation();
@@ -41,7 +37,8 @@ export default function Home() {
 
       <main id="top">
         <section className="relative min-h-[760px] overflow-hidden bg-[#101412] pt-[72px] text-[#f1eee6]">
-          <div className="absolute inset-0 opacity-40" style={{ backgroundImage: "url('/manus-storage/legalaid-hero_4665a34b.png')", backgroundPosition: "center right", backgroundSize: "cover" }} />
+          <div className="absolute inset-0 paper-grid opacity-20" />
+          <div className="absolute right-0 top-0 h-full w-[58%] opacity-40 bg-[radial-gradient(circle_at_55%_42%,#3158ffaa_0%,transparent_28%),linear-gradient(135deg,transparent_0%,#d7ff5240_100%)]" />
           <div className="absolute inset-0 bg-[linear-gradient(90deg,#101412_0%,#101412e8_38%,#10141255_75%,#101412aa_100%)]" />
           <div className="container relative flex min-h-[688px] items-center pb-20 pt-20">
             <div className="max-w-[760px]">
@@ -70,7 +67,7 @@ export default function Home() {
 
         <section className="bg-[#101412] py-24 text-[#f1eee6] sm:py-32"><div className="container grid items-end gap-12 lg:grid-cols-[1.3fr_0.7fr]"><div><div className="mb-7 flex items-center gap-3"><Sparkles className="h-5 w-5 text-[#d7ff52]" /><span className="eyebrow text-[#d7ff52]">Guardrails by default</span></div><h2 className="font-display max-w-[820px] text-5xl font-bold leading-[0.9] tracking-[-0.08em] sm:text-[6.5rem]">When evidence runs out, the system says so.</h2></div><p className="max-w-[300px] text-sm leading-6 text-[#8f978e]">Agents must cite retrieved text, keep document content out of system prompts, and return <span className="font-mono text-[#d7ff52]">VERIFICATION_UNAVAILABLE</span> when a claim cannot be grounded.</p></div></section>
 
-        <section id="access" className="relative overflow-hidden bg-[#d7ff52] py-20 sm:py-28"><div className="absolute right-0 top-0 h-full w-1/3 opacity-20" style={{ backgroundImage: "url('/manus-storage/legalaid-evidence_11fc7503.png')", backgroundPosition: "center", backgroundSize: "cover", mixBlendMode: "multiply" }} /><div className="container relative flex flex-col justify-between gap-10 sm:flex-row sm:items-end"><div><span className="eyebrow text-[#3158ff]">Open the case file</span><h2 className="font-display mt-5 max-w-[780px] text-5xl font-bold leading-[0.9] tracking-[-0.08em] text-[#101412] sm:text-7xl">Make the document defend itself.</h2></div><Button onClick={() => openAuth("/signup")} className="h-14 shrink-0 rounded-none bg-[#101412] px-7 font-mono text-xs uppercase tracking-[0.12em] text-[#d7ff52] hover:bg-[#263026]">Request access <ArrowUpRight className="ml-3 h-4 w-4" /></Button></div></section>
+        <section id="access" className="relative overflow-hidden bg-[#d7ff52] py-20 sm:py-28"><div className="absolute right-0 top-0 h-full w-1/3 opacity-20 paper-grid mix-blend-multiply" /><div className="container relative flex flex-col justify-between gap-10 sm:flex-row sm:items-end"><div><span className="eyebrow text-[#3158ff]">Open the case file</span><h2 className="font-display mt-5 max-w-[780px] text-5xl font-bold leading-[0.9] tracking-[-0.08em] text-[#101412] sm:text-7xl">Make the document defend itself.</h2></div><Button onClick={() => openAuth("/signup")} className="h-14 shrink-0 rounded-none bg-[#101412] px-7 font-mono text-xs uppercase tracking-[0.12em] text-[#d7ff52] hover:bg-[#263026]">Request access <ArrowUpRight className="ml-3 h-4 w-4" /></Button></div></section>
       </main>
       <footer className="bg-[#101412] py-8 text-[#f1eee6]"><div className="container flex flex-col justify-between gap-4 sm:flex-row sm:items-center"><span className="font-display text-lg font-bold tracking-[-0.04em]">LegalAid<span className="text-[#d7ff52]">.</span></span><span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#626b61]">Explainable legal stress testing / 2026</span><span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#626b61]"><CircleDot className="h-3 w-3 text-[#d7ff52]" /> System legible</span></div></footer>
     </div>

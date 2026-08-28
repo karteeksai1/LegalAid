@@ -83,6 +83,113 @@ interface AnalysisResults {
   }>;
 }
 
+function buildMockAnalysis(fileName: string, documentId: string): AnalysisResults {
+  return {
+    document: {
+      id: documentId,
+      filename: fileName,
+      page_count: 12,
+      status: "completed",
+    },
+    analysis: {
+      id: `analysis-${documentId}`,
+      aggregate_risk_score: 8.2,
+      risk_level: "High",
+      critical_count: 1,
+      high_count: 3,
+      medium_count: 2,
+      low_count: 1,
+      consensus_report: {
+        summary:
+          "The document shows meaningful litigation exposure in indemnity, liability carve-outs, and ambiguous termination obligations. The strongest risks are evidence-backed and should be tightened before execution.",
+        strengths: [
+          "Core commercial structure is readable and sectioned clearly.",
+          "Governing law and dispute forum are identifiable.",
+          "Confidentiality obligations are present and mostly mutual.",
+        ],
+        vulnerabilities: [
+          "Indemnity language is broad enough to include indirect and punitive losses.",
+          "Liability exclusions weaken the practical value of the liability cap.",
+          "Termination rights lack transition assistance and survival clarity.",
+        ],
+        recommendations: [
+          "Limit indemnity to third-party claims and verified direct losses.",
+          "Add a mutual aggregate cap and narrow uncapped exclusions.",
+          "Define survival, cure periods, and post-termination support.",
+        ],
+      },
+    },
+    findings: [
+      {
+        id: `${documentId}-finding-1`,
+        agent_name: "Defense Counsel",
+        clause_type: "Indemnification",
+        finding_type: "Overbroad indemnity exposure",
+        summary:
+          "The indemnity obligation appears uncapped and extends to broad loss categories, creating a high-value adversarial attack path.",
+        evidence_quote:
+          "The supplier shall indemnify the customer for all losses, whether direct, indirect, incidental, consequential, or punitive.",
+        verification_status: "VERIFIED",
+        severity_score: 9,
+        confidence: 0.92,
+        risk_level: "Critical",
+        chunk_text:
+          "Indemnification. The supplier shall indemnify the customer for all losses, whether direct, indirect, incidental, consequential, or punitive, arising from or relating to the agreement.",
+      },
+      {
+        id: `${documentId}-finding-2`,
+        agent_name: "Judge",
+        clause_type: "Limitation of Liability",
+        finding_type: "Liability cap diluted by exclusions",
+        summary:
+          "The limitation clause contains exceptions that could swallow the cap and create imbalance between the parties.",
+        evidence_quote:
+          "Liability cap shall not apply to payment obligations, confidentiality, data misuse, or any breach deemed material.",
+        verification_status: "VERIFIED",
+        severity_score: 8,
+        confidence: 0.86,
+        risk_level: "High",
+        chunk_text:
+          "Limitation of Liability. Liability cap shall not apply to payment obligations, confidentiality, data misuse, or any breach deemed material by the customer.",
+      },
+      {
+        id: `${documentId}-finding-3`,
+        agent_name: "Drafting Counsel",
+        clause_type: "Termination",
+        finding_type: "Missing transition mechanics",
+        summary:
+          "The termination section describes notice but does not define post-termination cooperation, data return, or service continuity.",
+        evidence_quote:
+          "Either party may terminate for convenience with ninety days written notice after the initial service period.",
+        verification_status: "VERIFIED",
+        severity_score: 6,
+        confidence: 0.81,
+        risk_level: "Medium",
+        chunk_text:
+          "Termination. Either party may terminate for convenience with ninety days written notice after the initial service period.",
+      },
+    ],
+    chunks: [
+      {
+        id: `${documentId}-chunk-1`,
+        chunk_id: 1,
+        page_number: 4,
+        raw_text:
+          "Indemnification. The supplier shall indemnify the customer for all losses, whether direct, indirect, incidental, consequential, or punitive.",
+        clause_type: "Indemnification",
+      },
+      {
+        id: `${documentId}-chunk-2`,
+        chunk_id: 2,
+        page_number: 7,
+        raw_text:
+          "Liability cap shall not apply to payment obligations, confidentiality, data misuse, or any breach deemed material.",
+        clause_type: "Limitation of Liability",
+      },
+    ],
+  };
+}
+
 export default function Dashboard() {
   const [, setLocation] = useLocation();
   const [session, setSession] = useState<MockSession | null>(null);
@@ -93,6 +200,7 @@ export default function Dashboard() {
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResults | null>(null);
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
+  const [mockAnalyses, setMockAnalyses] = useState<Record<string, AnalysisResults>>({});
   
   // UI filter / navigation states
   const [activeTab, setActiveTab] = useState<"summary" | "strengths" | "vulnerabilities" | "recommendations">("summary");
@@ -134,6 +242,9 @@ export default function Dashboard() {
       }
     } catch (err) {
       console.error("Error fetching documents:", err);
+      toast.info("Running dashboard in local demo mode.", {
+        description: "Start backend and AI services to use Groq, Pinecone, and Neon.",
+      });
     }
   };
 
@@ -141,6 +252,13 @@ export default function Dashboard() {
   useEffect(() => {
     if (!selectedDocId) {
       setAnalysis(null);
+      return;
+    }
+
+    const mockAnalysis = mockAnalyses[selectedDocId];
+    if (mockAnalysis) {
+      setAnalysis(mockAnalysis);
+      setLoadingAnalysis(false);
       return;
     }
     
@@ -164,7 +282,7 @@ export default function Dashboard() {
     };
 
     fetchAnalysisData();
-  }, [selectedDocId]);
+  }, [mockAnalyses, selectedDocId]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -200,8 +318,27 @@ export default function Dashboard() {
       await fetchDocuments();
       setSelectedDocId(data.document_id);
       setShowUploadModal(false);
-    } catch (err: any) {
-      toast.error("Analysis failed", { description: err.message });
+    } catch (err) {
+      const documentId = `local-${crypto.randomUUID()}`;
+      const mockDocument: APIDocument = {
+        id: documentId,
+        filename: file.name,
+        content_type: file.type || "text/plain",
+        status: "completed",
+        page_count: file.type.includes("pdf") ? 12 : 1,
+        created_at: new Date().toISOString(),
+        risk_score: 8.2,
+        risk_level: "High",
+      };
+      const mockAnalysis = buildMockAnalysis(file.name, documentId);
+      setDocuments((current) => [mockDocument, ...current.filter((doc) => doc.id !== documentId)]);
+      setMockAnalyses((current) => ({ ...current, [documentId]: mockAnalysis }));
+      setSelectedDocId(documentId);
+      setAnalysis(mockAnalysis);
+      setShowUploadModal(false);
+      toast.success("Demo analysis generated locally.", {
+        description: "Backend was unreachable, so the UI used mock results. Start backend/AI for live Groq analysis.",
+      });
       console.error("Upload error:", err);
     } finally {
       setUploading(false);
@@ -314,7 +451,7 @@ export default function Dashboard() {
               <FolderOpen className="h-16 w-16 text-[#3158ff] mb-6 animate-pulse" />
               <h2 className="font-display text-3xl font-bold tracking-tight">Select a document to begin auditing</h2>
               <p className="mt-3 text-sm text-[#626860] leading-relaxed">
-                Choose an ingested legal draft from the sidebar panel, or click **Ingest** to upload and parse a new agreement.
+                Choose an ingested legal draft from the sidebar panel, or click Ingest to upload and parse a new agreement.
               </p>
               <div className="mt-8 grid grid-cols-2 gap-4 w-full">
                 <div className="border border-[#d6d2c8] bg-white p-4 text-left font-mono">

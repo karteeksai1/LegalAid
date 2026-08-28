@@ -26,7 +26,7 @@ export default function Auth({ mode }: { mode: AuthMode }) {
   return (
     <main className="min-h-screen bg-[#101412] text-[#f1eee6]">
       <div className="relative min-h-screen overflow-hidden lg:grid lg:grid-cols-[minmax(420px,0.82fr)_1.18fr]">
-        <div className="absolute inset-0 opacity-25 lg:hidden" style={{ backgroundImage: "url('/manus-storage/legalaid-lady-justice_c94d69fe.png')", backgroundPosition: "65% center", backgroundSize: "cover" }} />
+        <div className="absolute inset-0 opacity-25 lg:hidden paper-grid" />
         <section className="relative z-10 flex min-h-screen flex-col border-r border-white/10 bg-[#101412]/95 px-6 py-6 sm:px-10 lg:px-16">
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center gap-3" aria-label="Back to LegalAid home">
@@ -52,7 +52,7 @@ export default function Auth({ mode }: { mode: AuthMode }) {
           <Link href="/" className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.12em] text-[#626b61] transition-colors hover:text-[#d7ff52]"><ArrowLeft className="h-3.5 w-3.5" /> Back to LegalAid</Link>
         </section>
 
-        <section className="relative hidden min-h-screen overflow-hidden lg:block"><div className="absolute inset-0 bg-[#101412]" /><div className="absolute inset-0 bg-cover bg-center opacity-95" style={{ backgroundImage: "url('/manus-storage/legalaid-lady-justice_c94d69fe.png')" }} /><div className="absolute inset-0 bg-[linear-gradient(90deg,#101412ee_0%,transparent_30%,#10141233_100%)]" /><div className="absolute inset-y-0 left-12 border-l border-[#d7ff52]/35" /><div className="absolute bottom-12 left-20 max-w-[360px]"><span className="eyebrow text-[#d7ff52]">Justice / inspected</span><p className="font-display mt-4 text-3xl font-semibold leading-[0.98] tracking-[-0.05em] text-[#f1eee6]">The strongest opinion is the one that can show its work.</p><div className="mt-7 flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-[#8f978e]"><span className="h-2 w-2 rounded-full bg-[#d7ff52]" /> System legible / source grounded</div></div></section>
+        <section className="relative hidden min-h-screen overflow-hidden lg:block"><div className="absolute inset-0 bg-[#101412]" /><div className="absolute inset-0 paper-grid opacity-30" /><div className="absolute inset-0 bg-[radial-gradient(circle_at_65%_28%,#3158ff44_0%,transparent_28%),linear-gradient(90deg,#101412ee_0%,transparent_30%,#10141233_100%)]" /><div className="absolute inset-y-0 left-12 border-l border-[#d7ff52]/35" /><div className="absolute left-20 top-28 max-w-[430px]"><span className="eyebrow text-[#d7ff52]">Justice / inspected</span><p className="font-display mt-4 text-4xl font-semibold leading-[0.98] tracking-[-0.05em] text-[#f1eee6]">The strongest opinion is the one that can show its work.</p><div className="mt-7 flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-[#8f978e]"><span className="h-2 w-2 rounded-full bg-[#d7ff52]" /> System legible / source grounded</div></div></section>
       </div>
     </main>
   );
