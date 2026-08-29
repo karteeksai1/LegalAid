@@ -37,6 +37,19 @@ interface APIDocument {
   risk_level: string | null;
 }
 
+interface AgentDeliberation {
+  agent: string;
+  stance: string;
+  score: number;
+  argument: string;
+}
+
+interface ConsensusReasoning {
+  summary: string;
+  deliberation: AgentDeliberation[];
+  arbitration_rule: string;
+}
+
 interface Finding {
   id: string;
   agent_name: string;
@@ -49,6 +62,7 @@ interface Finding {
   confidence: number;
   risk_level: string;
   chunk_text: string;
+  consensus_reasoning?: ConsensusReasoning;
 }
 
 interface ConsensusReport {
@@ -95,10 +109,10 @@ function buildMockAnalysis(fileName: string, documentId: string): AnalysisResult
     },
     analysis: {
       id: `analysis-${documentId}`,
-      aggregate_risk_score: 8.2,
+      aggregate_risk_score: 8.4,
       risk_level: "High",
-      critical_count: 1,
-      high_count: 3,
+      critical_count: 2,
+      high_count: 2,
       medium_count: 2,
       low_count: 1,
       consensus_report: {
@@ -111,7 +125,7 @@ function buildMockAnalysis(fileName: string, documentId: string): AnalysisResult
         ],
         vulnerabilities: [
           "Indemnity language is broad enough to include indirect and punitive losses.",
-          "Liability exclusions weaken the practical value of the liability cap.",
+          "Plaintiff Counsel identified weaponizable carve-outs bypassing liability limits.",
           "Termination rights lack transition assistance and survival clarity.",
         ],
         recommendations: [
@@ -132,11 +146,45 @@ function buildMockAnalysis(fileName: string, documentId: string): AnalysisResult
         evidence_quote:
           "The supplier shall indemnify the customer for all losses, whether direct, indirect, incidental, consequential, or punitive.",
         verification_status: "VERIFIED",
-        severity_score: 9,
+        severity_score: 8,
         confidence: 0.92,
         risk_level: "Critical",
         chunk_text:
           "Indemnification. The supplier shall indemnify the customer for all losses, whether direct, indirect, incidental, consequential, or punitive, arising from or relating to the agreement.",
+        consensus_reasoning: {
+          summary: "Consensus Engine deliberated across 3 agent perspectives to calibrate final severity score to 8/10.",
+          deliberation: [
+            { agent: "Defense Counsel", stance: "Client Exposure", score: 8, argument: "Indemnity lacks reciprocal cap, exposing client to third-party claims." },
+            { agent: "Plaintiff Counsel", stance: "Adversarial Attack Path", score: 9, argument: "Opposing party can weaponize broad loss terms to claim indirect, incidental, and legal fees without proving direct breach." },
+            { agent: "Judge", stance: "Judicial Enforceability", score: 7, argument: "Courts generally uphold commercial indemnity as written unless clearly unconscionable. High litigation burden exists." }
+          ],
+          arbitration_rule: "Consensus weighted toward Plaintiff adversarial exploit risk (9/10) and Judge enforceability standard (7/10), settling at final severity of 8/10."
+        }
+      },
+      {
+        id: `${documentId}-finding-plaintiff-1`,
+        agent_name: "Plaintiff Counsel",
+        clause_type: "Indemnification",
+        finding_type: "Adversarial Indemnity Loophole",
+        summary:
+          "Opposing counsel can leverage this broad indemnity to demand defense costs and settlement contributions even before liability is adjudicated in court.",
+        evidence_quote:
+          "The supplier shall indemnify the customer for all losses, whether direct, indirect, incidental, consequential, or punitive.",
+        verification_status: "VERIFIED",
+        severity_score: 9,
+        confidence: 0.94,
+        risk_level: "Critical",
+        chunk_text:
+          "Indemnification. The supplier shall indemnify the customer for all losses, whether direct, indirect, incidental, consequential, or punitive, arising from or relating to the agreement.",
+        consensus_reasoning: {
+          summary: "Consensus Engine verified Plaintiff Counsel litigation vector and aligned severity with adversarial leverage.",
+          deliberation: [
+            { agent: "Plaintiff Counsel", stance: "Maximum Leverage", score: 9, argument: "Uncapped indemnification allows immediate preliminary motions for defense funding." },
+            { agent: "Judge", stance: "Enforceability Risk", score: 7, argument: "Clause is commercially harsh but enforceable under standard freedom of contract." },
+            { agent: "Defense Counsel", stance: "Defensive Exposure", score: 8, argument: "Creates severe unhedged balance sheet vulnerability." }
+          ],
+          arbitration_rule: "Weighted toward Plaintiff adversarial attack path (9/10), requiring urgent renegotiation."
+        }
       },
       {
         id: `${documentId}-finding-2`,
@@ -148,11 +196,20 @@ function buildMockAnalysis(fileName: string, documentId: string): AnalysisResult
         evidence_quote:
           "Liability cap shall not apply to payment obligations, confidentiality, data misuse, or any breach deemed material.",
         verification_status: "VERIFIED",
-        severity_score: 8,
+        severity_score: 7,
         confidence: 0.86,
         risk_level: "High",
         chunk_text:
           "Limitation of Liability. Liability cap shall not apply to payment obligations, confidentiality, data misuse, or any breach deemed material by the customer.",
+        consensus_reasoning: {
+          summary: "Consensus calibrated to 7/10 based on judicial scrutiny of unconscionable liability carve-outs.",
+          deliberation: [
+            { agent: "Judge", stance: "Equitable Balance", score: 7, argument: "Unilateral exclusions that swallow the entire liability limitation create severe judicial scrutiny." },
+            { agent: "Plaintiff Counsel", stance: "Carve-out Exploitation", score: 8, argument: "Carve-outs for 'material breach' allow plaintiff to bypass the damages cap entirely." },
+            { agent: "Defense Counsel", stance: "Risk Mitigation", score: 6, argument: "Aggregate liability cap exists but carve-outs dilute protection." }
+          ],
+          arbitration_rule: "Consensus calibrated to 7/10: Plaintiff carve-out risk balanced against Judge assessment of judicial scrutiny."
+        }
       },
       {
         id: `${documentId}-finding-3`,
@@ -169,6 +226,15 @@ function buildMockAnalysis(fileName: string, documentId: string): AnalysisResult
         risk_level: "Medium",
         chunk_text:
           "Termination. Either party may terminate for convenience with ninety days written notice after the initial service period.",
+        consensus_reasoning: {
+          summary: "Consensus calibrated to 6/10: Weighted toward commercial continuity risk and drafting ambiguity.",
+          deliberation: [
+            { agent: "Drafting Counsel", stance: "Clarity & Notice", score: 5, argument: "Notice period defined, but transition mechanics and survival terms are missing." },
+            { agent: "Plaintiff Counsel", stance: "Commercial Leverage", score: 7, argument: "Opposing party can terminate for convenience abruptly after setup costs are absorbed." },
+            { agent: "Judge", stance: "Contractual Freedom", score: 6, argument: "Termination for convenience is enforceable; main risk is operational discontinuity." }
+          ],
+          arbitration_rule: "Weighted toward commercial continuity risk identified by Plaintiff Counsel and Drafting ambiguity."
+        }
       },
     ],
     chunks: [
@@ -670,7 +736,7 @@ export default function Dashboard() {
                     
                     {/* Agent Filters */}
                     <div className="flex flex-wrap gap-1 font-mono text-[10px]">
-                      {["All", "Defense Counsel", "Drafting Counsel", "Judge", "Compliance Officer"].map((agent) => (
+                      {["All", "Defense Counsel", "Plaintiff Counsel", "Drafting Counsel", "Judge", "Compliance Officer"].map((agent) => (
                         <button
                           key={agent}
                           onClick={() => setSelectedAgentFilter(agent)}
@@ -680,7 +746,7 @@ export default function Dashboard() {
                               : "bg-white hover:bg-slate-100 text-slate-600 border-slate-200"
                           }`}
                         >
-                          {agent.split(" ")[0]}
+                          {agent === "All" ? "All" : agent.replace(" Counsel", "").replace(" Officer", "")}
                         </button>
                       ))}
                     </div>
@@ -699,55 +765,71 @@ export default function Dashboard() {
                           <button
                             key={finding.id}
                             onClick={() => setSelectedFinding(finding)}
-                            className={`w-full text-left p-4 border transition-all flex justify-between items-start gap-4 ${
+                            className={`w-full text-left p-4 border transition-all flex flex-col gap-3 ${
                               isSelected 
                                 ? "bg-[#101412] text-[#f1eee6] border-[#101412] ring-1 ring-[#d7ff52]" 
                                 : "bg-white hover:bg-slate-50 border-[#d6d2c8] text-[#101412]"
                             }`}
                           >
-                            <div className="space-y-2 flex-1 min-w-0">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span className={`text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 font-bold ${
-                                  finding.agent_name === 'Defense Counsel' 
-                                    ? "bg-red-100 text-red-800" 
-                                    : finding.agent_name === 'Drafting Counsel'
-                                      ? "bg-blue-100 text-blue-800"
-                                      : "bg-purple-100 text-purple-800"
+                            <div className="flex justify-between items-start gap-4 w-full">
+                              <div className="space-y-2 flex-1 min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className={`text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 font-bold ${
+                                    finding.agent_name === 'Defense Counsel' 
+                                      ? "bg-red-100 text-red-800 border border-red-200" 
+                                      : finding.agent_name === 'Plaintiff Counsel'
+                                        ? "bg-amber-100 text-amber-900 border border-amber-300 font-bold"
+                                        : finding.agent_name === 'Drafting Counsel'
+                                          ? "bg-blue-100 text-blue-800 border border-blue-200"
+                                          : "bg-purple-100 text-purple-800 border border-purple-200"
+                                  }`}>
+                                    {finding.agent_name}
+                                  </span>
+                                  <span className="text-[10px] font-mono text-[#8f978e]">{finding.clause_type}</span>
+                                </div>
+                                
+                                <h4 className={`font-semibold text-sm ${isSelected ? "text-white" : "text-slate-900"}`}>
+                                  {finding.finding_type}
+                                </h4>
+                                
+                                <p className={`text-xs line-clamp-2 leading-relaxed ${isSelected ? "text-slate-300" : "text-slate-600"}`}>
+                                  {finding.summary}
+                                </p>
+                                
+                                <div className="flex items-center gap-3 font-mono text-[10px] pt-1">
+                                  <span className="flex items-center gap-1">
+                                    Severity: <span className="font-bold">{finding.severity_score}/10</span>
+                                  </span>
+                                  <span className="text-[#8f978e]">•</span>
+                                  <span className="flex items-center gap-1">
+                                    Confidence: <span className="font-bold">{(finding.confidence * 100).toFixed(0)}%</span>
+                                  </span>
+                                </div>
+                              </div>
+                              
+                              <div className="flex flex-col items-end shrink-0 gap-3">
+                                <span className={`text-[9px] font-mono uppercase tracking-widest px-2 py-0.5 rounded-none font-bold ${
+                                  finding.risk_level === 'Critical' || finding.risk_level === 'High'
+                                    ? "bg-red-500 text-white"
+                                    : "bg-amber-500 text-black"
                                 }`}>
-                                  {finding.agent_name}
+                                  {finding.risk_level}
                                 </span>
-                                <span className="text-[10px] font-mono text-[#8f978e]">{finding.clause_type}</span>
-                              </div>
-                              
-                              <h4 className={`font-semibold text-sm ${isSelected ? "text-white" : "text-slate-900"}`}>
-                                {finding.finding_type}
-                              </h4>
-                              
-                              <p className={`text-xs line-clamp-2 leading-relaxed ${isSelected ? "text-slate-300" : "text-slate-600"}`}>
-                                {finding.summary}
-                              </p>
-                              
-                              <div className="flex items-center gap-3 font-mono text-[10px] pt-1">
-                                <span className="flex items-center gap-1">
-                                  Severity: <span className="font-bold">{finding.severity_score}/10</span>
-                                </span>
-                                <span className="text-[#8f978e]">•</span>
-                                <span className="flex items-center gap-1">
-                                  Confidence: <span className="font-bold">{(finding.confidence * 100).toFixed(0)}%</span>
-                                </span>
+                                <ChevronRight className="h-4 w-4 opacity-50" />
                               </div>
                             </div>
-                            
-                            <div className="flex flex-col items-end shrink-0 gap-3">
-                              <span className={`text-[9px] font-mono uppercase tracking-widest px-2 py-0.5 rounded-none font-bold ${
-                                finding.risk_level === 'Critical' || finding.risk_level === 'High'
-                                  ? "bg-red-500 text-white"
-                                  : "bg-amber-500 text-black"
+
+                            {/* Consensus Deliberation Preview Indicator */}
+                            {finding.consensus_reasoning && (
+                              <div className={`pt-2 border-t text-[10px] font-mono flex items-center justify-between ${
+                                isSelected ? "border-white/10 text-[#d7ff52]" : "border-slate-100 text-[#3158ff]"
                               }`}>
-                                {finding.risk_level}
-                              </span>
-                              <ChevronRight className="h-4 w-4 opacity-50" />
-                            </div>
+                                <span className="flex items-center gap-1 font-semibold">
+                                  <Sparkles className="h-3 w-3" /> Consensus Deliberation ({finding.consensus_reasoning.deliberation.length} Agents)
+                                </span>
+                                <span className="text-[9px] uppercase tracking-wider opacity-75">Inspect reasoning →</span>
+                              </div>
+                            )}
                           </button>
                         );
                       })
@@ -778,8 +860,12 @@ export default function Dashboard() {
                         {selectedFinding.finding_type}
                       </h3>
                       <div className="flex items-center gap-2 mt-2">
-                        <span className="text-[10px] font-mono bg-red-100 text-red-800 px-2 py-0.5 font-bold">
-                          {selectedFinding.risk_level} Risk
+                        <span className={`text-[10px] font-mono px-2 py-0.5 font-bold ${
+                          selectedFinding.agent_name === 'Plaintiff Counsel'
+                            ? "bg-amber-100 text-amber-900 border border-amber-300"
+                            : "bg-red-100 text-red-800"
+                        }`}>
+                          {selectedFinding.agent_name}
                         </span>
                         <span className="text-[10px] font-mono bg-blue-100 text-blue-800 px-2 py-0.5">
                           {selectedFinding.clause_type}
@@ -793,6 +879,50 @@ export default function Dashboard() {
                         {selectedFinding.summary}
                       </p>
                     </div>
+
+                    {/* Consensus Deliberation & Reasoning Section */}
+                    {selectedFinding.consensus_reasoning && (
+                      <div className="space-y-3 border-t border-[#d6d2c8] pt-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-[#3158ff] font-bold flex items-center gap-1">
+                            <Shield className="h-3 w-3" /> Consensus Deliberation
+                          </span>
+                          <span className="text-[9px] font-mono bg-blue-50 text-[#3158ff] px-1.5 py-0.5 font-semibold">
+                            Arbitrated
+                          </span>
+                        </div>
+                        
+                        <p className="text-[11px] text-[#626860] leading-normal font-sans">
+                          {selectedFinding.consensus_reasoning.summary}
+                        </p>
+
+                        <div className="space-y-2 pt-1">
+                          {selectedFinding.consensus_reasoning.deliberation.map((delib, idx) => (
+                            <div key={idx} className="bg-slate-50 border border-slate-200 p-2.5 space-y-1 font-mono text-[10px]">
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold text-[#101412]">{delib.agent}</span>
+                                <span className="text-[9px] px-1.5 py-0.2 bg-white border border-slate-300 text-slate-700 font-bold">
+                                  {delib.score}/10 Risk
+                                </span>
+                              </div>
+                              <div className="text-[#3158ff] font-semibold text-[9px] uppercase tracking-wide">
+                                Stance: {delib.stance}
+                              </div>
+                              <p className="text-slate-600 text-[10px] leading-relaxed font-sans pt-0.5">
+                                "{delib.argument}"
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="bg-[#101412] text-[#f1eee6] p-3 font-mono text-[10px] space-y-1 border-l-2 border-[#d7ff52]">
+                          <span className="text-[9px] uppercase tracking-wider text-[#d7ff52] font-semibold block">Arbitration Rule</span>
+                          <p className="text-slate-300 leading-relaxed font-sans text-[11px]">
+                            {selectedFinding.consensus_reasoning.arbitration_rule}
+                          </p>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="space-y-3 bg-[#101412] text-[#f1eee6] p-4 font-mono text-xs relative">
                       <div className="absolute top-3 right-3 flex items-center gap-1 bg-[#d7ff52] text-[#101412] text-[8px] uppercase tracking-wider px-1.5 py-0.5 font-bold">

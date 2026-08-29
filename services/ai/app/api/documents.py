@@ -222,7 +222,7 @@ async def upload_document(
                 severity_score=f["severity_score"],
                 confidence=f["confidence"],
                 risk_level=f["risk_level"],
-                structured_payload={}
+                structured_payload={"consensus_reasoning": f.get("consensus_reasoning", {})}
             )
             db.add(finding)
             
@@ -302,6 +302,7 @@ def get_analysis_results(document_id: uuid.UUID, db: Session = Depends(get_db)):
     findings = []
     for f in analysis.findings:
         chunk = db.query(Chunk).filter(Chunk.id == f.chunk_id).first()
+        payload = f.structured_payload or {}
         findings.append({
             "id": str(f.id),
             "agent_name": f.agent_name,
@@ -313,7 +314,8 @@ def get_analysis_results(document_id: uuid.UUID, db: Session = Depends(get_db)):
             "severity_score": f.severity_score,
             "confidence": float(f.confidence),
             "risk_level": f.risk_level,
-            "chunk_text": chunk.raw_text if chunk else ""
+            "chunk_text": chunk.raw_text if chunk else "",
+            "consensus_reasoning": payload.get("consensus_reasoning", None)
         })
         
     # Get chunks list
