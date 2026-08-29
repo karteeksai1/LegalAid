@@ -52,7 +52,31 @@ export default function Auth({ mode }: { mode: AuthMode }) {
           <Link href="/" className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.12em] text-[#626b61] transition-colors hover:text-[#d7ff52]"><ArrowLeft className="h-3.5 w-3.5" /> Back to LegalAid</Link>
         </section>
 
-        <section className="relative hidden min-h-screen overflow-hidden lg:block"><div className="absolute inset-0 bg-[#101412]" /><div className="absolute inset-0 paper-grid opacity-30" /><div className="absolute inset-0 bg-[radial-gradient(circle_at_65%_28%,#3158ff44_0%,transparent_28%),linear-gradient(90deg,#101412ee_0%,transparent_30%,#10141233_100%)]" /><div className="absolute inset-y-0 left-12 border-l border-[#d7ff52]/35" /><div className="absolute left-20 top-28 max-w-[430px]"><span className="eyebrow text-[#d7ff52]">Justice / inspected</span><p className="font-display mt-4 text-4xl font-semibold leading-[0.98] tracking-[-0.05em] text-[#f1eee6]">The strongest opinion is the one that can show its work.</p><div className="mt-7 flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-[#8f978e]"><span className="h-2 w-2 rounded-full bg-[#d7ff52]" /> System legible / source grounded</div></div></section>
+        <section className="relative hidden min-h-screen overflow-hidden lg:block">
+          <div className="absolute inset-0 bg-[#101412]" />
+          <div className="absolute inset-0 paper-grid opacity-30" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_65%_28%,#3158ff44_0%,transparent_28%),linear-gradient(90deg,#101412ee_0%,transparent_30%,#10141233_100%)]" />
+          <div className="absolute inset-y-0 left-12 border-l border-[#d7ff52]/35" />
+          
+          <div className="relative z-10 p-20 pt-28 max-w-[480px]">
+            <span className="eyebrow text-[#d7ff52]">Justice / inspected</span>
+            <p className="font-display mt-4 text-4xl font-semibold leading-[0.98] tracking-[-0.05em] text-[#f1eee6]">
+              The strongest opinion is the one that can show its work.
+            </p>
+            <div className="mt-7 flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-[#8f978e]">
+              <span className="h-2 w-2 rounded-full bg-[#d7ff52]" /> System legible / source grounded
+            </div>
+          </div>
+
+          {/* Lady Justice Transparent Outlined Figure */}
+          <div className="pointer-events-none absolute -bottom-6 -right-4 z-0 flex items-end justify-end h-[90%] w-auto select-none opacity-40 mix-blend-screen transition-opacity duration-700 hover:opacity-60">
+            <img 
+              src="/lady-justice.png" 
+              alt="Lady Justice" 
+              className="h-full w-auto object-contain drop-shadow-[0_0_25px_rgba(215,255,82,0.15)] filter"
+            />
+          </div>
+        </section>
       </div>
     </main>
   );
