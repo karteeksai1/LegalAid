@@ -449,7 +449,10 @@ def classify_user_intent(question: str) -> tuple:
         "indemn", "liab", "terminat", "notice", "cure", "confidential", "ip ", "intellectual property",
         "payment", "milestone", "breach", "govern", "jurisdiction", "court", "risk", "finding",
         "plaintiff", "defense", "judge", "drafting", "compliance", "loophole", "clause", "covenant",
-        "warranty", "damages", "carve-out", "severab", "force majeure", "overview", "about"
+        "warranty", "damages", "carve-out", "severab", "force majeure", "overview", "about",
+        "definition", "defined", "scope", "flag", "flagged", "issue", "vulnerability", "vulnerabilities",
+        "problem", "arbitrat", "term", "terms", "provision", "section", "agreement", "contract",
+        "document", "score", "audit", "recommendation", "enforceab"
     ]
     if has_doc_ref or any(kw in q for kw in legal_keywords):
         return ("in_document_legal", None)

@@ -333,7 +333,10 @@ export function classifyUserIntent(question: string): IntentResult {
     "indemn", "liab", "terminat", "notice", "cure", "confidential", "ip ", "intellectual property",
     "payment", "milestone", "breach", "govern", "jurisdiction", "court", "risk", "finding",
     "plaintiff", "defense", "judge", "drafting", "compliance", "loophole", "clause", "covenant",
-    "warranty", "damages", "carve-out", "severab", "force majeure", "overview", "about"
+    "warranty", "damages", "carve-out", "severab", "force majeure", "overview", "about",
+    "definition", "defined", "scope", "flag", "flagged", "issue", "vulnerability", "vulnerabilities",
+    "problem", "arbitrat", "term", "terms", "provision", "section", "agreement", "contract",
+    "document", "score", "audit", "recommendation", "enforceab"
   ];
 
   const hasLegalKeyword = legalKeywords.some((kw) => q.includes(kw));
@@ -1441,26 +1444,6 @@ export default function Dashboard() {
                         </div>
                       )}
                       <div ref={chatBottomRef} />
-                    </div>
-
-                    {/* Prompt Suggestions */}
-                    <div className="px-4 py-2.5 bg-slate-50 border-t border-[#d6d2c8] flex items-center gap-2 overflow-x-auto">
-                      <span className="text-xs font-mono uppercase tracking-wider text-slate-400 shrink-0 font-semibold">Inquire:</span>
-                      {[
-                        "Why is the definition scope flagged?",
-                        "What are the main risks from Plaintiff's perspective?",
-                        "How can we balance the indemnity clause?",
-                        "Is the termination notice enforceable in court?"
-                      ].map((prompt, pIdx) => (
-                        <button
-                          key={pIdx}
-                          onClick={() => handleSendChatMessage(prompt)}
-                          disabled={sendingChat}
-                          className="shrink-0 text-xs font-mono bg-white hover:bg-slate-200 text-slate-700 border border-slate-200 px-3 py-1.5 transition-colors"
-                        >
-                          {prompt}
-                        </button>
-                      ))}
                     </div>
 
                     {/* Message Input Form */}
