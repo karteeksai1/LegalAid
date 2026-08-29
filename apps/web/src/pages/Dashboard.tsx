@@ -24,6 +24,8 @@ import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
 import { clearMockSession, getMockSession, MockSession } from "@/lib/mockAuth";
 
+const USE_BACKEND_API = import.meta.env.VITE_USE_BACKEND_API === "true";
+
 interface APIDocument {
   id: string;
   filename: string;
@@ -230,6 +232,10 @@ export default function Dashboard() {
   };
 
   const fetchDocuments = async () => {
+    if (!USE_BACKEND_API) {
+      return;
+    }
+
     try {
       const res = await fetch("/api/documents");
       if (res.ok) {
@@ -296,6 +302,32 @@ export default function Dashboard() {
     setUploading(true);
     setShowUploadModal(true);
     setUploadStatusMsg("Uploading file to server...");
+
+    if (!USE_BACKEND_API) {
+      const documentId = `local-${crypto.randomUUID()}`;
+      const mockDocument: APIDocument = {
+        id: documentId,
+        filename: file.name,
+        content_type: file.type || "text/plain",
+        status: "completed",
+        page_count: file.type.includes("pdf") ? 12 : 1,
+        created_at: new Date().toISOString(),
+        risk_score: 8.2,
+        risk_level: "High",
+      };
+      const mockAnalysis = buildMockAnalysis(file.name, documentId);
+      setUploadStatusMsg("Generating local demo analysis...");
+      setDocuments((current) => [mockDocument, ...current.filter((doc) => doc.id !== documentId)]);
+      setMockAnalyses((current) => ({ ...current, [documentId]: mockAnalysis }));
+      setSelectedDocId(documentId);
+      setAnalysis(mockAnalysis);
+      setShowUploadModal(false);
+      setUploading(false);
+      toast.success("Demo analysis generated locally.", {
+        description: "Set VITE_USE_BACKEND_API=true when backend, Groq, Pinecone, and Neon are ready.",
+      });
+      return;
+    }
     
     try {
       // Step 1: Upload and trigger ingestion pipeline
