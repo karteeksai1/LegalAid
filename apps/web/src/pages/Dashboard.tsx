@@ -944,8 +944,8 @@ export default function Dashboard() {
                           className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
                         >
                           {msg.role === "assistant" && (
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className={`text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 font-bold ${
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <span className={`text-[11px] font-mono uppercase tracking-wider px-2.5 py-0.5 font-bold ${
                                 msg.agent_perspective === 'Plaintiff Counsel'
                                   ? "bg-amber-100 text-amber-900 border border-amber-300"
                                   : msg.agent_perspective === 'Judge'
@@ -956,14 +956,14 @@ export default function Dashboard() {
                               }`}>
                                 {msg.agent_perspective || "AI Counsel"}
                               </span>
-                              <span className="text-[10px] font-mono text-slate-400">
+                              <span className="text-xs font-mono text-slate-400">
                                 {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </span>
                             </div>
                           )}
 
                           <div
-                            className={`p-4 max-w-2xl text-xs leading-relaxed ${
+                            className={`p-4 max-w-2xl text-sm leading-relaxed ${
                               msg.role === "user"
                                 ? "bg-[#101412] text-white border border-[#101412]"
                                 : "bg-white text-[#101412] border border-[#d6d2c8] shadow-sm"
@@ -973,12 +973,12 @@ export default function Dashboard() {
 
                             {/* Grounded Citations Quote Block */}
                             {msg.citations && msg.citations.length > 0 && (
-                              <div className="mt-3 pt-3 border-t border-slate-200 font-mono text-[10px] space-y-1.5 bg-slate-50 p-2.5">
-                                <span className="text-[9px] uppercase tracking-wider text-[#3158ff] font-bold flex items-center gap-1">
-                                  <CheckCircle className="h-2.5 w-2.5 text-green-600" /> Grounded Source Excerpt
+                              <div className="mt-3.5 pt-3 border-t border-slate-200 font-mono text-xs space-y-1.5 bg-slate-50 p-3">
+                                <span className="text-[10px] uppercase tracking-wider text-[#3158ff] font-bold flex items-center gap-1">
+                                  <CheckCircle className="h-3 w-3 text-green-600" /> Grounded Source Excerpt
                                 </span>
                                 {msg.citations.map((cite, cIdx) => (
-                                  <blockquote key={cIdx} className="border-l-2 border-[#3158ff] pl-2.5 italic text-slate-600 leading-normal">
+                                  <blockquote key={cIdx} className="border-l-2 border-[#3158ff] pl-3 italic text-slate-700 leading-relaxed text-xs">
                                     "{cite}"
                                   </blockquote>
                                 ))}
@@ -989,7 +989,7 @@ export default function Dashboard() {
                       ))}
 
                       {sendingChat && (
-                        <div className="flex items-center gap-2 text-xs font-mono text-slate-500 p-2">
+                        <div className="flex items-center gap-2 text-sm font-mono text-slate-500 p-2">
                           <Activity className="h-4 w-4 animate-spin text-[#3158ff]" />
                           <span>Counsel deliberating on evidence...</span>
                         </div>
@@ -999,7 +999,7 @@ export default function Dashboard() {
 
                     {/* Prompt Suggestions */}
                     <div className="px-4 py-2.5 bg-slate-50 border-t border-[#d6d2c8] flex items-center gap-2 overflow-x-auto">
-                      <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 shrink-0">Inquire:</span>
+                      <span className="text-xs font-mono uppercase tracking-wider text-slate-400 shrink-0 font-semibold">Inquire:</span>
                       {[
                         "Why is the definition scope flagged?",
                         "What are the main risks from Plaintiff's perspective?",
@@ -1010,7 +1010,7 @@ export default function Dashboard() {
                           key={pIdx}
                           onClick={() => handleSendChatMessage(prompt)}
                           disabled={sendingChat}
-                          className="shrink-0 text-[10px] font-mono bg-white hover:bg-slate-200 text-slate-700 border border-slate-200 px-2.5 py-1 transition-colors"
+                          className="shrink-0 text-xs font-mono bg-white hover:bg-slate-200 text-slate-700 border border-slate-200 px-3 py-1.5 transition-colors"
                         >
                           {prompt}
                         </button>
@@ -1031,14 +1031,14 @@ export default function Dashboard() {
                         onChange={(e) => setChatInput(e.target.value)}
                         placeholder="Ask AI Counsel a question about this document (e.g. explain the liability cap risk)..."
                         disabled={sendingChat}
-                        className="flex-1 px-4 py-2.5 text-xs bg-slate-50 border border-slate-200 focus:outline-none focus:ring-1 focus:ring-[#101412]"
+                        className="flex-1 px-4 py-3 text-sm bg-slate-50 border border-slate-200 focus:outline-none focus:ring-1 focus:ring-[#101412]"
                       />
                       <button
                         type="submit"
                         disabled={!chatInput.trim() || sendingChat}
-                        className="bg-[#101412] hover:bg-[#202622] text-[#d7ff52] px-5 py-2.5 text-xs font-mono font-bold flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                        className="bg-[#101412] hover:bg-[#202622] text-[#d7ff52] px-6 py-3 text-xs font-mono font-bold flex items-center gap-1.5 transition-colors disabled:opacity-50"
                       >
-                        <Send className="h-3.5 w-3.5" /> Send
+                        <Send className="h-4 w-4" /> Send
                       </button>
                     </form>
                   </div>

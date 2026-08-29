@@ -81,10 +81,15 @@
 
 @layer base {
   * { @apply border-border outline-ring/50; }
-  html { scroll-behavior: smooth; }
+  html { 
+    scroll-behavior: smooth; 
+    font-size: 17.5px; /* Global readable font scale boost */
+  }
   body {
     @apply bg-background text-foreground;
     font-family: "IBM Plex Sans", sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.6;
     background-image: radial-gradient(rgba(16, 20, 18, 0.06) 0.65px, transparent 0.65px);
     background-size: 7px 7px;
   }
