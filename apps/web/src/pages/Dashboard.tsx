@@ -243,16 +243,44 @@ export function getPlainArbitrationRule(rule: string) {
   return "Our AI panel agreed on the interpretation that best protects the document owner from unexpected liabilities.";
 }
 
-export type IntentClass = "off_topic" | "general_legal" | "in_document_legal";
+export type IntentClass = "off_topic" | "general_legal" | "in_document_legal" | "prompt_injection" | "citation_fabrication";
 
 export interface IntentResult {
   intent: IntentClass;
   topic?: string;
   generalAnswer?: string;
+  securityRefusal?: string;
 }
 
 export function classifyUserIntent(question: string): IntentResult {
   const q = question.trim().toLowerCase();
+
+  // 0. Security Guardrail 1: Prompt Injection / System Prompt Extraction / Role Override
+  const injectionPatterns = [
+    /\b(ignore|disregard|forget|override|bypass)\b.{0,60}\b(instructions?|system prompt|directives?|rules?|guidelines?|constraints?)\b/i,
+    /\b(reveal|show|display|print|output|repeat|leak|tell me)\b.{0,60}\b(system prompt|system message|developer prompt|initial prompt|hidden instructions|internal instructions|confidential information)\b/i,
+    /\b(important instruction for the ai|system override|developer mode|jailbreak|dan mode|unfiltered mode|god mode)\b/i,
+    /\b(pretend you are not|you are now not bound by|act as an unrestricted|disregard all previous)\b/i
+  ];
+  if (injectionPatterns.some((pattern) => pattern.test(q))) {
+    return {
+      intent: "prompt_injection",
+      securityRefusal: "I cannot comply with instructions to override system guidelines, alter my role, or reveal internal system configurations."
+    };
+  }
+
+  // 0. Security Guardrail 2: Citation Fabrication / Hallucination on Demand
+  const fabricationPatterns = [
+    /\b(invent|fabricate|make up|hallucinate|generate fake|create plausible|fake|dummy|bogus)\b.{0,60}\b(citations?|cases?|court cases?|statutes?|precedents?|authorities|legal references?)\b/i,
+    /\b(if you cannot find|if not found|if you don't know|if unable to find)\b.{0,60}\b(invent|make up|fabricate|provide plausible|plausible citations?)\b/i,
+    /\b(give me|cite|list)\b.{0,60}\b(supreme court cases?|circuit cases?|case law|precedents?)\b.{0,60}\b(invent|make up|plausible)\b/i
+  ];
+  if (fabricationPatterns.some((pattern) => pattern.test(q))) {
+    return {
+      intent: "citation_fabrication",
+      securityRefusal: "I cannot invent or fabricate legal citations, case law, or statutory references. LegalAid only provides references that are grounded in verified document text."
+    };
+  }
 
   // 1. Math, arithmetic, calculations (e.g. "what is 24*89", "calculate 5+10", "x * y")
   const hasMath = /(?:\d+\s*[\*\+\-\/\^xX%]\s*\d+)|(?:\b(calculate|math|square root|multiply|divided by|plus|minus)\b.*\d+)/i.test(q);
@@ -282,19 +310,20 @@ export function classifyUserIntent(question: string): IntentResult {
   const hasDocRef = docKeywords.some((kw) => q.includes(kw));
 
   // 4. General Legal Questions (educational concept questions not referencing the draft)
-  const isGeneralPhrase = /\b(in general|generally|in law|standard practice|by definition|meaning of|what is|define|explain)\b/i.test(q);
+  const isGeneralExplicit = /\b(in general|generally|in law|standard practice|definition of|by definition|define )\b/i.test(q);
+  const isConceptQuery = /^(what is (an?|the definition of)|what does .* mean|define )/i.test(q);
   const matchedGlossaryKey = Object.keys(LEGAL_GLOSSARY).find((term) => q.includes(term.toLowerCase()));
 
   if (matchedGlossaryKey) {
-    if (isGeneralPhrase && !hasDocRef) {
+    if ((isGeneralExplicit || isConceptQuery) && !hasDocRef) {
       const def = LEGAL_GLOSSARY[matchedGlossaryKey];
       return {
         intent: "general_legal",
         topic: matchedGlossaryKey,
-        generalAnswer: `In standard legal practice, **${matchedGlossaryKey}** means: ${def}\n\n*Note: This is general legal information and is not derived from specific clauses in your uploaded file.*`
+        generalAnswer: `In standard legal practice, **${matchedGlossaryKey}** means: ${def}\n\n*Note: This is general legal information and is not derived from specific clauses in your uploaded document.*`
       };
     }
-    if (hasDocRef) {
+    if (hasDocRef || !(isGeneralExplicit || isConceptQuery)) {
       return { intent: "in_document_legal" };
     }
   }
@@ -715,8 +744,22 @@ export default function Dashboard() {
 
     setChatMessages((prev) => [...prev, userMsg]);
 
-    // 0. Intent Classification Gate (Runs strictly BEFORE retrieval or agent templates)
+    // 0. Security Guardrail & Intent Classification Gate
     const intentResult = classifyUserIntent(textToSend);
+
+    if (intentResult.intent === "prompt_injection" || intentResult.intent === "citation_fabrication") {
+      const assistantMsg: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: intentResult.securityRefusal || "I cannot comply with this instruction. LegalAid only provides factual reviews of your uploaded document.",
+        agent_perspective: "Security Guardrail",
+        citations: [],
+        timestamp: new Date().toISOString()
+      };
+      setChatMessages((prev) => [...prev, assistantMsg]);
+      setSendingChat(false);
+      return;
+    }
 
     if (intentResult.intent === "off_topic") {
       const assistantMsg: ChatMessage = {
@@ -750,7 +793,7 @@ export default function Dashboard() {
       if (USE_BACKEND_API) {
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 1200);
+          const timeoutId = setTimeout(() => controller.abort(), 7000);
 
           const res = await fetch(`/api/documents/${selectedDocId}/chat`, {
             method: "POST",
@@ -834,35 +877,37 @@ export default function Dashboard() {
         const firstScored = scoredChunks[0];
         const targetChunk = firstScored ? firstScored.chunk : null;
 
-        // Finding match
-        const matchedFinding = analysis?.findings.find(
-          (f) =>
-            (f.clause_type && keywords.some((kw) => f.clause_type.toLowerCase().includes(kw))) ||
-            (f.finding_type && keywords.some((kw) => f.finding_type.toLowerCase().includes(kw)))
-        );
-
-        if (matchedFinding) {
-          const plain = getPlainLanguageFinding(matchedFinding);
-          replyPerspective = viewMode === "simple" ? "Plain English Review" : matchedFinding.agent_name;
-          if (matchedFinding.evidence_quote) {
-            citations = [matchedFinding.evidence_quote];
-          }
-          replyContent = viewMode === "simple"
-            ? `Regarding **"${textToSend}"**:\n\n**What this clause means:**\n${plain.whatItSays}\n\n**Why it matters to you:**\n${plain.impact}\n\n**Recommended Action:**\n${plain.action}`
-            : `Regarding your inquiry on "${textToSend}":\n\n${matchedFinding.agent_name} audited the ${matchedFinding.clause_type} section (Severity: ${matchedFinding.severity_score}/10, ${matchedFinding.risk_level} Risk):\n\n${matchedFinding.summary}\n\n**Recommended Action:**\nConsider negotiating mutual reciprocal terms and clear definitions to remove adversarial leverage.`;
-        } else if (targetChunk) {
+        if (targetChunk) {
           replyPerspective = viewMode === "simple" ? "Document Text" : "AI Counsel (RAG Retrieved)";
           citations = [`Page ${targetChunk.page_number} [${targetChunk.clause_type || "Excerpt"}]: "${targetChunk.raw_text.slice(0, 180)}..."`];
           replyContent = viewMode === "simple"
-            ? `Here is the relevant excerpt from page ${targetChunk.page_number} of your agreement:\n\n"${targetChunk.raw_text}"\n\n**Takeaway:** Review this clause to ensure terms are mutual and reasonable.`
-            : `Based on retrieved context from page ${targetChunk.page_number} of "${analysis?.document.filename}":\n\n"${targetChunk.raw_text}"\n\n**Legal Assessment:**\nThis text was reviewed against standard commercial and enforceability standards.`;
+            ? `Regarding your question on **"${textToSend}"**, here is the relevant excerpt from page ${targetChunk.page_number} of your agreement:\n\n"${targetChunk.raw_text}"\n\n**Takeaway:** Check that this clause is mutual and doesn't leave your obligations uncapped.`
+            : `Based on retrieved context from page ${targetChunk.page_number} of "${analysis?.document.filename}" regarding "${textToSend}":\n\n"${targetChunk.raw_text}"\n\n**Legal Assessment:**\nThis text was reviewed against standard commercial and enforceability standards.`;
         } else {
-          // Zero matches found in document: never fabricate or pull arbitrary chunks!
-          replyPerspective = viewMode === "simple" ? "Plain English Advisor" : "Citation & Evidence Agent";
-          replyContent = viewMode === "simple"
-            ? `I searched your agreement for provisions related to "${textToSend}", but this document does not contain any matching clauses or mentions of this topic.`
-            : `No provisions or clauses directly matching "${textToSend}" were identified in the verified text of "${analysis?.document.filename}".`;
-          citations = [];
+          // Finding match fallback (only if keyword specifically matches the finding clause)
+          const matchedFinding = analysis?.findings.find(
+            (f) =>
+              (f.clause_type && keywords.some((kw) => f.clause_type.toLowerCase().includes(kw))) ||
+              (f.finding_type && keywords.some((kw) => f.finding_type.toLowerCase().includes(kw)))
+          );
+
+          if (matchedFinding) {
+            const plain = getPlainLanguageFinding(matchedFinding);
+            replyPerspective = viewMode === "simple" ? "Plain English Review" : matchedFinding.agent_name;
+            if (matchedFinding.evidence_quote) {
+              citations = [matchedFinding.evidence_quote];
+            }
+            replyContent = viewMode === "simple"
+              ? `Regarding **"${textToSend}"** in the ${matchedFinding.clause_type} section:\n\n**What this clause means:**\n${plain.whatItSays}\n\n**Why it matters to you:**\n${plain.impact}\n\n**Recommended Action:**\n${plain.action}`
+              : `Regarding your inquiry on "${textToSend}":\n\n${matchedFinding.agent_name} audited the ${matchedFinding.clause_type} section (Severity: ${matchedFinding.severity_score}/10, ${matchedFinding.risk_level} Risk):\n\n${matchedFinding.summary}\n\n**Recommended Action:**\nConsider negotiating mutual reciprocal terms and clear definitions to remove adversarial leverage.`;
+          } else {
+            // Zero matches found in document: never fabricate or pull arbitrary chunks!
+            replyPerspective = viewMode === "simple" ? "Plain English Advisor" : "Citation & Evidence Agent";
+            replyContent = viewMode === "simple"
+              ? `I searched your agreement for provisions related to "${textToSend}", but this document does not contain any matching clauses or mentions of this topic.`
+              : `No provisions or clauses directly matching "${textToSend}" were identified in the verified text of "${analysis?.document.filename}".`;
+            citations = [];
+          }
         }
       }
 
