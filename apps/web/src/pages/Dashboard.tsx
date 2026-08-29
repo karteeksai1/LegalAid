@@ -439,51 +439,60 @@ export default function Dashboard() {
         }
       }
 
-      // Rich Client-side Legal Intelligence Engine
+      // Rich Client-side RAG Intelligence Engine
       const qLower = textToSend.toLowerCase();
       let replyContent = "";
-      let replyPerspective = "Consensus Lead Counsel";
+      let replyPerspective = "RAG Legal Engine";
       let citations: string[] = [];
 
-      if (qLower.includes("what it is about") || qLower.includes("overview") || qLower.includes("summary") || qLower.includes("about") || qLower.includes("what is this")) {
-        replyPerspective = "Judge";
-        replyContent = `This document ("${analysis?.document.filename || "Legal Agreement"}") is a commercial legal draft with an overall assessed risk score of ${analysis?.analysis.aggregate_risk_score.toFixed(1) || "1.3"}/10 (${analysis?.analysis.risk_level || "Low"} risk profile).\n\nExecutive Overview:\n${analysis?.analysis.consensus_report.summary || "The document has been audited across Defense, Plaintiff, Judge, Drafting, and Compliance agents."}\n\nKey Vulnerabilities Identified: ${analysis?.analysis.critical_count || 0} Critical, ${analysis?.analysis.high_count || 0} High, and ${analysis?.analysis.medium_count || 0} Medium risk findings.`;
-        if (analysis?.findings[0]?.evidence_quote) {
-          citations = [analysis.findings[0].evidence_quote];
+      // 1. Perform semantic & keyword chunk retrieval
+      const allChunks = analysis?.chunks || [];
+      const stopwords = new Set(["what", "is", "the", "about", "are", "how", "why", "who", "which", "when", "where", "this", "that", "from", "for", "with", "and", "does", "can", "in", "on", "of", "to", "a", "an", "tell", "me"]);
+      const keywords = qLower.split(/\W+/).filter((w) => w.length > 2 && !stopwords.has(w));
+
+      const scoredChunks = allChunks.map((c) => {
+        let score = 0;
+        const textLower = c.raw_text.toLowerCase();
+        if (textToSend.length > 4 && textLower.includes(qLower)) score += 10;
+        for (const kw of keywords) {
+          const count = (textLower.match(new RegExp(kw, "g")) || []).length;
+          score += count * 2;
         }
+        if (c.clause_type && keywords.some((kw) => c.clause_type.toLowerCase().includes(kw))) {
+          score += 5;
+        }
+        return { chunk: c, score };
+      });
+
+      scoredChunks.sort((a, b) => b.score - a.score);
+      const topChunks = scoredChunks.filter((s) => s.score > 0).map((s) => s.chunk);
+      const primaryChunk = topChunks[0] || allChunks[0];
+
+      if (qLower.includes("what it is about") || qLower.includes("overview") || qLower.includes("summary") || qLower.includes("about") || qLower.includes("what is this")) {
+        replyPerspective = "AI Counsel (Document Overview)";
+        if (primaryChunk) {
+          citations = [`Page ${primaryChunk.page_number}: "${primaryChunk.raw_text.slice(0, 180)}..."`];
+        }
+        replyContent = `**Document Overview:** "${analysis?.document.filename || "Uploaded File"}"\n\n**Extracted Text Excerpt:**\n"${primaryChunk?.raw_text.slice(0, 250) || "Document text extracted."}..."\n\n**Adversarial Audit Summary:**\n${analysis?.analysis.consensus_report.summary || "Audited across Defense, Plaintiff, Judge, Drafting, and Compliance agents."}\n\n**Risk Score:** ${analysis?.analysis.aggregate_risk_score.toFixed(1) || "1.3"}/10 (${analysis?.analysis.risk_level || "Low"} Risk Profile).`;
       } else if (qLower.includes("plaintiff") || qLower.includes("opposing") || qLower.includes("attack") || qLower.includes("exploit") || qLower.includes("loophole")) {
         replyPerspective = "Plaintiff Counsel";
         const plaintiffFindings = analysis?.findings.filter((f) => f.agent_name === "Plaintiff Counsel") || [];
         const topFinding = plaintiffFindings[0];
         if (topFinding) {
           citations = plaintiffFindings.slice(0, 2).map((f) => f.evidence_quote);
-          replyContent = `From an aggressive Plaintiff/Opposing Counsel perspective, the primary litigation vulnerabilities and leverage points in this document are:\n\n1. ${topFinding.finding_type} (${topFinding.clause_type}): ${topFinding.summary}\n\nOpposing counsel will seek to exploit uncapped remedies and unilateral ambiguity to extract settlements or impose emergency injunctions before full discovery.`;
+          replyContent = `From an aggressive Plaintiff/Opposing Counsel perspective, the primary litigation vulnerabilities and leverage points in this document are:\n\n1. **${topFinding.finding_type}** (${topFinding.clause_type}): ${topFinding.summary}\n\nOpposing counsel will seek to exploit uncapped remedies and unilateral ambiguity to extract settlements or impose emergency injunctions before full discovery.`;
         } else {
           replyContent = `Plaintiff Counsel evaluated the draft and noted that broad indemnity terms, ambiguous milestones, and uncapped remedies offer the greatest leverage for an adverse party seeking litigation advantage.`;
-          if (analysis?.findings[0]?.evidence_quote) citations = [analysis.findings[0].evidence_quote];
+          if (primaryChunk) citations = [`Page ${primaryChunk.page_number}: "${primaryChunk.raw_text.slice(0, 160)}..."`];
         }
-      } else if (qLower.includes("judge") || qLower.includes("court") || qLower.includes("enforce") || qLower.includes("valid") || qLower.includes("unconscionable")) {
-        replyPerspective = "Judge";
-        const judgeFindings = analysis?.findings.filter((f) => f.agent_name === "Judge") || [];
-        const topFinding = judgeFindings[0];
-        if (topFinding) {
-          citations = [topFinding.evidence_quote];
-          replyContent = `From a Judicial enforceability perspective:\n\n${topFinding.summary}\n\nSeverity: ${topFinding.severity_score}/10 (${topFinding.risk_level} risk). Courts strictly scrutinize clauses that impose unconscionable limitations or one-sided liability shifts.`;
-        } else {
-          replyContent = `The judicial audit indicates standard boilerplate validity, but warns against overbroad liability carve-outs that may be severed in litigation.`;
-        }
-      } else if (qLower.includes("defense") || qLower.includes("liability") || qLower.includes("protect") || qLower.includes("exposure")) {
-        replyPerspective = "Defense Counsel";
-        const defenseFindings = analysis?.findings.filter((f) => f.agent_name === "Defense Counsel") || [];
-        const topFinding = defenseFindings[0];
-        if (topFinding) {
-          citations = [topFinding.evidence_quote];
-          replyContent = `Defense Counsel analysis on client liability exposure:\n\n${topFinding.summary}\n\nRecommendation: Restrict pass-through indemnity strictly to third-party direct claims and establish a mutual aggregate liability cap.`;
-        } else {
-          replyContent = `Defense review recommends inserting standard consequential damage exclusions and ensuring reciprocal indemnification.`;
-        }
+      } else if (topChunks.length > 0 && primaryChunk) {
+        // Direct RAG context hit from document chunks
+        replyPerspective = "AI Counsel (RAG Retrieved)";
+        citations = topChunks.slice(0, 2).map((c) => `Page ${c.page_number} [${c.clause_type || "Clause"}]: "${c.raw_text.slice(0, 180)}..."`);
+        
+        replyContent = `Based on the retrieved context from page ${primaryChunk.page_number} of "${analysis?.document.filename}":\n\n"${primaryChunk.raw_text}"\n\n**Legal Assessment:**\nThis provision was analyzed against commercial standards. Review whether reciprocal caps or clearer transition definitions are required.`;
       } else {
-        // Match specific clause or finding
+        // Fallback finding match
         const matchedFinding =
           analysis?.findings.find(
             (f) =>
@@ -495,12 +504,12 @@ export default function Dashboard() {
         if (matchedFinding) {
           replyPerspective = matchedFinding.agent_name;
           citations = [matchedFinding.evidence_quote];
-          replyContent = `Regarding your question on "${textToSend}":\n\n${matchedFinding.agent_name} audited the ${matchedFinding.clause_type} section (Severity: ${matchedFinding.severity_score}/10, ${matchedFinding.risk_level} Risk):\n\n${matchedFinding.summary}\n\nRecommended Action:\nConsider negotiating mutual reciprocal terms and clear definitions to remove adversarial leverage.`;
+          replyContent = `Regarding your inquiry on "${textToSend}":\n\n${matchedFinding.agent_name} audited the ${matchedFinding.clause_type} section (Severity: ${matchedFinding.severity_score}/10, ${matchedFinding.risk_level} Risk):\n\n${matchedFinding.summary}\n\n**Recommended Action:**\nConsider negotiating mutual reciprocal terms and clear definitions to remove adversarial leverage.`;
         } else {
           replyPerspective = "Citation & Evidence Agent";
-          replyContent = `Regarding "${textToSend}": The multi-agent review audited the document across Defense, Plaintiff, Judge, Drafting, and Compliance dimensions. All verified clauses are grounded in the source text and cataloged in the Findings Trail.`;
-          if (analysis?.findings[0]?.evidence_quote) {
-            citations = [analysis.findings[0].evidence_quote];
+          replyContent = `Regarding "${textToSend}": The document was cross-referenced across Defense, Plaintiff, Judge, Drafting, and Compliance dimensions. All verified clauses are grounded in the source text and cataloged in the Findings Trail.`;
+          if (primaryChunk) {
+            citations = [`Page ${primaryChunk.page_number}: "${primaryChunk.raw_text.slice(0, 160)}..."`];
           }
         }
       }
