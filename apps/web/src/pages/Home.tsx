@@ -40,7 +40,17 @@ export default function Home() {
           <div className="absolute inset-0 paper-grid opacity-20" />
           <div className="absolute right-0 top-0 h-full w-[58%] opacity-40 bg-[radial-gradient(circle_at_55%_42%,#3158ffaa_0%,transparent_28%),linear-gradient(135deg,transparent_0%,#d7ff5240_100%)]" />
           <div className="absolute inset-0 bg-[linear-gradient(90deg,#101412_0%,#101412e8_38%,#10141255_75%,#101412aa_100%)]" />
-          <div className="container relative flex min-h-[688px] items-center pb-20 pt-20">
+          
+          {/* City Architecture Buildings Outline Graphic */}
+          <div className="pointer-events-none absolute bottom-0 right-0 z-0 hidden lg:flex items-end justify-end h-[92%] w-[54%] select-none opacity-30 mix-blend-screen overflow-hidden">
+            <img 
+              src="/city-buildings.png" 
+              alt="City Architecture Outline" 
+              className="h-full w-full object-cover object-bottom drop-shadow-[0_0_30px_rgba(49,88,255,0.25)] filter"
+            />
+          </div>
+
+          <div className="container relative z-10 flex min-h-[688px] items-center pb-20 pt-20">
             <div className="max-w-[760px]">
               <div className="mb-8 flex items-center gap-3"><span className="h-2 w-2 signal-pulse rounded-full bg-[#d7ff52]" /><span className="eyebrow text-[#d7ff52]">Explainable review infrastructure</span></div>
               <h1 className="font-display max-w-[790px] text-[clamp(4rem,9vw,8.6rem)] font-bold leading-[0.86] tracking-[-0.09em]">Find the clause that <span className="text-[#d7ff52]">changes the deal.</span></h1>
