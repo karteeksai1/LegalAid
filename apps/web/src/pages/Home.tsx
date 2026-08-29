@@ -41,12 +41,12 @@ export default function Home() {
           <div className="absolute right-0 top-0 h-full w-[58%] opacity-40 bg-[radial-gradient(circle_at_55%_42%,#3158ffaa_0%,transparent_28%),linear-gradient(135deg,transparent_0%,#d7ff5240_100%)]" />
           <div className="absolute inset-0 bg-[linear-gradient(90deg,#101412_0%,#101412e8_38%,#10141255_75%,#101412aa_100%)]" />
           
-          {/* City Architecture Buildings Outline Graphic */}
-          <div className="pointer-events-none absolute bottom-0 right-0 z-0 hidden lg:flex items-end justify-end h-[92%] w-[54%] select-none opacity-30 mix-blend-screen overflow-hidden">
+          {/* Clean Minimal Architectural Skyline Outline Graphic */}
+          <div className="pointer-events-none absolute bottom-0 right-0 z-0 hidden lg:flex items-end justify-end h-[85%] w-[48%] select-none opacity-55 overflow-hidden">
             <img 
-              src="/city-buildings.png" 
-              alt="City Architecture Outline" 
-              className="h-full w-full object-cover object-bottom drop-shadow-[0_0_30px_rgba(49,88,255,0.25)] filter"
+              src="/city-minimal.svg" 
+              alt="Architectural City Skyline" 
+              className="h-full w-full object-contain object-bottom drop-shadow-[0_0_20px_rgba(215,255,82,0.1)]"
             />
           </div>
 
