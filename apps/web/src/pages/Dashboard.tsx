@@ -731,7 +731,7 @@ export default function Dashboard() {
     : [];
 
   return (
-    <main className="min-h-screen bg-[#f1eee6] text-[#101412] flex flex-col font-sans">
+    <main className="h-screen max-h-screen overflow-hidden bg-[#f1eee6] text-[#101412] flex flex-col font-sans">
       {/* Top Header */}
       <header className="border-b border-[#d6d2c8] bg-[#101412] text-[#f1eee6] shrink-0">
         <div className="container flex min-h-18 items-center justify-between gap-6 py-2">
@@ -753,8 +753,8 @@ export default function Dashboard() {
       {/* Main Layout */}
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
         {/* Left Sidebar: Document List */}
-        <aside className="w-full md:w-80 border-r border-[#d6d2c8] bg-[#f8f6f0] flex flex-col shrink-0">
-          <div className="p-4 border-b border-[#d6d2c8] flex items-center justify-between">
+        <aside className="w-full md:w-80 border-r border-[#d6d2c8] bg-[#f8f6f0] flex flex-col shrink-0 overflow-hidden min-h-0">
+          <div className="p-4 border-b border-[#d6d2c8] flex items-center justify-between shrink-0">
             <span className="eyebrow text-[#626860] uppercase tracking-wider">Legal Documents</span>
             <Button 
               onClick={() => fileInputRef.current?.click()}
@@ -772,7 +772,7 @@ export default function Dashboard() {
             />
           </div>
 
-          <div className="flex-1 overflow-y-auto p-2 space-y-1">
+          <div className="flex-1 overflow-y-auto p-2 space-y-1 min-h-0">
             {documents.length === 0 ? (
               <div className="text-center py-12 px-4">
                 <FileText className="h-8 w-8 text-[#8f978e] mx-auto opacity-50 mb-3" />
@@ -820,7 +820,7 @@ export default function Dashboard() {
         </aside>
 
         {/* Right Section: Active Review Workbench */}
-        <section className="flex-1 overflow-y-auto flex flex-col min-h-0 bg-[#f1eee6]">
+        <section className="flex-1 flex flex-col min-h-0 overflow-hidden bg-[#f1eee6]">
           {!selectedDocId ? (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center max-w-lg mx-auto">
               <FolderOpen className="h-16 w-16 text-[#3158ff] mb-6 animate-pulse" />
@@ -851,9 +851,9 @@ export default function Dashboard() {
               <p className="text-sm text-[#626860] mt-2">The document is currently being ingested or parsed by the AI backend.</p>
             </div>
           ) : (
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 flex flex-col overflow-hidden min-h-0">
               {/* Header workbench metadata */}
-              <div className="p-6 border-b border-[#d6d2c8] bg-[#f1eee6] flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0">
+              <div className="p-4 sm:p-5 border-b border-[#d6d2c8] bg-[#f1eee6] flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0">
                 <div>
                   <span className="eyebrow text-[#3158ff]">Adversarial Risk Audit</span>
                   <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight mt-1 truncate max-w-xl text-[#101412]">
@@ -892,12 +892,12 @@ export default function Dashboard() {
                     </button>
                   </div>
 
-                  <div className="flex items-center gap-3 bg-[#101412] px-4 py-2.5 text-[#f1eee6]">
+                  <div className="flex items-center gap-3 bg-[#101412] px-4 py-2 text-[#f1eee6]">
                     <div className="text-right">
                       <div className="text-[9px] font-mono uppercase tracking-widest text-[#d7ff52] font-semibold">Risk Score</div>
                       <div className="font-mono text-[9px] text-[#8f978e] mt-0.5">{analysis.analysis.risk_level}</div>
                     </div>
-                    <div className="font-display text-3xl font-extrabold text-[#d7ff52] leading-none">
+                    <div className="font-display text-2xl sm:text-3xl font-extrabold text-[#d7ff52] leading-none">
                       {analysis.analysis.aggregate_risk_score.toFixed(1)}
                     </div>
                   </div>
@@ -906,10 +906,10 @@ export default function Dashboard() {
 
               {/* Main Content: Interactive Q&A Chat OR Findings Trail */}
               {workbenchView === "chat" ? (
-                <div className="flex-1 flex flex-col bg-white overflow-hidden p-6">
-                  <div className="flex-1 flex flex-col border border-[#d6d2c8] bg-white overflow-hidden shadow-sm">
+                <div className="flex-1 flex flex-col bg-[#f1eee6] overflow-hidden p-4 sm:p-5 min-h-0">
+                  <div className="flex-1 flex flex-col border border-[#d6d2c8] bg-white overflow-hidden shadow-sm min-h-0">
                     {/* Chat Deliberation Header */}
-                    <div className="p-3.5 border-b border-[#d6d2c8] bg-slate-50 flex flex-wrap items-center justify-between gap-3">
+                    <div className="p-3.5 border-b border-[#d6d2c8] bg-slate-50 flex flex-wrap items-center justify-between gap-3 shrink-0">
                       <div className="flex items-center gap-2.5">
                         <div className="p-1.5 bg-[#101412] text-[#d7ff52]">
                           <Bot className="h-4 w-4" />
@@ -1044,9 +1044,9 @@ export default function Dashboard() {
                   </div>
                 </div>
               ) : (
-                <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+                <div className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
                   {/* Left Column: Report Summary & Findings */}
-                  <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                  <div className="flex-1 overflow-y-auto p-6 space-y-6 min-h-0">
 
                 {/* Consensus Report Tabs Panel */}
                 <div className="bg-white border border-[#d6d2c8] p-5">
@@ -1232,8 +1232,8 @@ export default function Dashboard() {
 
               {/* Right Column: Evidence inspect side-drawer */}
               {selectedFinding && (
-                <div className="w-full lg:w-96 border-t lg:border-t-0 lg:border-l border-[#d6d2c8] bg-white flex flex-col shrink-0">
-                  <div className="p-4 border-b border-[#d6d2c8] flex items-center justify-between bg-slate-50">
+                <div className="w-full lg:w-96 border-t lg:border-t-0 lg:border-l border-[#d6d2c8] bg-white flex flex-col shrink-0 overflow-hidden min-h-0">
+                  <div className="p-4 border-b border-[#d6d2c8] flex items-center justify-between bg-slate-50 shrink-0">
                     <span className="font-mono text-xs uppercase tracking-wider text-[#3158ff] font-bold flex items-center gap-1.5">
                       <Sparkles className="h-3.5 w-3.5 text-[#3158ff]" /> Evidence Auditor
                     </span>
@@ -1245,7 +1245,7 @@ export default function Dashboard() {
                     </button>
                   </div>
                   
-                  <div className="p-5 flex-1 overflow-y-auto space-y-6">
+                  <div className="p-5 flex-1 overflow-y-auto space-y-6 min-h-0">
                     <div>
                       <span className="text-[10px] font-mono uppercase tracking-wider text-[#626860]">Surfaced Loophole</span>
                       <h3 className="font-display text-lg font-bold mt-1 text-[#101412] leading-snug">
