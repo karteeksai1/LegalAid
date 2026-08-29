@@ -243,6 +243,85 @@ export function getPlainArbitrationRule(rule: string) {
   return "Our AI panel agreed on the interpretation that best protects the document owner from unexpected liabilities.";
 }
 
+export type IntentClass = "off_topic" | "general_legal" | "in_document_legal";
+
+export interface IntentResult {
+  intent: IntentClass;
+  topic?: string;
+  generalAnswer?: string;
+}
+
+export function classifyUserIntent(question: string): IntentResult {
+  const q = question.trim().toLowerCase();
+
+  // 1. Math, arithmetic, calculations (e.g. "what is 24*89", "calculate 5+10", "x * y")
+  const hasMath = /(?:\d+\s*[\*\+\-\/\^xX%]\s*\d+)|(?:\b(calculate|math|square root|multiply|divided by|plus|minus)\b.*\d+)/i.test(q);
+  if (hasMath) {
+    return { intent: "off_topic" };
+  }
+
+  // 2. Off-topic generic domains (programming, weather, cooking, jokes, general trivia, sports)
+  const offTopicPatterns = [
+    /\b(python|javascript|typescript|c\+\+|java|html|css|sql|function|script|algorithm|binary search|debug code)\b/i,
+    /\b(weather|forecast|temperature|rain|sunny)\b/i,
+    /\b(recipe|cook|bake|ingredients|dinner|lunch|breakfast)\b/i,
+    /\b(joke|funny|riddle|story|poem|song|lyrics)\b/i,
+    /\b(president|capital of|how far is|tallest building|mount everest|speed of light|super bowl)\b/i,
+    /\b(football|basketball|soccer|nba|nfl|fifa|championship|movie|actor|actress)\b/i,
+    /\b(translate to (spanish|french|german|hindi|chinese)|how do you say|who was the|who is the)\b/i
+  ];
+  if (offTopicPatterns.some((pattern) => pattern.test(q))) {
+    return { intent: "off_topic" };
+  }
+
+  // 3. Document-specific reference keywords
+  const docKeywords = [
+    "this document", "this contract", "this agreement", "the document", "the contract",
+    "the agreement", "uploaded", "in here", "this draft", "my contract", "our deal"
+  ];
+  const hasDocRef = docKeywords.some((kw) => q.includes(kw));
+
+  // 4. General Legal Questions (educational concept questions not referencing the draft)
+  const isGeneralPhrase = /\b(in general|generally|in law|standard practice|by definition|meaning of|what is|define|explain)\b/i.test(q);
+  const matchedGlossaryKey = Object.keys(LEGAL_GLOSSARY).find((term) => q.includes(term.toLowerCase()));
+
+  if (matchedGlossaryKey) {
+    if (isGeneralPhrase && !hasDocRef) {
+      const def = LEGAL_GLOSSARY[matchedGlossaryKey];
+      return {
+        intent: "general_legal",
+        topic: matchedGlossaryKey,
+        generalAnswer: `In standard legal practice, **${matchedGlossaryKey}** means: ${def}\n\n*Note: This is general legal information and is not derived from specific clauses in your uploaded file.*`
+      };
+    }
+    if (hasDocRef) {
+      return { intent: "in_document_legal" };
+    }
+  }
+
+  // 5. In-Document Legal: Specific clause families, findings, questions about terms
+  const legalKeywords = [
+    "indemn", "liab", "terminat", "notice", "cure", "confidential", "ip ", "intellectual property",
+    "payment", "milestone", "breach", "govern", "jurisdiction", "court", "risk", "finding",
+    "plaintiff", "defense", "judge", "drafting", "compliance", "loophole", "clause", "covenant",
+    "warranty", "damages", "carve-out", "severab", "force majeure", "overview", "about"
+  ];
+
+  const hasLegalKeyword = legalKeywords.some((kw) => q.includes(kw));
+
+  if (hasDocRef || hasLegalKeyword) {
+    return { intent: "in_document_legal" };
+  }
+
+  // 6. Common greetings
+  if (/^(hi|hello|hey|help|greetings|good morning|good afternoon)\b/i.test(q)) {
+    return { intent: "in_document_legal", topic: "greeting" };
+  }
+
+  // 7. Non-legal text or unknown query
+  return { intent: "off_topic" };
+}
+
 interface ConsensusReasoning {
   summary: string;
   deliberation: AgentDeliberation[];
@@ -636,6 +715,37 @@ export default function Dashboard() {
 
     setChatMessages((prev) => [...prev, userMsg]);
 
+    // 0. Intent Classification Gate (Runs strictly BEFORE retrieval or agent templates)
+    const intentResult = classifyUserIntent(textToSend);
+
+    if (intentResult.intent === "off_topic") {
+      const assistantMsg: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: "I am an AI legal assistant focused on reviewing your uploaded document. I can only answer questions related to your contract's terms, risks, or legal provisions.",
+        agent_perspective: "Legal Assistant",
+        citations: [],
+        timestamp: new Date().toISOString()
+      };
+      setChatMessages((prev) => [...prev, assistantMsg]);
+      setSendingChat(false);
+      return;
+    }
+
+    if (intentResult.intent === "general_legal") {
+      const assistantMsg: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: intentResult.generalAnswer || "This is a general legal concept. In standard commercial contracting, parties define specific parameters to allocate risk.\n\n*Note: This is general legal information and is not based on clauses in your uploaded document.*",
+        agent_perspective: "Legal Knowledge Base",
+        citations: [],
+        timestamp: new Date().toISOString()
+      };
+      setChatMessages((prev) => [...prev, assistantMsg]);
+      setSendingChat(false);
+      return;
+    }
+
     try {
       if (USE_BACKEND_API) {
         try {
@@ -662,7 +772,7 @@ export default function Dashboard() {
         }
       }
 
-      // Instant Client-side RAG Intelligence Engine (Plain / Legal Adaptive)
+      // Instant Client-side RAG Intelligence Engine (Strict Grounding & Adaptive View)
       const qLower = textToSend.toLowerCase().trim();
       let replyContent = "";
       let replyPerspective = viewMode === "simple" ? "Plain English Advisor" : "AI Legal Counsel";
@@ -671,30 +781,30 @@ export default function Dashboard() {
       const allChunks = analysis?.chunks || [];
       const primaryChunk = allChunks[0];
 
-      // Handle common greetings
-      if (qLower === "hi" || qLower === "hello" || qLower === "hey" || qLower === "help") {
+      // Handle greetings
+      if (intentResult.topic === "greeting" || qLower === "hi" || qLower === "hello" || qLower === "hey" || qLower === "help") {
         replyPerspective = viewMode === "simple" ? "Plain English Advisor" : "Lead Legal Counsel";
         replyContent = viewMode === "simple"
           ? `Hello! I am your Plain-English Legal Assistant for **${analysis?.document.filename || "this document"}**.\n\nAsk me anything in everyday language, such as:\n- *"What is this document about?"*\n- *"What are the biggest traps in this contract?"*\n- *"Can they cancel on me without warning?"*\n- *"How do I fix the liability and payment terms?"*`
           : `Hello! I am your AI Legal Counsel for **${analysis?.document.filename || "this document"}**.\n\nYou can ask me any question about this document, such as:\n- *"What is this document about?"*\n- *"What are the main risks from Plaintiff's perspective?"*\n- *"Summarize the liability and indemnity clauses"*\n- *"Are there any missing transition or termination terms?"*`;
-        if (primaryChunk) {
-          citations = [`Page ${primaryChunk.page_number}: "${primaryChunk.raw_text.slice(0, 160)}..."`];
-        }
+        citations = [];
       } else if (qLower.includes("what it is about") || qLower.includes("overview") || qLower.includes("summary") || qLower.includes("about") || qLower.includes("what is this")) {
         replyPerspective = viewMode === "simple" ? "Plain Summary" : "AI Counsel (Document Overview)";
-        if (primaryChunk) {
+        if (primaryChunk && primaryChunk.raw_text) {
           citations = [`Page ${primaryChunk.page_number}: "${primaryChunk.raw_text.slice(0, 180)}..."`];
         }
         replyContent = viewMode === "simple"
           ? `**Document Overview:** "${analysis?.document.filename || "Uploaded File"}"\n\n**What this agreement covers:**\n${analysis?.analysis.consensus_report.summary || "A commercial agreement audited for one-sided terms and traps."}\n\n**Overall Safety Assessment:** ${analysis?.analysis.risk_level === 'Critical' || analysis?.analysis.risk_level === 'High' ? '⚠️ High Attention Required' : '✅ Moderate / Manageable'} (Risk Score: ${analysis?.analysis.aggregate_risk_score.toFixed(1) || "1.3"}/10).\n\n**Key Areas to Review:** ${analysis?.analysis.critical_count || 0} Urgent fixes and ${analysis?.analysis.high_count || 0} Serious risks found.`
-          : `**Document Overview:** "${analysis?.document.filename || "Uploaded File"}"\n\n**Extracted Text Excerpt:**\n"${primaryChunk?.raw_text.slice(0, 250) || "Document text extracted."}..."\n\n**Adversarial Audit Summary:**\n${analysis?.analysis.consensus_report.summary || "Audited across Defense, Plaintiff, Judge, Drafting, and Compliance agents."}\n\n**Risk Score:** ${analysis?.analysis.aggregate_risk_score.toFixed(1) || "1.3"}/10 (${analysis?.analysis.risk_level || "Low"} Risk Profile).`;
+          : `**Document Overview:** "${analysis?.document.filename || "Uploaded File"}"\n\n**Adversarial Audit Summary:**\n${analysis?.analysis.consensus_report.summary || "Audited across Defense, Plaintiff, Judge, Drafting, and Compliance agents."}\n\n**Risk Score:** ${analysis?.analysis.aggregate_risk_score.toFixed(1) || "1.3"}/10 (${analysis?.analysis.risk_level || "Low"} Risk Profile).`;
       } else if (qLower.includes("plaintiff") || qLower.includes("opposing") || qLower.includes("attack") || qLower.includes("exploit") || qLower.includes("loophole")) {
         replyPerspective = viewMode === "simple" ? "Opposing Party View" : "Plaintiff Counsel";
         const plaintiffFindings = analysis?.findings.filter((f) => f.agent_name === "Plaintiff Counsel") || [];
         const topFinding = plaintiffFindings[0] || analysis?.findings[0];
         if (topFinding) {
           const plain = getPlainLanguageFinding(topFinding);
-          citations = [topFinding.evidence_quote];
+          if (topFinding.evidence_quote) {
+            citations = [topFinding.evidence_quote];
+          }
           replyContent = viewMode === "simple"
             ? `**How the other side could take advantage of you:**\n\n1. **${plain.title}** (${topFinding.clause_type}):\n${plain.impact}\n\n**What you should negotiate:**\n${plain.action}`
             : `From an aggressive Plaintiff/Opposing Counsel perspective, the primary litigation vulnerabilities and leverage points in this document are:\n\n1. **${topFinding.finding_type}** (${topFinding.clause_type}): ${topFinding.summary}\n\nOpposing counsel will seek to exploit uncapped remedies and unilateral ambiguity to extract settlements or impose emergency injunctions before full discovery.`;
@@ -702,50 +812,57 @@ export default function Dashboard() {
           replyContent = viewMode === "simple"
             ? `The other side will have the most leverage if indemnity is uncapped or if termination notice periods are too short.`
             : `Plaintiff Counsel evaluated the draft and noted that broad indemnity terms, ambiguous milestones, and uncapped remedies offer the greatest leverage for an adverse party seeking litigation advantage.`;
-          if (primaryChunk) citations = [`Page ${primaryChunk.page_number}: "${primaryChunk.raw_text.slice(0, 160)}..."`];
+          citations = [];
         }
       } else {
-        // Keyword relevance search across chunks
-        const stopwords = new Set(["what", "is", "the", "about", "are", "how", "why", "who", "which", "when", "where", "this", "that", "from", "for", "with", "and", "does", "can", "in", "on", "of", "to", "a", "an", "tell", "me"]);
+        // Strict keyword relevance search across chunks
+        const stopwords = new Set(["what", "is", "the", "about", "are", "how", "why", "who", "which", "when", "where", "this", "that", "from", "for", "with", "and", "does", "can", "in", "on", "of", "to", "a", "an", "tell", "me", "my", "our"]);
         const keywords = qLower.split(/\W+/).filter((w) => w.length > 2 && !stopwords.has(w));
 
-        const matchingChunks = allChunks.filter((c) => {
-          const t = c.raw_text.toLowerCase();
-          return keywords.some((kw) => t.includes(kw));
-        });
+        const scoredChunks = allChunks.map((chunk) => {
+          const t = chunk.raw_text.toLowerCase();
+          const c = (chunk.clause_type || "").toLowerCase();
+          let matchCount = 0;
+          for (const kw of keywords) {
+            if (c.includes(kw)) matchCount += 3;
+            if (t.includes(kw)) matchCount += 1;
+          }
+          return { chunk, score: matchCount };
+        }).filter((item) => item.score > 0);
 
-        const targetChunk = matchingChunks[0] || primaryChunk;
+        scoredChunks.sort((a, b) => b.score - a.score);
+        const firstScored = scoredChunks[0];
+        const targetChunk = firstScored ? firstScored.chunk : null;
 
-        // Fallback finding match
-        const matchedFinding =
-          analysis?.findings.find(
-            (f) =>
-              f.clause_type.toLowerCase().includes(qLower) ||
-              f.finding_type.toLowerCase().includes(qLower) ||
-              qLower.includes(f.clause_type.toLowerCase())
-          ) || analysis?.findings[0];
+        // Finding match
+        const matchedFinding = analysis?.findings.find(
+          (f) =>
+            (f.clause_type && keywords.some((kw) => f.clause_type.toLowerCase().includes(kw))) ||
+            (f.finding_type && keywords.some((kw) => f.finding_type.toLowerCase().includes(kw)))
+        );
 
         if (matchedFinding) {
           const plain = getPlainLanguageFinding(matchedFinding);
           replyPerspective = viewMode === "simple" ? "Plain English Review" : matchedFinding.agent_name;
-          citations = [matchedFinding.evidence_quote];
+          if (matchedFinding.evidence_quote) {
+            citations = [matchedFinding.evidence_quote];
+          }
           replyContent = viewMode === "simple"
             ? `Regarding **"${textToSend}"**:\n\n**What this clause means:**\n${plain.whatItSays}\n\n**Why it matters to you:**\n${plain.impact}\n\n**Recommended Action:**\n${plain.action}`
             : `Regarding your inquiry on "${textToSend}":\n\n${matchedFinding.agent_name} audited the ${matchedFinding.clause_type} section (Severity: ${matchedFinding.severity_score}/10, ${matchedFinding.risk_level} Risk):\n\n${matchedFinding.summary}\n\n**Recommended Action:**\nConsider negotiating mutual reciprocal terms and clear definitions to remove adversarial leverage.`;
-        } else if (matchingChunks.length > 0 && targetChunk) {
+        } else if (targetChunk) {
           replyPerspective = viewMode === "simple" ? "Document Text" : "AI Counsel (RAG Retrieved)";
           citations = [`Page ${targetChunk.page_number} [${targetChunk.clause_type || "Excerpt"}]: "${targetChunk.raw_text.slice(0, 180)}..."`];
           replyContent = viewMode === "simple"
-            ? `Here is the relevant part from page ${targetChunk.page_number} of your agreement:\n\n"${targetChunk.raw_text}"\n\n**Takeaway:** Check that this matches what you agreed on and doesn't leave obligations one-sided.`
+            ? `Here is the relevant excerpt from page ${targetChunk.page_number} of your agreement:\n\n"${targetChunk.raw_text}"\n\n**Takeaway:** Review this clause to ensure terms are mutual and reasonable.`
             : `Based on retrieved context from page ${targetChunk.page_number} of "${analysis?.document.filename}":\n\n"${targetChunk.raw_text}"\n\n**Legal Assessment:**\nThis text was reviewed against standard commercial and enforceability standards.`;
         } else {
-          replyPerspective = viewMode === "simple" ? "Legal Assistant" : "Citation & Evidence Agent";
+          // Zero matches found in document: never fabricate or pull arbitrary chunks!
+          replyPerspective = viewMode === "simple" ? "Plain English Advisor" : "Citation & Evidence Agent";
           replyContent = viewMode === "simple"
-            ? `I looked through the agreement for "${textToSend}". You can find all analyzed clauses in the Findings Trail tab.`
-            : `Regarding "${textToSend}": The document was cross-referenced across Defense, Plaintiff, Judge, Drafting, and Compliance dimensions. All verified clauses are grounded in the source text and cataloged in the Findings Trail.`;
-          if (primaryChunk) {
-            citations = [`Page ${primaryChunk.page_number}: "${primaryChunk.raw_text.slice(0, 160)}..."`];
-          }
+            ? `I searched your agreement for provisions related to "${textToSend}", but this document does not contain any matching clauses or mentions of this topic.`
+            : `No provisions or clauses directly matching "${textToSend}" were identified in the verified text of "${analysis?.document.filename}".`;
+          citations = [];
         }
       }
 

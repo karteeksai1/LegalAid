@@ -371,18 +371,59 @@ def get_document_chat_history(document_id: uuid.UUID, db: Session = Depends(get_
         "history": history
     }
 
-@router.post("/{document_id}/chat")
-async def chat_with_document(
-    document_id: uuid.UUID,
-    payload: ChatMessageRequest,
-    db: Session = Depends(get_db)
-):
+def classify_user_intent(question: str) -> tuple:
+    """Classifies the user query into 'off_topic', 'general_legal', or 'in_document_legal'."""
+    q = question.strip().lower()
+
+    # 1. Math / calculation detection
+    if re.search(r'(?:\d+\s*[\*\+\-\/\^xX%]\s*\d+)|(?:\b(calculate|math|square root|multiply|divided by|plus|minus)\b.*\d+)', q):
+        return ("off_topic", None)
+
+    # 2. Off-topic generic domains
+    off_topic_words = [
+        "python", "javascript", "typescript", "c++", "java", "html", "css", "sql", "function", "script",
+        "weather", "forecast", "recipe", "cook", "bake", "joke", "funny", "story", "poem", "song",
+        "who is president", "capital of", "how far is", "tallest building", "super bowl", "football", "soccer"
+    ]
+    if any(w in q for w in off_topic_words):
+        return ("off_topic", None)
+
+    # 3. General legal definitions
+    legal_glossary = {
+        "indemnity": "A promise where one party agrees to pay for the other party's lawsuit costs or damages if something goes wrong.",
+        "liability cap": "The maximum dollar limit one party can be forced to pay if there is a breach or dispute.",
+        "carve-out": "An exception where normal limits or protections in the contract do not apply.",
+        "arbitration": "Settling disputes privately with a hired referee rather than in a public court of law.",
+        "termination for convenience": "The right to cancel the agreement at any time without needing any reason or proof of breach.",
+        "consequential damages": "Indirect losses like lost revenue, missed business opportunities, or reputation harm.",
+        "severability": "A rule ensuring that if a court invalidates one clause, the rest of the contract stays enforceable.",
+        "force majeure": "Unforeseen emergencies (e.g. natural disasters, war, pandemic) that excuse project delays."
+    }
+
+    doc_refs = ["this document", "this contract", "this agreement", "the document", "the contract", "uploaded", "in here", "my contract", "clause", "risk"]
+    has_doc_ref = any(dr in q for dr in doc_refs)
+
+    if not has_doc_ref:
+        for term, definition in legal_glossary.items():
+            if term in q and ("what is" in q or "define" in q or "explain" in q or "meaning" in q):
+                return ("general_legal", f"In standard legal practice, **{term}** means: {definition}\n\n*Note: This is general legal information and is not derived from specific clauses in your uploaded file.*")
+
+    # 4. In-document legal questions
+    legal_keywords = ["indemn", "liab", "terminat", "notice", "cure", "confidential", "ip", "payment", "milestone", "breach", "govern", "jurisdiction", "court", "risk", "finding", "plaintiff", "defense", "judge", "summary", "about", "overview", "what does"]
+    if has_doc_ref or any(kw in q for kw in legal_keywords) or q.startswith(("what", "who", "why", "how", "can", "is", "where", "hi", "hello")):
+        return ("in_document_legal", None)
+
+    return ("off_topic", None)
+
 def retrieve_rag_chunks(chunks: List[Chunk], query: str, top_k: int = 4) -> List[Chunk]:
     """Rank and retrieve the most relevant chunks using keyword & semantic scoring."""
     query_words = set(re.findall(r'\w+', query.lower()))
     stopwords = {"what", "is", "the", "about", "are", "how", "why", "who", "which", "when", "where", "this", "that", "from", "for", "with", "and", "does", "can", "in", "on", "of", "to", "a", "an", "tell", "me"}
     keywords = [w for w in query_words if w not in stopwords and len(w) > 2]
     
+    if not keywords:
+        return []
+
     scored = []
     for c in chunks:
         score = 0
@@ -394,13 +435,12 @@ def retrieve_rag_chunks(chunks: List[Chunk], query: str, top_k: int = 4) -> List
             score += cnt * 2
         if c.clause_type and any(kw in c.clause_type.lower() for kw in keywords):
             score += 4
-        scored.append((score, c))
+        if score > 0:
+            scored.append((score, c))
         
     scored.sort(key=lambda x: x[0], reverse=True)
-    results = [item[1] for item in scored[:top_k]]
-    if not any(item[0] > 0 for item in scored):
-        results = chunks[:top_k]
-    return results
+    # Strictly return only chunks with a positive score > 0! Never fall back to arbitrary chunks.
+    return [item[1] for item in scored[:top_k]]
 
 @router.post("/{document_id}/chat")
 async def chat_with_document(
@@ -408,7 +448,7 @@ async def chat_with_document(
     payload: ChatMessageRequest,
     db: Session = Depends(get_db)
 ):
-    """RAG-powered Q&A on the document."""
+    """RAG-powered Q&A on the document with strict intent classification and grounding."""
     doc = db.query(Document).filter(Document.id == document_id).first()
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
@@ -416,11 +456,57 @@ async def chat_with_document(
     question = payload.message.strip()
     if not question:
         raise HTTPException(status_code=400, detail="Question message cannot be empty")
-        
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    metadata = dict(doc.metadata_json or {})
+    history = list(metadata.get("chat_history", []))
+
+    user_entry = {
+        "id": str(uuid.uuid4()),
+        "role": "user",
+        "content": question,
+        "timestamp": now_iso
+    }
+
+    # 0. Intent Gate Check (Runs before RAG search)
+    intent, general_reply = classify_user_intent(question)
+    
+    if intent == "off_topic":
+        assistant_entry = {
+            "id": str(uuid.uuid4()),
+            "role": "assistant",
+            "content": "I am an AI legal assistant focused on reviewing your uploaded document. I can only answer questions related to your contract's terms, risks, or legal provisions.",
+            "agent_perspective": "AI Legal Assistant",
+            "citations": [],
+            "timestamp": now_iso
+        }
+        history.append(user_entry)
+        history.append(assistant_entry)
+        metadata["chat_history"] = history
+        doc.metadata_json = metadata
+        db.commit()
+        return {"user_message": user_entry, "assistant_message": assistant_entry}
+
+    if intent == "general_legal":
+        assistant_entry = {
+            "id": str(uuid.uuid4()),
+            "role": "assistant",
+            "content": general_reply or "This is a general legal concept. In standard commercial contracts, parties negotiate specific boundaries to allocate risk.",
+            "agent_perspective": "Legal Knowledge Base",
+            "citations": [],
+            "timestamp": now_iso
+        }
+        history.append(user_entry)
+        history.append(assistant_entry)
+        metadata["chat_history"] = history
+        doc.metadata_json = metadata
+        db.commit()
+        return {"user_message": user_entry, "assistant_message": assistant_entry}
+
     all_chunks = db.query(Chunk).filter(Chunk.document_id == doc.id).all()
     analysis = db.query(AnalysisResult).filter(AnalysisResult.document_id == doc.id).first()
     
-    # 1. RAG Retrieval Step
+    # 1. RAG Retrieval Step (Strict Matching)
     retrieved_chunks = retrieve_rag_chunks(all_chunks, question, top_k=4)
     rag_context = "\n\n".join([f"[Page {c.page_number} | Clause: {c.clause_type or 'General'}]\n{c.raw_text}" for c in retrieved_chunks])
     
@@ -443,7 +529,7 @@ You are the Lead Legal Reviewer answering a question about the document "{doc.fi
 
 Use the following RETRIEVED DOCUMENT CONTEXT to answer the question accurately and directly:
 ---
-{rag_context}
+{rag_context if rag_context else "No direct passage matched the search query."}
 ---
 
 Multi-Agent Findings Context:
@@ -452,10 +538,9 @@ Multi-Agent Findings Context:
 Question: "{question}"
 
 Instructions:
-1. Answer the question directly using facts and provisions from the retrieved text.
-2. Quote relevant clauses verbatim to prove your answer.
+1. If relevant passages were retrieved, answer the question directly quoting the text.
+2. If no relevant provisions exist in the text, clearly state that this document does not contain terms on that topic. Do NOT fabricate clauses.
 3. If the user asks what the document is about, provide a clear executive summary of its purpose, parties, and key terms.
-4. If relevant, mention risks identified by Defense or Plaintiff Counsel.
 """
             chat_completion = client.chat.completions.create(
                 messages=[
@@ -467,11 +552,12 @@ Instructions:
             )
             answer = chat_completion.choices[0].message.content or ""
             agent_perspective = "AI Legal Counsel (RAG Grounded)"
-            for c in retrieved_chunks:
-                if len(c.raw_text.strip()) > 20:
-                    citations.append(f"Page {c.page_number}: {c.raw_text[:140]}...")
-                    if len(citations) >= 2:
-                        break
+            if retrieved_chunks:
+                for c in retrieved_chunks:
+                    if len(c.raw_text.strip()) > 20:
+                        citations.append(f"Page {c.page_number}: {c.raw_text[:140]}...")
+                        if len(citations) >= 2:
+                            break
         except Exception as e:
             logger.warning(f"Groq RAG Q&A failed: {e}. Falling back to contextual extractor.")
             answer = ""
@@ -487,7 +573,8 @@ Instructions:
             else:
                 answer = f"Relevant text retrieved for \"{question}\" (Page {primary_chunk.page_number}):\n\n\"{primary_chunk.raw_text}\"\n\nReview this clause against standard commercial allocation practices."
         else:
-            answer = f"No direct text matches were found in \"{doc.filename}\" for your query. Please inspect the Findings Trail."
+            answer = f"I searched \"{doc.filename}\" for provisions regarding \"{question}\", but this agreement does not appear to contain matching clauses on this topic."
+            citations = []
 
     now_iso = datetime.now(timezone.utc).isoformat()
     metadata = dict(doc.metadata_json or {})
