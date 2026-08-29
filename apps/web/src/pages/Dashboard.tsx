@@ -48,10 +48,206 @@ interface AgentDeliberation {
   argument: string;
 }
 
+export const LEGAL_GLOSSARY: Record<string, string> = {
+  indemnity: "A promise where you agree to pay for the other party's lawsuit costs or damages if something goes wrong.",
+  indemnification: "A requirement to compensate the other party for legal losses, damages, or defense costs.",
+  "liability cap": "The maximum dollar limit one party can be forced to pay if there is a breach or dispute.",
+  "limitation of liability": "A clause restricting the maximum financial damages a party is responsible for.",
+  "carve-out": "An exception where normal limits or protections in the contract do not apply.",
+  "carve-outs": "Exceptions where normal limits or protections in the contract do not apply.",
+  arbitration: "Settling disputes privately with a hired referee rather than in a public court of law.",
+  "termination for convenience": "The right to cancel the agreement at any time without needing any reason or proof of breach.",
+  "consequential damages": "Indirect losses like lost revenue, missed business opportunities, or reputation harm.",
+  "liquidated damages": "A pre-agreed penalty fee that must be paid automatically if a specific term is violated.",
+  severability: "A rule ensuring that if a court invalidates one clause, the rest of the contract stays enforceable.",
+  "force majeure": "Unforeseen emergencies (e.g. natural disasters, war, pandemic) that excuse project delays.",
+  unconscionable: "So grossly one-sided or unfair that a court may refuse to enforce it.",
+  "governing law": "Which state or country's legal system controls how this agreement is interpreted.",
+  jurisdiction: "Which specific court or location has the authority to resolve disputes for this contract.",
+  "gross negligence": "Extreme carelessness or reckless disregard for safety and contractual duties.",
+  confidentiality: "A strict duty not to disclose or share sensitive business information.",
+  "ip assignment": "Transferring ownership of inventions, software, or creative work created under the deal.",
+  subcontracting: "Hiring third-party freelancers or vendors to perform obligations under this contract.",
+  cure: "A grace period (typically 30 days) allowing a party to fix a mistake before the contract is cancelled."
+};
+
+interface GlossaryTextProps {
+  text: string;
+  className?: string;
+  enableGlossary?: boolean;
+}
+
+export function GlossaryText({ text, className = "", enableGlossary = true }: GlossaryTextProps) {
+  const [activeTooltip, setActiveTooltip] = useState<{ term: string; definition: string; x: number; y: number } | null>(null);
+
+  if (!enableGlossary || !text) {
+    return <span className={className}>{text}</span>;
+  }
+
+  const terms = Object.keys(LEGAL_GLOSSARY).sort((a, b) => b.length - a.length);
+  const regex = new RegExp(`\\b(${terms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})\\b`, "gi");
+
+  const parts = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(text)) !== null) {
+    const matchedTerm = match[0];
+    const matchIndex = match.index;
+
+    if (matchIndex > lastIndex) {
+      parts.push(text.slice(lastIndex, matchIndex));
+    }
+
+    const lowerTerm = matchedTerm.toLowerCase();
+    const definition = LEGAL_GLOSSARY[lowerTerm];
+
+    parts.push(
+      <span
+        key={`${matchIndex}-${matchedTerm}`}
+        className="relative inline-block border-b border-dotted border-[#3158ff] text-inherit cursor-help hover:bg-blue-50/80 transition-colors group px-0.5 rounded"
+        onMouseEnter={(e) => {
+          const rect = e.currentTarget.getBoundingClientRect();
+          setActiveTooltip({
+            term: matchedTerm,
+            definition: definition || "Legal term requiring review.",
+            x: rect.left + rect.width / 2,
+            y: rect.top - 8
+          });
+        }}
+        onMouseLeave={() => setActiveTooltip(null)}
+        onClick={(e) => {
+          e.stopPropagation();
+          const rect = e.currentTarget.getBoundingClientRect();
+          setActiveTooltip((prev) =>
+            prev
+              ? null
+              : {
+                  term: matchedTerm,
+                  definition: definition || "Legal term requiring review.",
+                  x: rect.left + rect.width / 2,
+                  y: rect.top - 8
+                }
+          );
+        }}
+      >
+        {matchedTerm}
+      </span>
+    );
+
+    lastIndex = regex.lastIndex;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+
+  return (
+    <span className={className}>
+      {parts}
+      {activeTooltip && (
+        <span
+          className="fixed z-50 -translate-x-1/2 -translate-y-full px-3 py-2 bg-[#101412] text-[#f1eee6] text-xs shadow-2xl border border-[#d7ff52]/50 max-w-xs pointer-events-none font-sans leading-snug"
+          style={{ left: activeTooltip.x, top: activeTooltip.y }}
+        >
+          <span className="block font-mono text-[10px] uppercase tracking-wider text-[#d7ff52] font-bold mb-0.5">
+            💡 Plain English: {activeTooltip.term}
+          </span>
+          <span className="block text-slate-200 text-[11px]">
+            {activeTooltip.definition}
+          </span>
+          <span className="absolute left-1/2 top-full -translate-x-1/2 -mt-0.5 border-4 border-transparent border-t-[#101412]" />
+        </span>
+      )}
+    </span>
+  );
+}
+
+export function getPlainLanguageSeverity(risk_level: string) {
+  const lvl = (risk_level || "").toLowerCase();
+  if (lvl.includes("critical")) {
+    return { label: "Urgent Fix", bg: "bg-red-500", text: "text-white", border: "border-red-600", desc: "Immediate legal or financial trap" };
+  }
+  if (lvl.includes("high")) {
+    return { label: "Serious Risk", bg: "bg-orange-500", text: "text-white", border: "border-orange-600", desc: "Significant disadvantage if disputed" };
+  }
+  if (lvl.includes("medium")) {
+    return { label: "Worth Checking", bg: "bg-amber-500", text: "text-black", border: "border-amber-600", desc: "Vague or one-sided phrasing" };
+  }
+  return { label: "Minor Note", bg: "bg-emerald-600", text: "text-white", border: "border-emerald-700", desc: "Standard or low priority" };
+}
+
+export function getPlainLanguageFinding(finding: Finding) {
+  if (finding.plain_title && finding.plain_summary && finding.plain_impact && finding.plain_action) {
+    return {
+      title: finding.plain_title,
+      whatItSays: finding.plain_summary,
+      impact: finding.plain_impact,
+      action: finding.plain_action
+    };
+  }
+
+  const titleLower = (finding.finding_type + " " + finding.clause_type + " " + finding.summary).toLowerCase();
+  let plainTitle = finding.finding_type;
+  let plainWhatItSays = finding.summary;
+  let plainImpact = "This clause creates unbalanced obligations that could put you at a disadvantage.";
+  let plainAction = "Ask to make this obligation mutual or add a standard monetary cap.";
+
+  if (titleLower.includes("indemn") || titleLower.includes("loss") || titleLower.includes("hold harmless")) {
+    plainTitle = "One-Sided Lawsuit & Legal Fee Trap";
+    plainWhatItSays = "You are promising to pay the other party's legal bills and damages for third-party disputes with no limit.";
+    plainImpact = "If anyone sues the other party over this project, you might have to pay all their lawyers and settlements even if it wasn't your fault.";
+    plainAction = "Insist on limiting indemnity strictly to direct losses caused by your own willful misconduct or material breach.";
+  } else if (titleLower.includes("liability") || titleLower.includes("cap") || titleLower.includes("damage") || titleLower.includes("carve")) {
+    plainTitle = "Uncapped Financial Risk (No Safety Limit)";
+    plainWhatItSays = "The safety cap that limits how much money you can lose has loopholes or exceptions.";
+    plainImpact = "There is no ceiling on how much money the other side can claim from you if something goes wrong.";
+    plainAction = "Set a clear maximum dollar cap (e.g. 1x total fees paid under this contract) with no carve-outs for indirect losses.";
+  } else if (titleLower.includes("terminat") || titleLower.includes("notice") || titleLower.includes("cancel")) {
+    plainTitle = "Sudden Contract Cancellation Trap";
+    plainWhatItSays = "The other party can cancel this agreement quickly without giving you enough time to fix any honest mistakes.";
+    plainImpact = "You could abruptly lose this deal or income without a standard 30-day notice and cure window.";
+    plainAction = "Add a mandatory 30-day written cure period so you get a fair chance to fix issues before termination.";
+  } else if (titleLower.includes("milestone") || titleLower.includes("payment") || titleLower.includes("scope") || titleLower.includes("delay")) {
+    plainTitle = "Vague Deliverables & Disputed Payments";
+    plainWhatItSays = "What counts as 'finished work' is phrased vaguely instead of with clear, objective criteria.";
+    plainImpact = "The other side could delay or withhold payments by claiming your work didn't meet their subjective satisfaction.";
+    plainAction = "Write down exact checklist criteria and add automatic approval if they don't respond in writing within 10 business days.";
+  } else if (titleLower.includes("confidential") || titleLower.includes("ip") || titleLower.includes("data") || titleLower.includes("assign")) {
+    plainTitle = "Risk of Losing Your Ideas or Work";
+    plainWhatItSays = "Overly broad ownership transfer of proprietary tools, background knowledge, or pre-existing templates.";
+    plainImpact = "You might accidentally sign away ownership of tools, software, or methods you created before this contract.";
+    plainAction = "Add a clause explicitly stating you keep 100% ownership of your pre-existing tools and background intellectual property.";
+  } else if (titleLower.includes("grounded") || titleLower.includes("citation") || titleLower.includes("evidence")) {
+    plainTitle = "Verified Clause Accuracy";
+    plainWhatItSays = "This covenant was confirmed word-for-word against the text in your uploaded agreement.";
+    plainImpact = "Ensures that your negotiation decisions are based on exact verified paragraphs in the contract.";
+    plainAction = "Inspect the highlighted source quote when drafting your revision email.";
+  }
+
+  return {
+    title: plainTitle,
+    whatItSays: plainWhatItSays,
+    impact: plainImpact,
+    action: plainAction
+  };
+}
+
+export function getPlainArbitrationRule(rule: string) {
+  const rLower = (rule || "").toLowerCase();
+  if (rLower.includes("plaintiff") || rLower.includes("continuity") || rLower.includes("injunction")) {
+    return "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour.";
+  } else if (rLower.includes("defense") || rLower.includes("commercial")) {
+    return "We balanced this finding to reflect realistic business standards while protecting your financial downside.";
+  }
+  return "Our AI panel agreed on the interpretation that best protects the document owner from unexpected liabilities.";
+}
+
 interface ConsensusReasoning {
   summary: string;
   deliberation: AgentDeliberation[];
   arbitration_rule: string;
+  plain_arbitration_rule?: string;
 }
 
 interface Finding {
@@ -67,6 +263,10 @@ interface Finding {
   risk_level: string;
   chunk_text: string;
   consensus_reasoning?: ConsensusReasoning;
+  plain_title?: string;
+  plain_summary?: string;
+  plain_impact?: string;
+  plain_action?: string;
 }
 
 interface ConsensusReport {
@@ -338,6 +538,24 @@ export default function Dashboard() {
     }
   }, [mockAnalyses]);
   
+  // Plain Language vs Legal View Mode
+  const LOCAL_VIEW_MODE_KEY = "legalaid_view_mode";
+  const [viewMode, setViewMode] = useState<"simple" | "legal">(() => {
+    try {
+      return (window.localStorage.getItem(LOCAL_VIEW_MODE_KEY) as any) || "simple";
+    } catch {
+      return "simple";
+    }
+  });
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(LOCAL_VIEW_MODE_KEY, viewMode);
+    } catch (e) {
+      console.warn("Failed to persist viewMode to localStorage", e);
+    }
+  }, [viewMode]);
+
   // Interactive Q&A Chat states
   const [workbenchView, setWorkbenchView] = useState<"audit" | "chat">("audit");
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -444,10 +662,10 @@ export default function Dashboard() {
         }
       }
 
-      // Instant Client-side RAG Legal Intelligence Engine
+      // Instant Client-side RAG Intelligence Engine (Plain / Legal Adaptive)
       const qLower = textToSend.toLowerCase().trim();
       let replyContent = "";
-      let replyPerspective = "AI Legal Counsel";
+      let replyPerspective = viewMode === "simple" ? "Plain English Advisor" : "AI Legal Counsel";
       let citations: string[] = [];
 
       const allChunks = analysis?.chunks || [];
@@ -455,26 +673,35 @@ export default function Dashboard() {
 
       // Handle common greetings
       if (qLower === "hi" || qLower === "hello" || qLower === "hey" || qLower === "help") {
-        replyPerspective = "AI Lead Counsel";
-        replyContent = `Hello! I am your AI Legal Counsel for **${analysis?.document.filename || "this document"}**.\n\nYou can ask me any question about this document, such as:\n- *"What is this document about?"*\n- *"What are the main risks from Plaintiff's perspective?"*\n- *"Summarize the liability and indemnity clauses"*\n- *"Are there any missing transition or termination terms?"*`;
+        replyPerspective = viewMode === "simple" ? "Plain English Advisor" : "Lead Legal Counsel";
+        replyContent = viewMode === "simple"
+          ? `Hello! I am your Plain-English Legal Assistant for **${analysis?.document.filename || "this document"}**.\n\nAsk me anything in everyday language, such as:\n- *"What is this document about?"*\n- *"What are the biggest traps in this contract?"*\n- *"Can they cancel on me without warning?"*\n- *"How do I fix the liability and payment terms?"*`
+          : `Hello! I am your AI Legal Counsel for **${analysis?.document.filename || "this document"}**.\n\nYou can ask me any question about this document, such as:\n- *"What is this document about?"*\n- *"What are the main risks from Plaintiff's perspective?"*\n- *"Summarize the liability and indemnity clauses"*\n- *"Are there any missing transition or termination terms?"*`;
         if (primaryChunk) {
           citations = [`Page ${primaryChunk.page_number}: "${primaryChunk.raw_text.slice(0, 160)}..."`];
         }
       } else if (qLower.includes("what it is about") || qLower.includes("overview") || qLower.includes("summary") || qLower.includes("about") || qLower.includes("what is this")) {
-        replyPerspective = "AI Counsel (Document Overview)";
+        replyPerspective = viewMode === "simple" ? "Plain Summary" : "AI Counsel (Document Overview)";
         if (primaryChunk) {
           citations = [`Page ${primaryChunk.page_number}: "${primaryChunk.raw_text.slice(0, 180)}..."`];
         }
-        replyContent = `**Document Overview:** "${analysis?.document.filename || "Uploaded File"}"\n\n**Extracted Text Excerpt:**\n"${primaryChunk?.raw_text.slice(0, 250) || "Document text extracted."}..."\n\n**Adversarial Audit Summary:**\n${analysis?.analysis.consensus_report.summary || "Audited across Defense, Plaintiff, Judge, Drafting, and Compliance agents."}\n\n**Risk Score:** ${analysis?.analysis.aggregate_risk_score.toFixed(1) || "1.3"}/10 (${analysis?.analysis.risk_level || "Low"} Risk Profile).`;
+        replyContent = viewMode === "simple"
+          ? `**Document Overview:** "${analysis?.document.filename || "Uploaded File"}"\n\n**What this agreement covers:**\n${analysis?.analysis.consensus_report.summary || "A commercial agreement audited for one-sided terms and traps."}\n\n**Overall Safety Assessment:** ${analysis?.analysis.risk_level === 'Critical' || analysis?.analysis.risk_level === 'High' ? '⚠️ High Attention Required' : '✅ Moderate / Manageable'} (Risk Score: ${analysis?.analysis.aggregate_risk_score.toFixed(1) || "1.3"}/10).\n\n**Key Areas to Review:** ${analysis?.analysis.critical_count || 0} Urgent fixes and ${analysis?.analysis.high_count || 0} Serious risks found.`
+          : `**Document Overview:** "${analysis?.document.filename || "Uploaded File"}"\n\n**Extracted Text Excerpt:**\n"${primaryChunk?.raw_text.slice(0, 250) || "Document text extracted."}..."\n\n**Adversarial Audit Summary:**\n${analysis?.analysis.consensus_report.summary || "Audited across Defense, Plaintiff, Judge, Drafting, and Compliance agents."}\n\n**Risk Score:** ${analysis?.analysis.aggregate_risk_score.toFixed(1) || "1.3"}/10 (${analysis?.analysis.risk_level || "Low"} Risk Profile).`;
       } else if (qLower.includes("plaintiff") || qLower.includes("opposing") || qLower.includes("attack") || qLower.includes("exploit") || qLower.includes("loophole")) {
-        replyPerspective = "Plaintiff Counsel";
+        replyPerspective = viewMode === "simple" ? "Opposing Party View" : "Plaintiff Counsel";
         const plaintiffFindings = analysis?.findings.filter((f) => f.agent_name === "Plaintiff Counsel") || [];
-        const topFinding = plaintiffFindings[0];
+        const topFinding = plaintiffFindings[0] || analysis?.findings[0];
         if (topFinding) {
-          citations = plaintiffFindings.slice(0, 2).map((f) => f.evidence_quote);
-          replyContent = `From an aggressive Plaintiff/Opposing Counsel perspective, the primary litigation vulnerabilities and leverage points in this document are:\n\n1. **${topFinding.finding_type}** (${topFinding.clause_type}): ${topFinding.summary}\n\nOpposing counsel will seek to exploit uncapped remedies and unilateral ambiguity to extract settlements or impose emergency injunctions before full discovery.`;
+          const plain = getPlainLanguageFinding(topFinding);
+          citations = [topFinding.evidence_quote];
+          replyContent = viewMode === "simple"
+            ? `**How the other side could take advantage of you:**\n\n1. **${plain.title}** (${topFinding.clause_type}):\n${plain.impact}\n\n**What you should negotiate:**\n${plain.action}`
+            : `From an aggressive Plaintiff/Opposing Counsel perspective, the primary litigation vulnerabilities and leverage points in this document are:\n\n1. **${topFinding.finding_type}** (${topFinding.clause_type}): ${topFinding.summary}\n\nOpposing counsel will seek to exploit uncapped remedies and unilateral ambiguity to extract settlements or impose emergency injunctions before full discovery.`;
         } else {
-          replyContent = `Plaintiff Counsel evaluated the draft and noted that broad indemnity terms, ambiguous milestones, and uncapped remedies offer the greatest leverage for an adverse party seeking litigation advantage.`;
+          replyContent = viewMode === "simple"
+            ? `The other side will have the most leverage if indemnity is uncapped or if termination notice periods are too short.`
+            : `Plaintiff Counsel evaluated the draft and noted that broad indemnity terms, ambiguous milestones, and uncapped remedies offer the greatest leverage for an adverse party seeking litigation advantage.`;
           if (primaryChunk) citations = [`Page ${primaryChunk.page_number}: "${primaryChunk.raw_text.slice(0, 160)}..."`];
         }
       } else {
@@ -489,30 +716,35 @@ export default function Dashboard() {
 
         const targetChunk = matchingChunks[0] || primaryChunk;
 
-        if (matchingChunks.length > 0 && targetChunk) {
-          replyPerspective = "AI Counsel (RAG Retrieved)";
-          citations = [`Page ${targetChunk.page_number} [${targetChunk.clause_type || "Excerpt"}]: "${targetChunk.raw_text.slice(0, 180)}..."`];
-          replyContent = `Based on retrieved context from page ${targetChunk.page_number} of "${analysis?.document.filename}":\n\n"${targetChunk.raw_text}"\n\n**Legal Assessment:**\nThis text was reviewed against standard commercial and enforceability standards.`;
-        } else {
-          // Fallback finding match
-          const matchedFinding =
-            analysis?.findings.find(
-              (f) =>
-                f.clause_type.toLowerCase().includes(qLower) ||
-                f.finding_type.toLowerCase().includes(qLower) ||
-                qLower.includes(f.clause_type.toLowerCase())
-            ) || analysis?.findings[0];
+        // Fallback finding match
+        const matchedFinding =
+          analysis?.findings.find(
+            (f) =>
+              f.clause_type.toLowerCase().includes(qLower) ||
+              f.finding_type.toLowerCase().includes(qLower) ||
+              qLower.includes(f.clause_type.toLowerCase())
+          ) || analysis?.findings[0];
 
-          if (matchedFinding) {
-            replyPerspective = matchedFinding.agent_name;
-            citations = [matchedFinding.evidence_quote];
-            replyContent = `Regarding your inquiry on "${textToSend}":\n\n${matchedFinding.agent_name} audited the ${matchedFinding.clause_type} section (Severity: ${matchedFinding.severity_score}/10, ${matchedFinding.risk_level} Risk):\n\n${matchedFinding.summary}\n\n**Recommended Action:**\nConsider negotiating mutual reciprocal terms and clear definitions to remove adversarial leverage.`;
-          } else {
-            replyPerspective = "Citation & Evidence Agent";
-            replyContent = `Regarding "${textToSend}": The document was cross-referenced across Defense, Plaintiff, Judge, Drafting, and Compliance dimensions. All verified clauses are grounded in the source text and cataloged in the Findings Trail.`;
-            if (primaryChunk) {
-              citations = [`Page ${primaryChunk.page_number}: "${primaryChunk.raw_text.slice(0, 160)}..."`];
-            }
+        if (matchedFinding) {
+          const plain = getPlainLanguageFinding(matchedFinding);
+          replyPerspective = viewMode === "simple" ? "Plain English Review" : matchedFinding.agent_name;
+          citations = [matchedFinding.evidence_quote];
+          replyContent = viewMode === "simple"
+            ? `Regarding **"${textToSend}"**:\n\n**What this clause means:**\n${plain.whatItSays}\n\n**Why it matters to you:**\n${plain.impact}\n\n**Recommended Action:**\n${plain.action}`
+            : `Regarding your inquiry on "${textToSend}":\n\n${matchedFinding.agent_name} audited the ${matchedFinding.clause_type} section (Severity: ${matchedFinding.severity_score}/10, ${matchedFinding.risk_level} Risk):\n\n${matchedFinding.summary}\n\n**Recommended Action:**\nConsider negotiating mutual reciprocal terms and clear definitions to remove adversarial leverage.`;
+        } else if (matchingChunks.length > 0 && targetChunk) {
+          replyPerspective = viewMode === "simple" ? "Document Text" : "AI Counsel (RAG Retrieved)";
+          citations = [`Page ${targetChunk.page_number} [${targetChunk.clause_type || "Excerpt"}]: "${targetChunk.raw_text.slice(0, 180)}..."`];
+          replyContent = viewMode === "simple"
+            ? `Here is the relevant part from page ${targetChunk.page_number} of your agreement:\n\n"${targetChunk.raw_text}"\n\n**Takeaway:** Check that this matches what you agreed on and doesn't leave obligations one-sided.`
+            : `Based on retrieved context from page ${targetChunk.page_number} of "${analysis?.document.filename}":\n\n"${targetChunk.raw_text}"\n\n**Legal Assessment:**\nThis text was reviewed against standard commercial and enforceability standards.`;
+        } else {
+          replyPerspective = viewMode === "simple" ? "Legal Assistant" : "Citation & Evidence Agent";
+          replyContent = viewMode === "simple"
+            ? `I looked through the agreement for "${textToSend}". You can find all analyzed clauses in the Findings Trail tab.`
+            : `Regarding "${textToSend}": The document was cross-referenced across Defense, Plaintiff, Judge, Drafting, and Compliance dimensions. All verified clauses are grounded in the source text and cataloged in the Findings Trail.`;
+          if (primaryChunk) {
+            citations = [`Page ${primaryChunk.page_number}: "${primaryChunk.raw_text.slice(0, 160)}..."`];
           }
         }
       }
@@ -867,14 +1099,47 @@ export default function Dashboard() {
               {/* Header workbench metadata */}
               <div className="p-4 sm:p-5 border-b border-[#d6d2c8] bg-[#f1eee6] flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0">
                 <div>
-                  <span className="eyebrow text-[#3158ff]">Adversarial Risk Audit</span>
+                  <div className="flex items-center gap-2">
+                    <span className="eyebrow text-[#3158ff]">Adversarial Risk Audit</span>
+                    {viewMode === "simple" && (
+                      <span className="px-2 py-0.5 bg-emerald-100 text-emerald-900 border border-emerald-300 font-mono text-[9px] uppercase font-bold">
+                        🌿 Plain English Mode Active
+                      </span>
+                    )}
+                  </div>
                   <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight mt-1 truncate max-w-xl text-[#101412]">
                     {analysis.document.filename}
                   </h1>
                 </div>
                 
-                {/* Score Indicator & Mode Switcher */}
+                {/* Score Indicator & Mode Switchers */}
                 <div className="flex flex-wrap items-center gap-3">
+                  {/* Language Mode Toggle: Simple vs Legal */}
+                  <div className="flex items-center border border-[#d6d2c8] bg-white p-1 font-mono text-xs shadow-sm">
+                    <button
+                      onClick={() => setViewMode("simple")}
+                      className={`px-3 py-1.5 flex items-center gap-1.5 transition-colors font-bold ${
+                        viewMode === "simple"
+                          ? "bg-[#101412] text-[#d7ff52]"
+                          : "text-slate-600 hover:text-black hover:bg-slate-100"
+                      }`}
+                      title="Plain-English explanations for non-lawyers"
+                    >
+                      <span>🌿</span> Simple
+                    </button>
+                    <button
+                      onClick={() => setViewMode("legal")}
+                      className={`px-3 py-1.5 flex items-center gap-1.5 transition-colors font-bold ${
+                        viewMode === "legal"
+                          ? "bg-[#101412] text-[#d7ff52]"
+                          : "text-slate-600 hover:text-black hover:bg-slate-100"
+                      }`}
+                      title="Full legal terminology and multi-agent findings trail"
+                    >
+                      <span>⚖️</span> Legal
+                    </button>
+                  </div>
+
                   {/* View Mode Switcher */}
                   <div className="flex items-center gap-1 border border-[#d6d2c8] bg-white p-1 font-mono text-xs shadow-sm">
                     <button
@@ -885,7 +1150,7 @@ export default function Dashboard() {
                           : "text-slate-600 hover:text-black hover:bg-slate-100"
                       }`}
                     >
-                      <Shield className="h-3.5 w-3.5" /> Findings Trail
+                      <Shield className="h-3.5 w-3.5" /> {viewMode === "simple" ? "Risk Review" : "Findings Trail"}
                     </button>
                     <button
                       onClick={() => setWorkbenchView("chat")}
@@ -906,8 +1171,15 @@ export default function Dashboard() {
 
                   <div className="flex items-center gap-3 bg-[#101412] px-4 py-2 text-[#f1eee6]">
                     <div className="text-right">
-                      <div className="text-[9px] font-mono uppercase tracking-widest text-[#d7ff52] font-semibold">Risk Score</div>
-                      <div className="font-mono text-[9px] text-[#8f978e] mt-0.5">{analysis.analysis.risk_level}</div>
+                      <div className="text-[9px] font-mono uppercase tracking-widest text-[#d7ff52] font-semibold">
+                        {viewMode === "simple" ? "Safety Score" : "Risk Score"}
+                      </div>
+                      <div className="font-mono text-[9px] text-[#8f978e] mt-0.5">
+                        {viewMode === "simple" 
+                          ? (analysis.analysis.risk_level === 'Critical' || analysis.analysis.risk_level === 'High' ? '⚠️ High Attention' : '✅ Moderate')
+                          : analysis.analysis.risk_level
+                        }
+                      </div>
                     </div>
                     <div className="font-display text-2xl sm:text-3xl font-extrabold text-[#d7ff52] leading-none">
                       {analysis.analysis.aggregate_risk_score.toFixed(1)}
@@ -1063,12 +1335,20 @@ export default function Dashboard() {
                 {/* Consensus Report Tabs Panel */}
                 <div className="bg-white border border-[#d6d2c8] p-5">
                   <div className="flex border-b border-[#d6d2c8] gap-4 text-xs font-mono pb-2 overflow-x-auto shrink-0">
-                    {[
-                      { id: "summary", label: "Executive Summary" },
-                      { id: "vulnerabilities", label: `Major Risks (${analysis.analysis.critical_count + analysis.analysis.high_count})` },
-                      { id: "strengths", label: "Strengths" },
-                      { id: "recommendations", label: "Action Steps" }
-                    ].map((tab) => (
+                    {(viewMode === "simple"
+                      ? [
+                          { id: "summary", label: "Plain Summary" },
+                          { id: "vulnerabilities", label: `Things to Fix (${analysis.analysis.critical_count + analysis.analysis.high_count})` },
+                          { id: "strengths", label: "Good Points" },
+                          { id: "recommendations", label: "Suggested Steps" }
+                        ]
+                      : [
+                          { id: "summary", label: "Executive Summary" },
+                          { id: "vulnerabilities", label: `Major Risks (${analysis.analysis.critical_count + analysis.analysis.high_count})` },
+                          { id: "strengths", label: "Strengths" },
+                          { id: "recommendations", label: "Action Steps" }
+                        ]
+                    ).map((tab) => (
                       <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as any)}
@@ -1086,23 +1366,33 @@ export default function Dashboard() {
                   <div className="mt-4 text-sm leading-relaxed text-[#626860]">
                     {activeTab === "summary" && (
                       <div>
-                        <p className="font-medium text-[#101412]">{analysis.analysis.consensus_report.summary}</p>
+                        <p className="font-medium text-[#101412]">
+                          <GlossaryText text={analysis.analysis.consensus_report.summary} />
+                        </p>
                         <div className="mt-4 grid grid-cols-4 gap-2 font-mono text-[11px] text-center">
                           <div className="bg-red-50 p-2.5 border border-red-100">
                             <span className="block text-red-700 font-bold text-sm">{analysis.analysis.critical_count}</span>
-                            <span className="text-red-600 uppercase tracking-wide">Critical</span>
+                            <span className="text-red-600 uppercase tracking-wide">
+                              {viewMode === "simple" ? "Urgent" : "Critical"}
+                            </span>
                           </div>
                           <div className="bg-orange-50 p-2.5 border border-orange-100">
                             <span className="block text-orange-700 font-bold text-sm">{analysis.analysis.high_count}</span>
-                            <span className="text-orange-600 uppercase tracking-wide">High</span>
+                            <span className="text-orange-600 uppercase tracking-wide">
+                              {viewMode === "simple" ? "Serious" : "High"}
+                            </span>
                           </div>
                           <div className="bg-amber-50 p-2.5 border border-amber-100">
                             <span className="block text-amber-700 font-bold text-sm">{analysis.analysis.medium_count}</span>
-                            <span className="text-amber-600 uppercase tracking-wide">Medium</span>
+                            <span className="text-amber-600 uppercase tracking-wide">
+                              {viewMode === "simple" ? "Review" : "Medium"}
+                            </span>
                           </div>
                           <div className="bg-green-50 p-2.5 border border-green-100">
                             <span className="block text-green-700 font-bold text-sm">{analysis.analysis.low_count}</span>
-                            <span className="text-green-600 uppercase tracking-wide">Low</span>
+                            <span className="text-green-600 uppercase tracking-wide">
+                              {viewMode === "simple" ? "Minor" : "Low"}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -1110,21 +1400,21 @@ export default function Dashboard() {
                     {activeTab === "strengths" && (
                       <ul className="space-y-2 list-disc list-inside">
                         {analysis.analysis.consensus_report.strengths.map((str, idx) => (
-                          <li key={idx}>{str}</li>
+                          <li key={idx}><GlossaryText text={str} /></li>
                         ))}
                       </ul>
                     )}
                     {activeTab === "vulnerabilities" && (
                       <ul className="space-y-2 list-disc list-inside text-red-700">
                         {analysis.analysis.consensus_report.vulnerabilities.map((vul, idx) => (
-                          <li key={idx} className="font-medium">{vul}</li>
+                          <li key={idx} className="font-medium"><GlossaryText text={vul} /></li>
                         ))}
                       </ul>
                     )}
                     {activeTab === "recommendations" && (
                       <ul className="space-y-2 list-decimal list-inside text-[#3158ff]">
                         {analysis.analysis.consensus_report.recommendations.map((rec, idx) => (
-                          <li key={idx} className="font-semibold">{rec}</li>
+                          <li key={idx} className="font-semibold"><GlossaryText text={rec} /></li>
                         ))}
                       </ul>
                     )}
@@ -1134,23 +1424,48 @@ export default function Dashboard() {
                 {/* Findings Audit section */}
                 <div className="space-y-4">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <h3 className="font-display text-xl font-bold tracking-tight flex items-center gap-2">
-                      <Shield className="h-5 w-5 text-[#3158ff]" /> Agent Findings Trail
-                    </h3>
+                    <div>
+                      <h3 className="font-display text-xl font-bold tracking-tight flex items-center gap-2">
+                        <Shield className="h-5 w-5 text-[#3158ff]" /> 
+                        {viewMode === "simple" ? "Plain-English Risk Review" : "Agent Findings Trail"}
+                      </h3>
+                      {viewMode === "simple" && (
+                        <p className="text-xs text-[#626860] mt-0.5">
+                          Everyday translation of what each clause means, practical risks, and how to fix them.
+                        </p>
+                      )}
+                    </div>
                     
-                    {/* Agent Filters */}
+                    {/* Agent / Category Filters */}
                     <div className="flex flex-wrap gap-1 font-mono text-[10px]">
-                      {["All", "Defense Counsel", "Plaintiff Counsel", "Drafting Counsel", "Judge", "Compliance Officer"].map((agent) => (
+                      {(viewMode === "simple"
+                        ? [
+                            { id: "All", label: "All Issues" },
+                            { id: "Plaintiff Counsel", label: "Adversarial Risks" },
+                            { id: "Defense Counsel", label: "Liability Traps" },
+                            { id: "Judge", label: "Court Enforceability" },
+                            { id: "Drafting Counsel", label: "Vague Language" },
+                            { id: "Compliance Officer", label: "Compliance" }
+                          ]
+                        : [
+                            { id: "All", label: "All" },
+                            { id: "Defense Counsel", label: "Defense" },
+                            { id: "Plaintiff Counsel", label: "Plaintiff" },
+                            { id: "Drafting Counsel", label: "Drafting" },
+                            { id: "Judge", label: "Judge" },
+                            { id: "Compliance Officer", label: "Compliance" }
+                          ]
+                      ).map((filter) => (
                         <button
-                          key={agent}
-                          onClick={() => setSelectedAgentFilter(agent)}
+                          key={filter.id}
+                          onClick={() => setSelectedAgentFilter(filter.id)}
                           className={`px-2.5 py-1 transition-colors border ${
-                            selectedAgentFilter === agent
+                            selectedAgentFilter === filter.id
                               ? "bg-[#101412] text-[#d7ff52] border-[#101412]"
                               : "bg-white hover:bg-slate-100 text-slate-600 border-slate-200"
                           }`}
                         >
-                          {agent === "All" ? "All" : agent.replace(" Counsel", "").replace(" Officer", "")}
+                          {filter.label}
                         </button>
                       ))}
                     </div>
@@ -1165,6 +1480,9 @@ export default function Dashboard() {
                     ) : (
                       filteredFindings.map((finding) => {
                         const isSelected = selectedFinding?.id === finding.id;
+                        const plain = getPlainLanguageFinding(finding);
+                        const sev = getPlainLanguageSeverity(finding.risk_level);
+
                         return (
                           <button
                             key={finding.id}
@@ -1178,37 +1496,82 @@ export default function Dashboard() {
                             <div className="flex justify-between items-start gap-4 w-full">
                               <div className="space-y-2 flex-1 min-w-0">
                                 <div className="flex flex-wrap items-center gap-2">
-                                  <span className={`text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 font-bold ${
-                                    finding.agent_name === 'Defense Counsel' 
-                                      ? "bg-red-100 text-red-800 border border-red-200" 
-                                      : finding.agent_name === 'Plaintiff Counsel'
-                                        ? "bg-amber-100 text-amber-900 border border-amber-300 font-bold"
-                                        : finding.agent_name === 'Drafting Counsel'
-                                          ? "bg-blue-100 text-blue-800 border border-blue-200"
-                                          : "bg-purple-100 text-purple-800 border border-purple-200"
-                                  }`}>
-                                    {finding.agent_name}
-                                  </span>
-                                  <span className="text-[10px] font-mono text-[#8f978e]">{finding.clause_type}</span>
+                                  {viewMode === "simple" ? (
+                                    <>
+                                      <span className={`text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 font-bold ${sev.bg} ${sev.text}`}>
+                                        {sev.label}
+                                      </span>
+                                      <span className="text-[10px] font-mono px-2 py-0.5 bg-blue-50 text-[#3158ff] border border-blue-200 font-semibold">
+                                        {finding.clause_type}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span className={`text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 font-bold ${
+                                        finding.agent_name === 'Defense Counsel' 
+                                          ? "bg-red-100 text-red-800 border border-red-200" 
+                                          : finding.agent_name === 'Plaintiff Counsel'
+                                            ? "bg-amber-100 text-amber-900 border border-amber-300 font-bold"
+                                            : finding.agent_name === 'Drafting Counsel'
+                                              ? "bg-blue-100 text-blue-800 border border-blue-200"
+                                              : "bg-purple-100 text-purple-800 border border-purple-200"
+                                      }`}>
+                                        {finding.agent_name}
+                                      </span>
+                                      <span className="text-[10px] font-mono text-[#8f978e]">{finding.clause_type}</span>
+                                    </>
+                                  )}
                                 </div>
                                 
                                 <h4 className={`font-semibold text-sm ${isSelected ? "text-white" : "text-slate-900"}`}>
-                                  {finding.finding_type}
+                                  {viewMode === "simple" ? plain.title : finding.finding_type}
                                 </h4>
                                 
-                                <p className={`text-xs line-clamp-2 leading-relaxed ${isSelected ? "text-slate-300" : "text-slate-600"}`}>
-                                  {finding.summary}
-                                </p>
-                                
-                                <div className="flex items-center gap-3 font-mono text-[10px] pt-1">
-                                  <span className="flex items-center gap-1">
-                                    Severity: <span className="font-bold">{finding.severity_score}/10</span>
-                                  </span>
-                                  <span className="text-[#8f978e]">•</span>
-                                  <span className="flex items-center gap-1">
-                                    Confidence: <span className="font-bold">{(finding.confidence * 100).toFixed(0)}%</span>
-                                  </span>
-                                </div>
+                                {viewMode === "simple" ? (
+                                  <div className="space-y-2 pt-0.5">
+                                    <p className={`text-xs leading-relaxed ${isSelected ? "text-slate-300" : "text-slate-700"}`}>
+                                      <GlossaryText text={plain.whatItSays} />
+                                    </p>
+
+                                    {/* What this means for you */}
+                                    <div className={`p-2.5 border-l-2 text-xs flex flex-col gap-0.5 ${
+                                      isSelected 
+                                        ? "bg-amber-950/40 border-amber-400 text-amber-200" 
+                                        : "bg-amber-50 border-amber-500 text-amber-950"
+                                    }`}>
+                                      <span className="font-bold text-[10px] uppercase tracking-wider text-amber-600 flex items-center gap-1">
+                                        ⚠️ What this means for you:
+                                      </span>
+                                      <span className="leading-relaxed font-sans">{plain.impact}</span>
+                                    </div>
+
+                                    {/* Action step */}
+                                    <div className={`p-2 border-l-2 text-xs flex items-start gap-1.5 ${
+                                      isSelected 
+                                        ? "bg-emerald-950/40 border-emerald-400 text-emerald-200" 
+                                        : "bg-emerald-50 border-emerald-600 text-emerald-950"
+                                    }`}>
+                                      <span className="font-bold text-[10px] uppercase tracking-wider text-emerald-600 shrink-0">💡 Fix:</span>
+                                      <span className="leading-relaxed font-sans">{plain.action}</span>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <p className={`text-xs line-clamp-2 leading-relaxed ${isSelected ? "text-slate-300" : "text-slate-600"}`}>
+                                      <GlossaryText text={finding.summary} />
+                                    </p>
+                                    
+                                    <div className="flex items-center gap-3 font-mono text-[10px] pt-1">
+                                      <span className="flex items-center gap-1">
+                                        Severity: <span className="font-bold">{finding.severity_score}/10</span>
+                                      </span>
+                                      <span className="text-[#8f978e]">•</span>
+                                      <span className="flex items-center gap-1">
+                                        Confidence: <span className="font-bold">{(finding.confidence * 100).toFixed(0)}%</span>
+                                      </span>
+                                    </div>
+                                  </>
+                                )}
                               </div>
                               
                               <div className="flex flex-col items-end shrink-0 gap-3">
@@ -1217,7 +1580,7 @@ export default function Dashboard() {
                                     ? "bg-red-500 text-white"
                                     : "bg-amber-500 text-black"
                                 }`}>
-                                  {finding.risk_level}
+                                  {viewMode === "simple" ? sev.label : finding.risk_level}
                                 </span>
                                 <ChevronRight className="h-4 w-4 opacity-50" />
                               </div>
@@ -1229,9 +1592,12 @@ export default function Dashboard() {
                                 isSelected ? "border-white/10 text-[#d7ff52]" : "border-slate-100 text-[#3158ff]"
                               }`}>
                                 <span className="flex items-center gap-1 font-semibold">
-                                  <Sparkles className="h-3 w-3" /> Consensus Deliberation ({finding.consensus_reasoning.deliberation.length} Agents)
+                                  <Sparkles className="h-3 w-3" /> 
+                                  {viewMode === "simple" ? "Plain Consensus Breakdown" : `Consensus Deliberation (${finding.consensus_reasoning.deliberation.length} Agents)`}
                                 </span>
-                                <span className="text-[9px] uppercase tracking-wider opacity-75">Inspect reasoning →</span>
+                                <span className="text-[9px] uppercase tracking-wider opacity-75">
+                                  {viewMode === "simple" ? "Read full advice →" : "Inspect reasoning →"}
+                                </span>
                               </div>
                             )}
                           </button>
@@ -1247,7 +1613,8 @@ export default function Dashboard() {
                 <div className="w-full lg:w-96 border-t lg:border-t-0 lg:border-l border-[#d6d2c8] bg-white flex flex-col shrink-0 overflow-hidden min-h-0">
                   <div className="p-4 border-b border-[#d6d2c8] flex items-center justify-between bg-slate-50 shrink-0">
                     <span className="font-mono text-xs uppercase tracking-wider text-[#3158ff] font-bold flex items-center gap-1.5">
-                      <Sparkles className="h-3.5 w-3.5 text-[#3158ff]" /> Evidence Auditor
+                      <Sparkles className="h-3.5 w-3.5 text-[#3158ff]" /> 
+                      {viewMode === "simple" ? "Risk Breakdown & Advice" : "Evidence Auditor"}
                     </span>
                     <button 
                       onClick={() => setSelectedFinding(null)}
@@ -1258,100 +1625,174 @@ export default function Dashboard() {
                   </div>
                   
                   <div className="p-5 flex-1 overflow-y-auto space-y-6 min-h-0">
-                    <div>
-                      <span className="text-[10px] font-mono uppercase tracking-wider text-[#626860]">Surfaced Loophole</span>
-                      <h3 className="font-display text-lg font-bold mt-1 text-[#101412] leading-snug">
-                        {selectedFinding.finding_type}
-                      </h3>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className={`text-[10px] font-mono px-2 py-0.5 font-bold ${
-                          selectedFinding.agent_name === 'Plaintiff Counsel'
-                            ? "bg-amber-100 text-amber-900 border border-amber-300"
-                            : "bg-red-100 text-red-800"
-                        }`}>
-                          {selectedFinding.agent_name}
-                        </span>
-                        <span className="text-[10px] font-mono bg-blue-100 text-blue-800 px-2 py-0.5">
-                          {selectedFinding.clause_type}
-                        </span>
-                      </div>
-                    </div>
+                    {(() => {
+                      const plain = getPlainLanguageFinding(selectedFinding);
+                      const sev = getPlainLanguageSeverity(selectedFinding.risk_level);
 
-                    <div className="space-y-2 border-t border-[#d6d2c8] pt-4">
-                      <span className="text-[10px] font-mono uppercase tracking-wider text-[#626860] block">Vulnerability Summary</span>
-                      <p className="text-xs text-[#626860] leading-relaxed">
-                        {selectedFinding.summary}
-                      </p>
-                    </div>
+                      return viewMode === "simple" ? (
+                        <>
+                          <div>
+                            <span className="text-[10px] font-mono uppercase tracking-wider text-[#626860]">Issue Details</span>
+                            <h3 className="font-display text-lg font-bold mt-1 text-[#101412] leading-snug">
+                              {plain.title}
+                            </h3>
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className={`text-[10px] font-mono px-2 py-0.5 font-bold ${sev.bg} ${sev.text}`}>
+                                {sev.label}
+                              </span>
+                              <span className="text-[10px] font-mono bg-blue-100 text-blue-800 px-2 py-0.5 font-semibold">
+                                {selectedFinding.clause_type}
+                              </span>
+                            </div>
+                          </div>
 
-                    {/* Consensus Deliberation & Reasoning Section */}
-                    {selectedFinding.consensus_reasoning && (
-                      <div className="space-y-3 border-t border-[#d6d2c8] pt-4">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-mono uppercase tracking-wider text-[#3158ff] font-bold flex items-center gap-1">
-                            <Shield className="h-3 w-3" /> Consensus Deliberation
-                          </span>
-                          <span className="text-[9px] font-mono bg-blue-50 text-[#3158ff] px-1.5 py-0.5 font-semibold">
-                            Arbitrated
-                          </span>
-                        </div>
-                        
-                        <p className="text-[11px] text-[#626860] leading-normal font-sans">
-                          {selectedFinding.consensus_reasoning.summary}
-                        </p>
+                          <div className="space-y-2 border-t border-[#d6d2c8] pt-4">
+                            <span className="text-[10px] font-mono uppercase tracking-wider text-[#626860] block">What this clause says</span>
+                            <p className="text-xs text-slate-700 leading-relaxed font-sans">
+                              <GlossaryText text={plain.whatItSays} />
+                            </p>
+                          </div>
 
-                        <div className="space-y-2 pt-1">
-                          {selectedFinding.consensus_reasoning.deliberation.map((delib, idx) => (
-                            <div key={idx} className="bg-slate-50 border border-slate-200 p-2.5 space-y-1 font-mono text-[10px]">
-                              <div className="flex items-center justify-between">
-                                <span className="font-bold text-[#101412]">{delib.agent}</span>
-                                <span className="text-[9px] px-1.5 py-0.2 bg-white border border-slate-300 text-slate-700 font-bold">
-                                  {delib.score}/10 Risk
-                                </span>
-                              </div>
-                              <div className="text-[#3158ff] font-semibold text-[9px] uppercase tracking-wide">
-                                Stance: {delib.stance}
-                              </div>
-                              <p className="text-slate-600 text-[10px] leading-relaxed font-sans pt-0.5">
-                                "{delib.argument}"
+                          <div className="space-y-2 border-t border-[#d6d2c8] pt-4 bg-amber-50/70 p-3 border border-amber-200">
+                            <span className="text-[10px] font-mono uppercase tracking-wider text-amber-800 font-bold block flex items-center gap-1">
+                              ⚠️ Real-World Practical Impact
+                            </span>
+                            <p className="text-xs text-amber-950 leading-relaxed font-sans">
+                              {plain.impact}
+                            </p>
+                          </div>
+
+                          <div className="space-y-2 border-t border-[#d6d2c8] pt-4 bg-emerald-50/70 p-3 border border-emerald-200">
+                            <span className="text-[10px] font-mono uppercase tracking-wider text-emerald-800 font-bold block flex items-center gap-1">
+                              💡 How To Negotiate & Fix This
+                            </span>
+                            <p className="text-xs text-emerald-950 leading-relaxed font-sans">
+                              {plain.action}
+                            </p>
+                          </div>
+
+                          {selectedFinding.consensus_reasoning && (
+                            <div className="space-y-2 bg-[#101412] text-[#f1eee6] p-3.5 border-l-2 border-[#d7ff52]">
+                              <span className="text-[9px] uppercase tracking-wider text-[#d7ff52] font-semibold block">
+                                Why Our AI Flagged This
+                              </span>
+                              <p className="text-slate-300 leading-relaxed font-sans text-xs">
+                                {getPlainArbitrationRule(selectedFinding.consensus_reasoning.arbitration_rule)}
                               </p>
                             </div>
-                          ))}
-                        </div>
+                          )}
 
-                        <div className="bg-[#101412] text-[#f1eee6] p-3 font-mono text-[10px] space-y-1 border-l-2 border-[#d7ff52]">
-                          <span className="text-[9px] uppercase tracking-wider text-[#d7ff52] font-semibold block">Arbitration Rule</span>
-                          <p className="text-slate-300 leading-relaxed font-sans text-[11px]">
-                            {selectedFinding.consensus_reasoning.arbitration_rule}
-                          </p>
-                        </div>
-                      </div>
-                    )}
+                          <div className="space-y-3 bg-[#101412] text-[#f1eee6] p-4 font-mono text-xs relative">
+                            <div className="absolute top-3 right-3 flex items-center gap-1 bg-[#d7ff52] text-[#101412] text-[8px] uppercase tracking-wider px-1.5 py-0.5 font-bold">
+                              <CheckCircle className="h-2 w-2" /> Verified Text
+                            </div>
+                            
+                            <span className="text-[9px] uppercase tracking-widest text-[#d7ff52] block font-semibold">Exact Contract Excerpt</span>
+                            
+                            <blockquote className="border-l-2 border-[#d7ff52] pl-3 italic text-slate-300 leading-relaxed py-1">
+                              "<GlossaryText text={selectedFinding.evidence_quote} />"
+                            </blockquote>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div>
+                            <span className="text-[10px] font-mono uppercase tracking-wider text-[#626860]">Surfaced Loophole</span>
+                            <h3 className="font-display text-lg font-bold mt-1 text-[#101412] leading-snug">
+                              {selectedFinding.finding_type}
+                            </h3>
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className={`text-[10px] font-mono px-2 py-0.5 font-bold ${
+                                selectedFinding.agent_name === 'Plaintiff Counsel'
+                                  ? "bg-amber-100 text-amber-900 border border-amber-300"
+                                  : "bg-red-100 text-red-800"
+                              }`}>
+                                {selectedFinding.agent_name}
+                              </span>
+                              <span className="text-[10px] font-mono bg-blue-100 text-blue-800 px-2 py-0.5">
+                                {selectedFinding.clause_type}
+                              </span>
+                            </div>
+                          </div>
 
-                    <div className="space-y-3 bg-[#101412] text-[#f1eee6] p-4 font-mono text-xs relative">
-                      <div className="absolute top-3 right-3 flex items-center gap-1 bg-[#d7ff52] text-[#101412] text-[8px] uppercase tracking-wider px-1.5 py-0.5 font-bold">
-                        <CheckCircle className="h-2 w-2" /> Grounded Cite
-                      </div>
-                      
-                      <span className="text-[9px] uppercase tracking-widest text-[#d7ff52] block font-semibold">Exact Source Quote</span>
-                      
-                      <blockquote className="border-l-2 border-[#d7ff52] pl-3 italic text-slate-300 leading-relaxed py-1">
-                        "{selectedFinding.evidence_quote}"
-                      </blockquote>
-                      
-                      <div className="text-[9px] text-[#8f978e] pt-1">
-                        Verification Status: <span className="text-green-400 font-bold uppercase">{selectedFinding.verification_status}</span>
-                      </div>
-                    </div>
+                          <div className="space-y-2 border-t border-[#d6d2c8] pt-4">
+                            <span className="text-[10px] font-mono uppercase tracking-wider text-[#626860] block">Vulnerability Summary</span>
+                            <p className="text-xs text-[#626860] leading-relaxed">
+                              <GlossaryText text={selectedFinding.summary} />
+                            </p>
+                          </div>
 
-                    {selectedFinding.chunk_text && (
-                      <div className="space-y-2 border-t border-[#d6d2c8] pt-4">
-                        <span className="text-[10px] font-mono uppercase tracking-wider text-[#626860] block">Surrounding Clause Context</span>
-                        <div className="bg-slate-50 border border-slate-200 p-3 rounded-none text-xs text-slate-600 leading-relaxed max-h-48 overflow-y-auto font-sans">
-                          {selectedFinding.chunk_text}
-                        </div>
-                      </div>
-                    )}
+                          {/* Consensus Deliberation & Reasoning Section */}
+                          {selectedFinding.consensus_reasoning && (
+                            <div className="space-y-3 border-t border-[#d6d2c8] pt-4">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-mono uppercase tracking-wider text-[#3158ff] font-bold flex items-center gap-1">
+                                  <Shield className="h-3 w-3" /> Consensus Deliberation
+                                </span>
+                                <span className="text-[9px] font-mono bg-blue-50 text-[#3158ff] px-1.5 py-0.5 font-semibold">
+                                  Arbitrated
+                                </span>
+                              </div>
+                              
+                              <p className="text-[11px] text-[#626860] leading-normal font-sans">
+                                {selectedFinding.consensus_reasoning.summary}
+                              </p>
+
+                              <div className="space-y-2 pt-1">
+                                {selectedFinding.consensus_reasoning.deliberation.map((delib, idx) => (
+                                  <div key={idx} className="bg-slate-50 border border-slate-200 p-2.5 space-y-1 font-mono text-[10px]">
+                                    <div className="flex items-center justify-between">
+                                      <span className="font-bold text-[#101412]">{delib.agent}</span>
+                                      <span className="text-[9px] px-1.5 py-0.2 bg-white border border-slate-300 text-slate-700 font-bold">
+                                        {delib.score}/10 Risk
+                                      </span>
+                                    </div>
+                                    <div className="text-[#3158ff] font-semibold text-[9px] uppercase tracking-wide">
+                                      Stance: {delib.stance}
+                                    </div>
+                                    <p className="text-slate-600 text-[10px] leading-relaxed font-sans pt-0.5">
+                                      "{delib.argument}"
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+
+                              <div className="bg-[#101412] text-[#f1eee6] p-3 font-mono text-[10px] space-y-1 border-l-2 border-[#d7ff52]">
+                                <span className="text-[9px] uppercase tracking-wider text-[#d7ff52] font-semibold block">Arbitration Rule</span>
+                                <p className="text-slate-300 leading-relaxed font-sans text-[11px]">
+                                  {selectedFinding.consensus_reasoning.arbitration_rule}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="space-y-3 bg-[#101412] text-[#f1eee6] p-4 font-mono text-xs relative">
+                            <div className="absolute top-3 right-3 flex items-center gap-1 bg-[#d7ff52] text-[#101412] text-[8px] uppercase tracking-wider px-1.5 py-0.5 font-bold">
+                              <CheckCircle className="h-2 w-2" /> Grounded Cite
+                            </div>
+                            
+                            <span className="text-[9px] uppercase tracking-widest text-[#d7ff52] block font-semibold">Exact Source Quote</span>
+                            
+                            <blockquote className="border-l-2 border-[#d7ff52] pl-3 italic text-slate-300 leading-relaxed py-1">
+                              "<GlossaryText text={selectedFinding.evidence_quote} />"
+                            </blockquote>
+                            
+                            <div className="text-[9px] text-[#8f978e] pt-1">
+                              Verification Status: <span className="text-green-400 font-bold uppercase">{selectedFinding.verification_status}</span>
+                            </div>
+                          </div>
+
+                          {selectedFinding.chunk_text && (
+                            <div className="space-y-2 border-t border-[#d6d2c8] pt-4">
+                              <span className="text-[10px] font-mono uppercase tracking-wider text-[#626860] block">Surrounding Clause Context</span>
+                              <div className="bg-slate-50 border border-slate-200 p-3 rounded-none text-xs text-slate-600 leading-relaxed max-h-48 overflow-y-auto font-sans">
+                                {selectedFinding.chunk_text}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               )}

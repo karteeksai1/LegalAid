@@ -166,10 +166,17 @@ def generate_consensus_reasoning(finding: Dict[str, Any]) -> Dict[str, Any]:
         ]
         arbitration = f"Consensus calibrated to {severity}/10: Balanced across Defense operational needs, Plaintiff leverage points, and Judge fairness standard."
 
+    plain_rule = "The panel agreed to prioritize the interpretation that best protects the document owner from unforeseen financial or legal liabilities."
+    if "Plaintiff" in arbitration or "exploit" in arbitration:
+        plain_rule = "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
+    elif "Judge" in arbitration or "enforceability" in arbitration:
+        plain_rule = "We evaluated this based on how real courts enforce these clauses to protect you from unfair terms."
+
     return {
         "summary": f"Consensus Engine deliberated across {len(deliberations)} agent perspectives to arrive at severity {severity}/10.",
         "deliberation": deliberations,
-        "arbitration_rule": arbitration
+        "arbitration_rule": arbitration,
+        "plain_arbitration_rule": plain_rule
     }
 
 def run_rule_based_fallback(chunks: List[Chunk]) -> List[Dict[str, Any]]:
