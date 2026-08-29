@@ -82,6 +82,32 @@ app.get("/api/documents/:id/analysis", async (req, res) => {
   }
 });
 
+// 5. Get Q&A Chat History for document
+app.get("/api/documents/:id/chat", async (req, res) => {
+  try {
+    const response = await axios.get(`${config.FASTAPI_BASE_URL}/documents/${req.params.id}/chat`);
+    return res.json(response.data);
+  } catch (error: any) {
+    console.error("Get chat history error:", error.message);
+    const status = error.response?.status || 500;
+    const detail = error.response?.data?.detail || error.message;
+    return res.status(status).json({ error: detail });
+  }
+});
+
+// 6. Post question to Q&A Chat for document
+app.post("/api/documents/:id/chat", async (req, res) => {
+  try {
+    const response = await axios.post(`${config.FASTAPI_BASE_URL}/documents/${req.params.id}/chat`, req.body);
+    return res.json(response.data);
+  } catch (error: any) {
+    console.error("Post chat message error:", error.message);
+    const status = error.response?.status || 500;
+    const detail = error.response?.data?.detail || error.message;
+    return res.status(status).json({ error: detail });
+  }
+});
+
 if (process.env.NODE_ENV !== "test") {
   app.listen(config.GATEWAY_PORT, () => {
     console.log(`gateway listening on ${config.GATEWAY_PORT}`);

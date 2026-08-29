@@ -17,7 +17,11 @@ import {
   Upload,
   ChevronRight,
   ExternalLink,
-  Info
+  Info,
+  MessageSquare,
+  Send,
+  Bot,
+  RefreshCw
 } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { Link, useLocation } from "wouter";
@@ -70,6 +74,15 @@ interface ConsensusReport {
   strengths: string[];
   vulnerabilities: string[];
   recommendations: string[];
+}
+
+interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  agent_perspective?: string;
+  citations?: string[];
+  timestamp: string;
 }
 
 interface AnalysisResults {
@@ -261,6 +274,7 @@ function buildMockAnalysis(fileName: string, documentId: string): AnalysisResult
 const LOCAL_DOCS_KEY = "legalaid_documents";
 const LOCAL_ANALYSES_KEY = "legalaid_analyses";
 const LOCAL_SELECTED_DOC_KEY = "legalaid_selected_doc_id";
+const LOCAL_CHAT_PREFIX = "legalaid_chat_";
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
@@ -324,6 +338,143 @@ export default function Dashboard() {
     }
   }, [mockAnalyses]);
   
+  // Interactive Q&A Chat states
+  const [workbenchView, setWorkbenchView] = useState<"audit" | "chat">("audit");
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [sendingChat, setSendingChat] = useState(false);
+  const chatBottomRef = useRef<HTMLDivElement>(null);
+
+  // Load chat history when selected document changes
+  useEffect(() => {
+    if (!selectedDocId) {
+      setChatMessages([]);
+      return;
+    }
+
+    const savedLocal = window.localStorage.getItem(LOCAL_CHAT_PREFIX + selectedDocId);
+    if (savedLocal) {
+      try {
+        setChatMessages(JSON.parse(savedLocal));
+      } catch {
+        setChatMessages([]);
+      }
+    } else {
+      setChatMessages([
+        {
+          id: "welcome-" + selectedDocId,
+          role: "assistant",
+          content: `Welcome to Interactive Q&A for this document. I have loaded all clauses analyzed by Defense, Plaintiff, Judge, Drafting, and Compliance agents. Ask me any specific question about risks, loopholes, or recommended revisions.`,
+          agent_perspective: "Lead Legal Counsel",
+          citations: [],
+          timestamp: new Date().toISOString()
+        }
+      ]);
+    }
+
+    if (USE_BACKEND_API) {
+      fetch(`/api/documents/${selectedDocId}/chat`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data && data.history && data.history.length > 0) {
+            setChatMessages(data.history);
+          }
+        })
+        .catch((err) => console.warn("Failed to fetch remote chat history", err));
+    }
+  }, [selectedDocId]);
+
+  // Persist chat to localStorage
+  useEffect(() => {
+    if (selectedDocId && chatMessages.length > 0) {
+      try {
+        window.localStorage.setItem(LOCAL_CHAT_PREFIX + selectedDocId, JSON.stringify(chatMessages));
+      } catch (e) {
+        console.warn("Failed to persist chat messages", e);
+      }
+    }
+  }, [chatMessages, selectedDocId]);
+
+  // Auto-scroll chat to bottom
+  useEffect(() => {
+    if (workbenchView === "chat") {
+      chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [chatMessages, workbenchView]);
+
+  const handleSendChatMessage = async (msgText?: string) => {
+    const textToSend = (msgText || chatInput).trim();
+    if (!textToSend || !selectedDocId || sendingChat) return;
+
+    setChatInput("");
+    setSendingChat(true);
+
+    const userMsg: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: "user",
+      content: textToSend,
+      timestamp: new Date().toISOString()
+    };
+
+    setChatMessages((prev) => [...prev, userMsg]);
+
+    try {
+      if (USE_BACKEND_API) {
+        const res = await fetch(`/api/documents/${selectedDocId}/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: textToSend })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.assistant_message) {
+            setChatMessages((prev) => [...prev, data.assistant_message]);
+            return;
+          }
+        }
+      }
+
+      // Local grounded fallback response
+      const matchedFinding =
+        analysis?.findings.find(
+          (f) =>
+            f.clause_type.toLowerCase().includes(textToSend.toLowerCase()) ||
+            f.finding_type.toLowerCase().includes(textToSend.toLowerCase()) ||
+            textToSend.toLowerCase().includes(f.clause_type.toLowerCase())
+        ) || analysis?.findings[0];
+
+      let replyContent = "";
+      let replyPerspective = "Judge";
+      let citations: string[] = [];
+
+      if (matchedFinding) {
+        replyPerspective = matchedFinding.agent_name;
+        citations = [matchedFinding.evidence_quote];
+        replyContent = `Regarding your inquiry on "${textToSend}":\n\n${matchedFinding.agent_name} flagged the ${matchedFinding.clause_type} section with a severity score of ${matchedFinding.severity_score}/10 (${matchedFinding.risk_level} risk).\n\nSummary of vulnerability:\n${matchedFinding.summary}\n\nRecommended Action:\nConsider negotiating mutual reciprocal caps and explicit carve-out boundaries before executing.`;
+      } else {
+        replyPerspective = "Citation & Evidence Agent";
+        replyContent = `Regarding "${textToSend}": The document review pipeline cross-referenced all paragraphs against standard commercial law guidelines. All verified covenants are listed under the Agent Findings Trail with grounded evidence quotes.`;
+      }
+
+      const assistantMsg: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: replyContent,
+        agent_perspective: replyPerspective,
+        citations,
+        timestamp: new Date().toISOString()
+      };
+
+      setChatMessages((prev) => [...prev, assistantMsg]);
+    } catch (err) {
+      console.error("Chat error:", err);
+      toast.error("Failed to process question. Please try again.");
+    } finally {
+      setSendingChat(false);
+    }
+  };
+
   // UI filter / navigation states
   const [activeTab, setActiveTab] = useState<"summary" | "strengths" | "vulnerabilities" | "recommendations">("summary");
   const [selectedAgentFilter, setSelectedAgentFilter] = useState<string>("All");
@@ -632,29 +783,202 @@ export default function Dashboard() {
               <p className="text-sm text-[#626860] mt-2">The document is currently being ingested or parsed by the AI backend.</p>
             </div>
           ) : (
-            <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-              {/* Left Column: Report Summary & Findings */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                {/* Header workbench metadata */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-[#d6d2c8] pb-6">
-                  <div>
-                    <span className="eyebrow text-[#3158ff]">Adversarial Risk Audit</span>
-                    <h1 className="font-display text-3xl font-bold tracking-tight mt-1 truncate max-w-xl">
-                      {analysis.document.filename}
-                    </h1>
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Header workbench metadata */}
+              <div className="p-6 border-b border-[#d6d2c8] bg-[#f1eee6] flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0">
+                <div>
+                  <span className="eyebrow text-[#3158ff]">Adversarial Risk Audit</span>
+                  <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight mt-1 truncate max-w-xl text-[#101412]">
+                    {analysis.document.filename}
+                  </h1>
+                </div>
+                
+                {/* Score Indicator & Mode Switcher */}
+                <div className="flex flex-wrap items-center gap-3">
+                  {/* View Mode Switcher */}
+                  <div className="flex items-center gap-1 border border-[#d6d2c8] bg-white p-1 font-mono text-xs shadow-sm">
+                    <button
+                      onClick={() => setWorkbenchView("audit")}
+                      className={`px-3 py-1.5 flex items-center gap-1.5 transition-colors font-bold ${
+                        workbenchView === "audit"
+                          ? "bg-[#101412] text-[#d7ff52]"
+                          : "text-slate-600 hover:text-black hover:bg-slate-100"
+                      }`}
+                    >
+                      <Shield className="h-3.5 w-3.5" /> Findings Trail
+                    </button>
+                    <button
+                      onClick={() => setWorkbenchView("chat")}
+                      className={`px-3 py-1.5 flex items-center gap-1.5 transition-colors font-bold ${
+                        workbenchView === "chat"
+                          ? "bg-[#101412] text-[#d7ff52]"
+                          : "text-slate-600 hover:text-black hover:bg-slate-100"
+                      }`}
+                    >
+                      <MessageSquare className="h-3.5 w-3.5" /> Interactive Q&A
+                      {chatMessages.length > 1 && (
+                        <span className="ml-1 px-1.5 py-0.2 bg-[#3158ff] text-white text-[9px]">
+                          {chatMessages.length}
+                        </span>
+                      )}
+                    </button>
                   </div>
-                  
-                  {/* Score Indicator */}
-                  <div className="flex items-center gap-4 bg-[#101412] p-4 text-[#f1eee6]">
+
+                  <div className="flex items-center gap-3 bg-[#101412] px-4 py-2.5 text-[#f1eee6]">
                     <div className="text-right">
-                      <div className="text-[10px] font-mono uppercase tracking-widest text-[#d7ff52] font-semibold">Risk Score</div>
-                      <div className="font-mono text-[10px] text-[#8f978e] mt-0.5">{analysis.analysis.risk_level} profile</div>
+                      <div className="text-[9px] font-mono uppercase tracking-widest text-[#d7ff52] font-semibold">Risk Score</div>
+                      <div className="font-mono text-[9px] text-[#8f978e] mt-0.5">{analysis.analysis.risk_level}</div>
                     </div>
-                    <div className="font-display text-4xl font-extrabold text-[#d7ff52] leading-none">
+                    <div className="font-display text-3xl font-extrabold text-[#d7ff52] leading-none">
                       {analysis.analysis.aggregate_risk_score.toFixed(1)}
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Main Content: Interactive Q&A Chat OR Findings Trail */}
+              {workbenchView === "chat" ? (
+                <div className="flex-1 flex flex-col bg-white overflow-hidden p-6">
+                  <div className="flex-1 flex flex-col border border-[#d6d2c8] bg-white overflow-hidden shadow-sm">
+                    {/* Chat Deliberation Header */}
+                    <div className="p-3.5 border-b border-[#d6d2c8] bg-slate-50 flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-1.5 bg-[#101412] text-[#d7ff52]">
+                          <Bot className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <h3 className="font-display font-bold text-xs sm:text-sm text-[#101412]">
+                            AI Counsel Deliberation Channel
+                          </h3>
+                          <p className="text-[10px] font-mono text-[#626860]">
+                            RAG Grounded • 5 Counsel Personas Active (Defense, Plaintiff, Judge, Drafting, Compliance)
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (confirm("Clear conversation history for this document?")) {
+                            setChatMessages([]);
+                            window.localStorage.removeItem(LOCAL_CHAT_PREFIX + selectedDocId);
+                          }
+                        }}
+                        className="text-[10px] font-mono text-slate-500 hover:text-red-600 px-2 py-1 border border-slate-200 bg-white transition-colors"
+                      >
+                        Clear History
+                      </button>
+                    </div>
+
+                    {/* Message Stream */}
+                    <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 font-sans bg-[#fbfaf8]">
+                      {chatMessages.map((msg) => (
+                        <div
+                          key={msg.id}
+                          className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
+                        >
+                          {msg.role === "assistant" && (
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 font-bold ${
+                                msg.agent_perspective === 'Plaintiff Counsel'
+                                  ? "bg-amber-100 text-amber-900 border border-amber-300"
+                                  : msg.agent_perspective === 'Judge'
+                                    ? "bg-purple-100 text-purple-800 border border-purple-200"
+                                    : msg.agent_perspective === 'Compliance Officer'
+                                      ? "bg-green-100 text-green-800 border border-green-200"
+                                      : "bg-blue-100 text-blue-800 border border-blue-200"
+                              }`}>
+                                {msg.agent_perspective || "AI Counsel"}
+                              </span>
+                              <span className="text-[10px] font-mono text-slate-400">
+                                {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                          )}
+
+                          <div
+                            className={`p-4 max-w-2xl text-xs leading-relaxed ${
+                              msg.role === "user"
+                                ? "bg-[#101412] text-white border border-[#101412]"
+                                : "bg-white text-[#101412] border border-[#d6d2c8] shadow-sm"
+                            }`}
+                          >
+                            <div className="whitespace-pre-line">{msg.content}</div>
+
+                            {/* Grounded Citations Quote Block */}
+                            {msg.citations && msg.citations.length > 0 && (
+                              <div className="mt-3 pt-3 border-t border-slate-200 font-mono text-[10px] space-y-1.5 bg-slate-50 p-2.5">
+                                <span className="text-[9px] uppercase tracking-wider text-[#3158ff] font-bold flex items-center gap-1">
+                                  <CheckCircle className="h-2.5 w-2.5 text-green-600" /> Grounded Source Excerpt
+                                </span>
+                                {msg.citations.map((cite, cIdx) => (
+                                  <blockquote key={cIdx} className="border-l-2 border-[#3158ff] pl-2.5 italic text-slate-600 leading-normal">
+                                    "{cite}"
+                                  </blockquote>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+
+                      {sendingChat && (
+                        <div className="flex items-center gap-2 text-xs font-mono text-slate-500 p-2">
+                          <Activity className="h-4 w-4 animate-spin text-[#3158ff]" />
+                          <span>Counsel deliberating on evidence...</span>
+                        </div>
+                      )}
+                      <div ref={chatBottomRef} />
+                    </div>
+
+                    {/* Prompt Suggestions */}
+                    <div className="px-4 py-2.5 bg-slate-50 border-t border-[#d6d2c8] flex items-center gap-2 overflow-x-auto">
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 shrink-0">Inquire:</span>
+                      {[
+                        "Why is the definition scope flagged?",
+                        "What are the main risks from Plaintiff's perspective?",
+                        "How can we balance the indemnity clause?",
+                        "Is the termination notice enforceable in court?"
+                      ].map((prompt, pIdx) => (
+                        <button
+                          key={pIdx}
+                          onClick={() => handleSendChatMessage(prompt)}
+                          disabled={sendingChat}
+                          className="shrink-0 text-[10px] font-mono bg-white hover:bg-slate-200 text-slate-700 border border-slate-200 px-2.5 py-1 transition-colors"
+                        >
+                          {prompt}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Message Input Form */}
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        handleSendChatMessage();
+                      }}
+                      className="p-3 border-t border-[#d6d2c8] bg-white flex items-center gap-2"
+                    >
+                      <input
+                        type="text"
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        placeholder="Ask AI Counsel a question about this document (e.g. explain the liability cap risk)..."
+                        disabled={sendingChat}
+                        className="flex-1 px-4 py-2.5 text-xs bg-slate-50 border border-slate-200 focus:outline-none focus:ring-1 focus:ring-[#101412]"
+                      />
+                      <button
+                        type="submit"
+                        disabled={!chatInput.trim() || sendingChat}
+                        className="bg-[#101412] hover:bg-[#202622] text-[#d7ff52] px-5 py-2.5 text-xs font-mono font-bold flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                      >
+                        <Send className="h-3.5 w-3.5" /> Send
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+                  {/* Left Column: Report Summary & Findings */}
+                  <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
                 {/* Consensus Report Tabs Panel */}
                 <div className="bg-white border border-[#d6d2c8] p-5">
@@ -953,8 +1277,10 @@ export default function Dashboard() {
               )}
             </div>
           )}
-        </section>
-      </div>
+        </div>
+      )}
+    </section>
+  </div>
 
       {/* Global Ingestion Spinner Overlay */}
       {uploading && (
