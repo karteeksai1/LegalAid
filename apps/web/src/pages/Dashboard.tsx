@@ -449,7 +449,7 @@ export default function Dashboard() {
     <main className="min-h-screen bg-[#f1eee6] text-[#101412] flex flex-col font-sans">
       {/* Top Header */}
       <header className="border-b border-[#d6d2c8] bg-[#101412] text-[#f1eee6] shrink-0">
-        <div className="container flex min-h-[72px] items-center justify-between gap-6 py-2">
+        <div className="container flex min-h-18 items-center justify-between gap-6 py-2">
           <Link href="/dashboard" className="flex items-center gap-3" aria-label="LegalAid dashboard home">
             <span className="grid h-9 w-9 place-items-center bg-[#d7ff52]"><img src="/legalaid-mark.jpg" alt="" className="h-7 w-7 object-contain" /></span>
             <span className="font-display text-[18px] font-bold tracking-[-0.04em]">LegalAid<span className="text-[#d7ff52]">.</span></span>

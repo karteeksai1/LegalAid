@@ -36,8 +36,8 @@ export default function Auth({ mode }: { mode: AuthMode }) {
             <span className="eyebrow hidden text-[#626b61] sm:block">Secure review infrastructure</span>
           </div>
 
-          <div className="mx-auto flex w-full max-w-[420px] flex-1 flex-col justify-center py-16">
-            <div className="mb-8"><span className="eyebrow text-[#d7ff52]">{isSignup ? "Create your workspace" : "Return to your workspace"}</span><h1 className="font-display mt-5 text-5xl font-bold leading-[0.92] tracking-[-0.07em] sm:text-6xl">{isSignup ? "Make the document defend itself." : "Pick up the evidence trail."}</h1><p className="mt-5 max-w-[360px] text-sm leading-6 text-[#8f978e]">{isSignup ? "Create an account to stress-test contracts with auditable, source-grounded review." : "Sign in to continue reviewing clauses, findings, and verified source context."}</p></div>
+          <div className="mx-auto flex w-full max-w-105 flex-1 flex-col justify-center py-16">
+            <div className="mb-8"><span className="eyebrow text-[#d7ff52]">{isSignup ? "Create your workspace" : "Return to your workspace"}</span><h1 className="font-display mt-5 text-5xl font-bold leading-[0.92] tracking-[-0.07em] sm:text-6xl">{isSignup ? "Make the document defend itself." : "Pick up the evidence trail."}</h1><p className="mt-5 max-w-90 text-sm leading-6 text-[#8f978e]">{isSignup ? "Create an account to stress-test contracts with auditable, source-grounded review." : "Sign in to continue reviewing clauses, findings, and verified source context."}</p></div>
             <div className="mb-8 flex border-b border-white/15"><button onClick={() => setLocation("/login")} className={`eyebrow border-b-2 px-1 pb-4 pt-2 text-left transition-colors ${!isSignup ? "border-[#d7ff52] text-[#d7ff52]" : "border-transparent text-[#626b61] hover:text-[#f1eee6]"}`}>Log in</button><button onClick={() => setLocation("/signup")} className={`eyebrow ml-7 border-b-2 px-1 pb-4 pt-2 text-left transition-colors ${isSignup ? "border-[#d7ff52] text-[#d7ff52]" : "border-transparent text-[#626b61] hover:text-[#f1eee6]"}`}>Sign up</button></div>
             <form onSubmit={handleSubmit} className="space-y-5">
               {isSignup && <label className="block"><span className="eyebrow mb-2 block text-[#8f978e]">Full name</span><span className="relative block"><UserRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#626b61]" /><input required name="name" type="text" autoComplete="name" placeholder="Your name" className="h-13 w-full rounded-none border border-white/15 bg-white/[0.04] pl-11 pr-4 text-sm text-[#f1eee6] outline-none transition-colors placeholder:text-[#626b61] focus:border-[#d7ff52]" /></span></label>}
@@ -58,7 +58,7 @@ export default function Auth({ mode }: { mode: AuthMode }) {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_65%_28%,#3158ff44_0%,transparent_28%),linear-gradient(90deg,#101412ee_0%,transparent_30%,#10141233_100%)]" />
           <div className="absolute inset-y-0 left-12 border-l border-[#d7ff52]/35" />
           
-          <div className="relative z-10 p-20 pt-28 max-w-[480px]">
+          <div className="relative z-10 p-20 pt-28 max-w-120">
             <span className="eyebrow text-[#d7ff52]">Justice / inspected</span>
             <p className="font-display mt-4 text-4xl font-semibold leading-[0.98] tracking-[-0.05em] text-[#f1eee6]">
               The strongest opinion is the one that can show its work.
