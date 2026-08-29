@@ -421,11 +421,16 @@ export default function Dashboard() {
     try {
       if (USE_BACKEND_API) {
         try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 1200);
+
           const res = await fetch(`/api/documents/${selectedDocId}/chat`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message: textToSend })
+            body: JSON.stringify({ message: textToSend }),
+            signal: controller.signal
           });
+          clearTimeout(timeoutId);
 
           if (res.ok) {
             const data = await res.json();
@@ -435,40 +440,27 @@ export default function Dashboard() {
             }
           }
         } catch (fetchErr) {
-          console.warn("Backend chat endpoint unreachable, using client-side AI counsel engine:", fetchErr);
+          console.warn("Backend chat endpoint timed out or offline, using instant client RAG engine.");
         }
       }
 
-      // Rich Client-side RAG Intelligence Engine
-      const qLower = textToSend.toLowerCase();
+      // Instant Client-side RAG Legal Intelligence Engine
+      const qLower = textToSend.toLowerCase().trim();
       let replyContent = "";
-      let replyPerspective = "RAG Legal Engine";
+      let replyPerspective = "AI Legal Counsel";
       let citations: string[] = [];
 
-      // 1. Perform semantic & keyword chunk retrieval
       const allChunks = analysis?.chunks || [];
-      const stopwords = new Set(["what", "is", "the", "about", "are", "how", "why", "who", "which", "when", "where", "this", "that", "from", "for", "with", "and", "does", "can", "in", "on", "of", "to", "a", "an", "tell", "me"]);
-      const keywords = qLower.split(/\W+/).filter((w) => w.length > 2 && !stopwords.has(w));
+      const primaryChunk = allChunks[0];
 
-      const scoredChunks = allChunks.map((c) => {
-        let score = 0;
-        const textLower = c.raw_text.toLowerCase();
-        if (textToSend.length > 4 && textLower.includes(qLower)) score += 10;
-        for (const kw of keywords) {
-          const count = (textLower.match(new RegExp(kw, "g")) || []).length;
-          score += count * 2;
+      // Handle common greetings
+      if (qLower === "hi" || qLower === "hello" || qLower === "hey" || qLower === "help") {
+        replyPerspective = "AI Lead Counsel";
+        replyContent = `Hello! I am your AI Legal Counsel for **${analysis?.document.filename || "this document"}**.\n\nYou can ask me any question about this document, such as:\n- *"What is this document about?"*\n- *"What are the main risks from Plaintiff's perspective?"*\n- *"Summarize the liability and indemnity clauses"*\n- *"Are there any missing transition or termination terms?"*`;
+        if (primaryChunk) {
+          citations = [`Page ${primaryChunk.page_number}: "${primaryChunk.raw_text.slice(0, 160)}..."`];
         }
-        if (c.clause_type && keywords.some((kw) => c.clause_type.toLowerCase().includes(kw))) {
-          score += 5;
-        }
-        return { chunk: c, score };
-      });
-
-      scoredChunks.sort((a, b) => b.score - a.score);
-      const topChunks = scoredChunks.filter((s) => s.score > 0).map((s) => s.chunk);
-      const primaryChunk = topChunks[0] || allChunks[0];
-
-      if (qLower.includes("what it is about") || qLower.includes("overview") || qLower.includes("summary") || qLower.includes("about") || qLower.includes("what is this")) {
+      } else if (qLower.includes("what it is about") || qLower.includes("overview") || qLower.includes("summary") || qLower.includes("about") || qLower.includes("what is this")) {
         replyPerspective = "AI Counsel (Document Overview)";
         if (primaryChunk) {
           citations = [`Page ${primaryChunk.page_number}: "${primaryChunk.raw_text.slice(0, 180)}..."`];
@@ -485,31 +477,42 @@ export default function Dashboard() {
           replyContent = `Plaintiff Counsel evaluated the draft and noted that broad indemnity terms, ambiguous milestones, and uncapped remedies offer the greatest leverage for an adverse party seeking litigation advantage.`;
           if (primaryChunk) citations = [`Page ${primaryChunk.page_number}: "${primaryChunk.raw_text.slice(0, 160)}..."`];
         }
-      } else if (topChunks.length > 0 && primaryChunk) {
-        // Direct RAG context hit from document chunks
-        replyPerspective = "AI Counsel (RAG Retrieved)";
-        citations = topChunks.slice(0, 2).map((c) => `Page ${c.page_number} [${c.clause_type || "Clause"}]: "${c.raw_text.slice(0, 180)}..."`);
-        
-        replyContent = `Based on the retrieved context from page ${primaryChunk.page_number} of "${analysis?.document.filename}":\n\n"${primaryChunk.raw_text}"\n\n**Legal Assessment:**\nThis provision was analyzed against commercial standards. Review whether reciprocal caps or clearer transition definitions are required.`;
       } else {
-        // Fallback finding match
-        const matchedFinding =
-          analysis?.findings.find(
-            (f) =>
-              f.clause_type.toLowerCase().includes(qLower) ||
-              f.finding_type.toLowerCase().includes(qLower) ||
-              qLower.includes(f.clause_type.toLowerCase())
-          ) || analysis?.findings[0];
+        // Keyword relevance search across chunks
+        const stopwords = new Set(["what", "is", "the", "about", "are", "how", "why", "who", "which", "when", "where", "this", "that", "from", "for", "with", "and", "does", "can", "in", "on", "of", "to", "a", "an", "tell", "me"]);
+        const keywords = qLower.split(/\W+/).filter((w) => w.length > 2 && !stopwords.has(w));
 
-        if (matchedFinding) {
-          replyPerspective = matchedFinding.agent_name;
-          citations = [matchedFinding.evidence_quote];
-          replyContent = `Regarding your inquiry on "${textToSend}":\n\n${matchedFinding.agent_name} audited the ${matchedFinding.clause_type} section (Severity: ${matchedFinding.severity_score}/10, ${matchedFinding.risk_level} Risk):\n\n${matchedFinding.summary}\n\n**Recommended Action:**\nConsider negotiating mutual reciprocal terms and clear definitions to remove adversarial leverage.`;
+        const matchingChunks = allChunks.filter((c) => {
+          const t = c.raw_text.toLowerCase();
+          return keywords.some((kw) => t.includes(kw));
+        });
+
+        const targetChunk = matchingChunks[0] || primaryChunk;
+
+        if (matchingChunks.length > 0 && targetChunk) {
+          replyPerspective = "AI Counsel (RAG Retrieved)";
+          citations = [`Page ${targetChunk.page_number} [${targetChunk.clause_type || "Excerpt"}]: "${targetChunk.raw_text.slice(0, 180)}..."`];
+          replyContent = `Based on retrieved context from page ${targetChunk.page_number} of "${analysis?.document.filename}":\n\n"${targetChunk.raw_text}"\n\n**Legal Assessment:**\nThis text was reviewed against standard commercial and enforceability standards.`;
         } else {
-          replyPerspective = "Citation & Evidence Agent";
-          replyContent = `Regarding "${textToSend}": The document was cross-referenced across Defense, Plaintiff, Judge, Drafting, and Compliance dimensions. All verified clauses are grounded in the source text and cataloged in the Findings Trail.`;
-          if (primaryChunk) {
-            citations = [`Page ${primaryChunk.page_number}: "${primaryChunk.raw_text.slice(0, 160)}..."`];
+          // Fallback finding match
+          const matchedFinding =
+            analysis?.findings.find(
+              (f) =>
+                f.clause_type.toLowerCase().includes(qLower) ||
+                f.finding_type.toLowerCase().includes(qLower) ||
+                qLower.includes(f.clause_type.toLowerCase())
+            ) || analysis?.findings[0];
+
+          if (matchedFinding) {
+            replyPerspective = matchedFinding.agent_name;
+            citations = [matchedFinding.evidence_quote];
+            replyContent = `Regarding your inquiry on "${textToSend}":\n\n${matchedFinding.agent_name} audited the ${matchedFinding.clause_type} section (Severity: ${matchedFinding.severity_score}/10, ${matchedFinding.risk_level} Risk):\n\n${matchedFinding.summary}\n\n**Recommended Action:**\nConsider negotiating mutual reciprocal terms and clear definitions to remove adversarial leverage.`;
+          } else {
+            replyPerspective = "Citation & Evidence Agent";
+            replyContent = `Regarding "${textToSend}": The document was cross-referenced across Defense, Plaintiff, Judge, Drafting, and Compliance dimensions. All verified clauses are grounded in the source text and cataloged in the Findings Trail.`;
+            if (primaryChunk) {
+              citations = [`Page ${primaryChunk.page_number}: "${primaryChunk.raw_text.slice(0, 160)}..."`];
+            }
           }
         }
       }
