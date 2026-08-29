@@ -192,17 +192,71 @@ function buildMockAnalysis(fileName: string, documentId: string): AnalysisResult
   };
 }
 
+const LOCAL_DOCS_KEY = "legalaid_documents";
+const LOCAL_ANALYSES_KEY = "legalaid_analyses";
+const LOCAL_SELECTED_DOC_KEY = "legalaid_selected_doc_id";
+
 export default function Dashboard() {
   const [, setLocation] = useLocation();
   const [session, setSession] = useState<MockSession | null>(null);
   const [ready, setReady] = useState(false);
   
-  // Dashboard application states
-  const [documents, setDocuments] = useState<APIDocument[]>([]);
-  const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
+  // Dashboard application states with persistent localStorage fallback
+  const [documents, setDocuments] = useState<APIDocument[]>(() => {
+    try {
+      const saved = window.localStorage.getItem(LOCAL_DOCS_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [selectedDocId, setSelectedDocId] = useState<string | null>(() => {
+    try {
+      return window.localStorage.getItem(LOCAL_SELECTED_DOC_KEY) || null;
+    } catch {
+      return null;
+    }
+  });
+
   const [analysis, setAnalysis] = useState<AnalysisResults | null>(null);
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
-  const [mockAnalyses, setMockAnalyses] = useState<Record<string, AnalysisResults>>({});
+
+  const [mockAnalyses, setMockAnalyses] = useState<Record<string, AnalysisResults>>(() => {
+    try {
+      const saved = window.localStorage.getItem(LOCAL_ANALYSES_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  // Sync state changes with localStorage
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(LOCAL_DOCS_KEY, JSON.stringify(documents));
+    } catch (e) {
+      console.warn("Failed to persist documents to localStorage", e);
+    }
+  }, [documents]);
+
+  useEffect(() => {
+    try {
+      if (selectedDocId) {
+        window.localStorage.setItem(LOCAL_SELECTED_DOC_KEY, selectedDocId);
+      }
+    } catch (e) {
+      console.warn("Failed to persist selectedDocId", e);
+    }
+  }, [selectedDocId]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(LOCAL_ANALYSES_KEY, JSON.stringify(mockAnalyses));
+    } catch (e) {
+      console.warn("Failed to persist mockAnalyses", e);
+    }
+  }, [mockAnalyses]);
   
   // UI filter / navigation states
   const [activeTab, setActiveTab] = useState<"summary" | "strengths" | "vulnerabilities" | "recommendations">("summary");
@@ -241,9 +295,12 @@ export default function Dashboard() {
       if (res.ok) {
         const data = await res.json();
         setDocuments(data);
-        // Automatically select the first document if available and none selected
-        if (data.length > 0 && !selectedDocId) {
-          setSelectedDocId(data[0].id);
+        // Automatically select the first document if available and none selected or invalid
+        if (data.length > 0) {
+          const currentValid = data.some((d: APIDocument) => d.id === selectedDocId);
+          if (!selectedDocId || !currentValid) {
+            setSelectedDocId(data[0].id);
+          }
         }
       }
     } catch (err) {
@@ -261,9 +318,9 @@ export default function Dashboard() {
       return;
     }
 
-    const mockAnalysis = mockAnalyses[selectedDocId];
-    if (mockAnalysis) {
-      setAnalysis(mockAnalysis);
+    const cachedAnalysis = mockAnalyses[selectedDocId];
+    if (cachedAnalysis) {
+      setAnalysis(cachedAnalysis);
       setLoadingAnalysis(false);
       return;
     }
@@ -275,6 +332,7 @@ export default function Dashboard() {
         if (res.ok) {
           const data = await res.json();
           setAnalysis(data);
+          setMockAnalyses((prev) => ({ ...prev, [selectedDocId]: data }));
           setSelectedFinding(null); // Clear selected drawer
         } else {
           setAnalysis(null);
