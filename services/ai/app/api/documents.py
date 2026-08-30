@@ -340,6 +340,30 @@ def get_document(document_id: uuid.UUID, db: Session = Depends(get_db)):
         "risk_level": analysis.risk_level if analysis else None
     }
 
+@router.delete("/{document_id}", status_code=status.HTTP_200_OK)
+def delete_document(document_id: uuid.UUID, db: Session = Depends(get_db)):
+    """Delete a document and all associated analysis, findings, and chunks."""
+    doc = db.query(Document).filter(Document.id == document_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # Delete associated findings
+    analyses = db.query(AnalysisResult).filter(AnalysisResult.document_id == document_id).all()
+    for a in analyses:
+        db.query(AgentFinding).filter(AgentFinding.analysis_result_id == a.id).delete()
+    
+    # Delete analyses
+    db.query(AnalysisResult).filter(AnalysisResult.document_id == document_id).delete()
+    
+    # Delete chunks
+    db.query(Chunk).filter(Chunk.document_id == document_id).delete()
+    
+    # Delete document
+    db.delete(doc)
+    db.commit()
+    
+    return {"message": "Document deleted successfully", "document_id": str(document_id)}
+
 @router.get("/{document_id}/analysis")
 def get_analysis_results(document_id: uuid.UUID, db: Session = Depends(get_db)):
     """Retrieve multi-agent findings and consensus reports."""

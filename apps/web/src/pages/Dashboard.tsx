@@ -21,7 +21,8 @@ import {
   MessageSquare,
   Send,
   Bot,
-  RefreshCw
+  RefreshCw,
+  Trash2
 } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { Link, useLocation } from "wouter";
@@ -1062,6 +1063,56 @@ export default function Dashboard() {
     setLocation("/login");
   };
 
+  const handleDeleteDocument = async (docIdToDelete: string, docFilename: string) => {
+    if (!confirm(`Are you sure you want to delete "${docFilename}"?`)) {
+      return;
+    }
+
+    try {
+      if (USE_BACKEND_API) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 4000);
+          await fetch(`/api/documents/${docIdToDelete}`, {
+            method: "DELETE",
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+        } catch (err) {
+          console.warn("Backend document delete offline or timed out, removing locally:", err);
+        }
+      }
+
+      // Update documents state
+      const remainingDocs = documents.filter((d) => d.id !== docIdToDelete);
+      setDocuments(remainingDocs);
+
+      // Clean mock analyses and local storage
+      setMockAnalyses((prev) => {
+        const copy = { ...prev };
+        delete copy[docIdToDelete];
+        return copy;
+      });
+      window.localStorage.removeItem(LOCAL_CHAT_PREFIX + docIdToDelete);
+
+      // If active document was deleted, switch to next or clear
+      if (selectedDocId === docIdToDelete) {
+        const nextDoc = remainingDocs[0];
+        if (nextDoc) {
+          setSelectedDocId(nextDoc.id);
+        } else {
+          setSelectedDocId("");
+          setAnalysis(null);
+        }
+      }
+
+      toast.success(`Deleted "${docFilename}"`);
+    } catch (err) {
+      console.error("Failed to delete document:", err);
+      toast.error("Failed to delete document");
+    }
+  };
+
   const fetchDocuments = async () => {
     if (!USE_BACKEND_API) {
       return;
@@ -1305,32 +1356,50 @@ export default function Dashboard() {
               documents.map((doc) => {
                 const isActive = doc.id === selectedDocId;
                 return (
-                  <button
+                  <div
                     key={doc.id}
                     onClick={() => setSelectedDocId(doc.id)}
-                    className={`w-full text-left p-3.5 flex flex-col gap-1 border transition-colors ${
+                    className={`group relative w-full text-left p-3.5 flex flex-col gap-1 border transition-colors cursor-pointer ${
                       isActive 
                         ? "bg-[#101412] text-[#f1eee6] border-[#101412]" 
                         : "bg-white border-[#e6e2d8] hover:bg-[#f3eff5] text-[#101412]"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <span className="font-display font-semibold text-sm truncate">{doc.filename}</span>
-                      {doc.status === "rejected_non_contract" ? (
-                        <span className="text-[9px] font-mono px-1.5 py-0.5 bg-amber-100 text-amber-900 border border-amber-300 font-bold">
-                          NON-LEGAL
-                        </span>
-                      ) : doc.risk_score !== null && (
-                        <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-none font-bold ${
-                          doc.risk_level === 'Critical' || doc.risk_level === 'High'
-                            ? "bg-red-500 text-white"
-                            : doc.risk_level === 'Medium'
-                              ? "bg-amber-500 text-black"
-                              : "bg-green-500 text-white"
-                        }`}>
-                          {doc.risk_score.toFixed(1)}
-                        </span>
-                      )}
+                      <span className="font-display font-semibold text-sm truncate flex-1">{doc.filename}</span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {doc.status === "rejected_non_contract" ? (
+                          <span className="text-[9px] font-mono px-1.5 py-0.5 bg-amber-100 text-amber-900 border border-amber-300 font-bold">
+                            NON-LEGAL
+                          </span>
+                        ) : doc.risk_score !== null && (
+                          <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-none font-bold ${
+                            doc.risk_level === 'Critical' || doc.risk_level === 'High'
+                              ? "bg-red-500 text-white"
+                              : doc.risk_level === 'Medium'
+                                ? "bg-amber-500 text-black"
+                                : "bg-green-500 text-white"
+                          }`}>
+                            {doc.risk_score.toFixed(1)}
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteDocument(doc.id, doc.filename);
+                          }}
+                          title={`Delete ${doc.filename}`}
+                          aria-label={`Delete ${doc.filename}`}
+                          className={`p-1 transition-colors rounded ${
+                            isActive
+                              ? "text-slate-400 hover:text-red-400 hover:bg-white/10"
+                              : "text-slate-400 hover:text-red-600 hover:bg-red-50"
+                          }`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </div>
                     <div className="flex items-center justify-between text-[10px] font-mono text-[#626860] mt-1.5">
                       <span>{doc.page_count ? `${doc.page_count} pg` : "TXT File"}</span>
@@ -1342,7 +1411,7 @@ export default function Dashboard() {
                         {doc.status === "rejected_non_contract" ? "Non-Contractual" : doc.status}
                       </span>
                     </div>
-                  </button>
+                  </div>
                 );
               })
             )}
