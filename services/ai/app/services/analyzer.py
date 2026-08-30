@@ -179,9 +179,17 @@ def generate_consensus_reasoning(finding: Dict[str, Any]) -> Dict[str, Any]:
         "plain_arbitration_rule": plain_rule
     }
 
-def is_contractual_document(text: str) -> tuple[bool, str]:
+def is_contractual_document(text: str, filename: str = "") -> tuple[bool, str]:
     """Validates if the document text contains sufficient contractual language and structure."""
-    words = re.findall(r'\b\w+\b', text.lower())
+    # Check filename for non-legal indicators (e.g. ID card, badge, license, photo)
+    non_legal_filename_pattern = r"(?i)\b(id\s*card|identity\s*card|badge|license|driving\s*licence|passport|hall\s*ticket|admit\s*card|resume|cv|biodata|receipt|invoice|bill|ticket|boarding\s*pass|photo|image|scan)\b"
+    clean_text = re.sub(r'/[A-Z][a-zA-Z0-9]+|<<|>>|stream|endstream|obj|endobj|%\w+', ' ', text)
+    words = re.findall(r'\b[a-zA-Z]{3,}\b', clean_text.lower())
+
+    if filename and re.search(non_legal_filename_pattern, filename):
+        if len(words) < 80:
+            return False, f"File '{filename}' appears to be a non-legal document (ID/credential) without contractual terms."
+
     if len(words) < 35:
         return False, "Extracted text is too short to be a valid legal contract (under 35 words)."
     
@@ -193,7 +201,7 @@ def is_contractual_document(text: str) -> tuple[bool, str]:
         "non-disclosure", "disclosing party", "receiving party", "injunctive relief"
     ]
     
-    matched_indicators = [ind for ind in strong_indicators if re.search(r'\b' + ind, text.lower())]
+    matched_indicators = [ind for ind in strong_indicators if re.search(r'\b' + ind, clean_text.lower())]
     
     if len(matched_indicators) < 2:
         return False, "Document does not contain contractual language, obligations, or legal provisions."

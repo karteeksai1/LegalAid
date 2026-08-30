@@ -5,7 +5,10 @@ import logging
 from typing import List, Dict, Any
 from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, status
 from sqlalchemy.orm import Session
-from pypdf import PdfReader
+try:
+    from pypdf import PdfReader
+except ImportError:
+    PdfReader = None
 
 from app.db.session import get_db
 from app.models.document import Document
@@ -143,7 +146,7 @@ async def upload_document(
     raw_text, page_count = extract_text(content, file.content_type)
     
     # 4b. Contract Relevance Gate: check if document is a legal agreement
-    is_contract, contract_reason = is_contractual_document(raw_text)
+    is_contract, contract_reason = is_contractual_document(raw_text, file.filename)
     if not is_contract:
         logger.info(f"Document '{file.filename}' rejected as non-contractual: {contract_reason}")
         if not existing:
@@ -682,9 +685,30 @@ async def chat_with_document(
         db.commit()
         return {"user_message": user_entry, "assistant_message": assistant_entry}
 
+    # Handle non-legal document in Q&A
+    if doc.status == "rejected_non_contract":
+        assistant_entry = {
+            "id": str(uuid.uuid4()),
+            "role": "assistant",
+            "content": f"This document ('{doc.filename}') does not appear to be a legal agreement or contract — no contractual clauses, covenants, or legal obligations were detected.",
+            "agent_perspective": "AI Assistant (Non-Legal Document)",
+            "citations": [],
+            "timestamp": now_iso
+        }
+        history.append(user_entry)
+        history.append(assistant_entry)
+        metadata["chat_history"] = history
+        doc.metadata_json = metadata
+        db.commit()
+        return {"user_message": user_entry, "assistant_message": assistant_entry}
+
     all_chunks = db.query(Chunk).filter(Chunk.document_id == doc.id).all()
     analysis = db.query(AnalysisResult).filter(AnalysisResult.document_id == doc.id).first()
     
+    # Check if this is an informational / overview query
+    q_lower = question.lower()
+    is_informational = bool(re.search(r"(?i)\b(what is (this|the) doc(ument)?( about)?|what is this|overview|summary|summarize|what type of (agreement|contract|document)|who are the parties|who is involved)\b", question))
+
     # 1. RAG Retrieval Step (Strict Matching)
     retrieved_chunks = retrieve_rag_chunks(all_chunks, question, top_k=4)
     rag_context = "\n\n".join([f"[Page {c.page_number} | Clause: {c.clause_type or 'General'}]\n{c.raw_text}" for c in retrieved_chunks])
@@ -726,9 +750,9 @@ You are LegalAid's verified legal document reviewer for "{doc.filename}".
 </USER_QUERY>
 
 Instructions:
-1. If relevant passages were retrieved in <DOCUMENT_CONTEXT>, answer the question directly quoting the verified text.
-2. If no relevant provisions exist in the text, clearly state that this document does not contain terms on that topic. Do NOT fabricate clauses.
-3. If the user asks what the document is about, provide a clear executive summary of its purpose, parties, and key terms.
+1. If this is a direct informational question (e.g., "what is this document about", "who are the parties"), give a concise, direct 1-3 sentence summary of the document's subject matter and parties. Do NOT output safety score scaffolding or risk count boilerplate.
+2. If relevant passages were retrieved in <DOCUMENT_CONTEXT>, answer the question directly quoting the verified text.
+3. If no relevant provisions exist in the text, clearly state that this document does not contain terms on that topic. Do NOT fabricate clauses.
 """
             chat_completion = client.chat.completions.create(
                 messages=[
@@ -739,8 +763,8 @@ Instructions:
                 temperature=0.1
             )
             answer = chat_completion.choices[0].message.content or ""
-            agent_perspective = "AI Legal Counsel (RAG Grounded)"
-            if retrieved_chunks:
+            agent_perspective = "AI Counsel (Document Overview)" if is_informational else "AI Legal Counsel (RAG Grounded)"
+            if retrieved_chunks and not is_informational:
                 for c in retrieved_chunks:
                     if len(c.raw_text.strip()) > 20:
                         citations.append(f"Page {c.page_number}: {c.raw_text[:140]}...")
@@ -752,17 +776,26 @@ Instructions:
 
     if not answer:
         # Grounded Contextual Extractor
-        q_lower = question.lower()
         if retrieved_chunks:
             primary_chunk = retrieved_chunks[0]
-            citations = [f"Page {primary_chunk.page_number}: \"{primary_chunk.raw_text[:160]}...\""]
-            if "what" in q_lower and ("about" in q_lower or "summary" in q_lower or "is this" in q_lower):
-                answer = f"Based on the retrieved document context from \"{doc.filename}\":\n\n{primary_chunk.raw_text}\n\nThe document was audited by LegalAid's multi-agent consensus engine with an aggregate risk score of {float(analysis.aggregate_risk_score) if analysis else 1.3}/10."
+            if is_informational:
+                agent_perspective = "Plain Summary"
+                raw_lead = primary_chunk.raw_text.strip()
+                if len(raw_lead) > 260:
+                    raw_lead = raw_lead[:257] + "..."
+                answer = f"**Document Overview:** \"{doc.filename}\"\n\n{raw_lead}"
+                citations = []
             else:
+                agent_perspective = "AI Counsel (RAG Retrieved)"
+                citations = [f"Page {primary_chunk.page_number}: \"{primary_chunk.raw_text[:160]}...\""]
                 answer = f"Relevant text retrieved for \"{question}\" (Page {primary_chunk.page_number}):\n\n\"{primary_chunk.raw_text}\"\n\nReview this clause against standard commercial allocation practices."
         else:
-            answer = f"I searched \"{doc.filename}\" for provisions regarding \"{question}\", but this agreement does not appear to contain matching clauses on this topic."
-            citations = []
+            if is_informational:
+                answer = f"**Document Overview:** \"{doc.filename}\"\n\nThis is a legal document setting forth contractual terms, obligations, and governing provisions between the parties."
+                citations = []
+            else:
+                answer = f"I searched \"{doc.filename}\" for provisions regarding \"{question}\", but this agreement does not appear to contain matching clauses on this topic."
+                citations = []
 
     now_iso = datetime.now(timezone.utc).isoformat()
     metadata = dict(doc.metadata_json or {})

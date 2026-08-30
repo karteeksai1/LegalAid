@@ -426,8 +426,23 @@ interface AnalysisResults {
   }>;
 }
 
-export function isContractualDocument(text: string): { isContract: boolean; reason: string } {
-  const words = text.toLowerCase().match(/\b\w+\b/g) || [];
+export function isContractualDocument(text: string, fileName?: string): { isContract: boolean; reason: string } {
+  const name = fileName || "";
+  const nonLegalFilenamePattern = /\b(id\s*card|identity\s*card|badge|license|driving\s*licence|passport|hall\s*ticket|admit\s*card|resume|cv|biodata|receipt|invoice|bill|ticket|boarding\s*pass|photo|image|scan)\b/i;
+  
+  // Strip PDF binary noise
+  const cleanText = text.replace(/\/[A-Z][a-zA-Z0-9]+|<<|>>|stream|endstream|obj|endobj|%\w+/g, " ");
+  const words = cleanText.toLowerCase().match(/\b[a-zA-Z]{3,}\b/g) || [];
+
+  if (name && nonLegalFilenamePattern.test(name)) {
+    if (words.length < 80) {
+      return {
+        isContract: false,
+        reason: `File "${name}" appears to be a non-legal document (identification/record) without contractual provisions.`
+      };
+    }
+  }
+
   if (words.length < 35) {
     return {
       isContract: false,
@@ -443,7 +458,7 @@ export function isContractualDocument(text: string): { isContract: boolean; reas
     "non-disclosure", "disclosing party", "receiving party", "injunctive relief"
   ];
 
-  const matched = strongIndicators.filter((ind) => text.toLowerCase().includes(ind));
+  const matched = strongIndicators.filter((ind) => cleanText.toLowerCase().includes(ind));
   if (matched.length < 2) {
     return {
       isContract: false,
@@ -456,7 +471,7 @@ export function isContractualDocument(text: string): { isContract: boolean; reas
 
 export function buildDynamicDocumentAnalysis(fileName: string, documentId: string, rawText?: string): AnalysisResults {
   const text = rawText || "";
-  const { isContract, reason } = isContractualDocument(text);
+  const { isContract, reason } = isContractualDocument(text, fileName);
 
   if (!isContract) {
     return {
@@ -692,7 +707,20 @@ export default function Dashboard() {
   const [documents, setDocuments] = useState<APIDocument[]>(() => {
     try {
       const saved = window.localStorage.getItem(LOCAL_DOCS_KEY);
-      return saved ? JSON.parse(saved) : [];
+      if (!saved) return [];
+      const parsed: APIDocument[] = JSON.parse(saved);
+      return parsed.map((doc) => {
+        const check = isContractualDocument("", doc.filename);
+        if (!check.isContract) {
+          return {
+            ...doc,
+            status: "rejected_non_contract",
+            risk_score: null,
+            risk_level: null
+          };
+        }
+        return doc;
+      });
     } catch {
       return [];
     }
@@ -712,7 +740,18 @@ export default function Dashboard() {
   const [mockAnalyses, setMockAnalyses] = useState<Record<string, AnalysisResults>>(() => {
     try {
       const saved = window.localStorage.getItem(LOCAL_ANALYSES_KEY);
-      return saved ? JSON.parse(saved) : {};
+      if (!saved) return {};
+      const parsed: Record<string, AnalysisResults> = JSON.parse(saved);
+      const sanitized: Record<string, AnalysisResults> = {};
+      for (const [id, a] of Object.entries(parsed)) {
+        const check = isContractualDocument("", a.document.filename);
+        if (!check.isContract) {
+          sanitized[id] = buildDynamicDocumentAnalysis(a.document.filename, id, "");
+        } else {
+          sanitized[id] = a;
+        }
+      }
+      return sanitized;
     } catch {
       return {};
     }
@@ -914,7 +953,7 @@ export default function Dashboard() {
         }
       }
 
-      // Instant Client-side RAG Intelligence Engine (Strict Grounding & Adaptive View)
+      // Instant Client-side RAG Intelligence Engine (Strict Grounding & Direct Intent Adaptation)
       const qLower = textToSend.toLowerCase().trim();
       let replyContent = "";
       let replyPerspective = viewMode === "simple" ? "Plain English Advisor" : "AI Legal Counsel";
@@ -922,23 +961,38 @@ export default function Dashboard() {
 
       const allChunks = analysis?.chunks || [];
       const primaryChunk = allChunks[0];
+      const isNonLegalDoc = analysis?.document.status === "rejected_non_contract" || analysis?.document.is_legal_contract === false;
 
-      // Handle greetings
-      if (intentResult.topic === "greeting" || qLower === "hi" || qLower === "hello" || qLower === "hey" || qLower === "help") {
+      // Handle Non-Legal Document Query
+      if (isNonLegalDoc) {
+        replyPerspective = "AI Assistant (Non-Legal Document)";
+        replyContent = `This document ("${analysis?.document.filename || "Uploaded File"}") is a non-legal document (such as an identification card or personal record). It does not contain contractual clauses, legal obligations, or risk provisions.`;
+        citations = [];
+      } else if (intentResult.topic === "greeting" || qLower === "hi" || qLower === "hello" || qLower === "hey" || qLower === "help") {
+        // Handle greetings
         replyPerspective = viewMode === "simple" ? "Plain English Advisor" : "Lead Legal Counsel";
         replyContent = viewMode === "simple"
           ? `Hello! I am your Plain-English Legal Assistant for **${analysis?.document.filename || "this document"}**.\n\nAsk me anything in everyday language, such as:\n- *"What is this document about?"*\n- *"What are the biggest traps in this contract?"*\n- *"Can they cancel on me without warning?"*\n- *"How do I fix the liability and payment terms?"*`
           : `Hello! I am your AI Legal Counsel for **${analysis?.document.filename || "this document"}**.\n\nYou can ask me any question about this document, such as:\n- *"What is this document about?"*\n- *"What are the main risks from Plaintiff's perspective?"*\n- *"Summarize the liability and indemnity clauses"*\n- *"Are there any missing transition or termination terms?"*`;
         citations = [];
-      } else if (qLower.includes("what it is about") || qLower.includes("overview") || qLower.includes("summary") || qLower.includes("about") || qLower.includes("what is this")) {
+      } else if (/\b(what is (this|the) doc(ument)?( about)?|what is this|overview|summary|summarize|what type of (agreement|contract|document)|who are the parties|who is involved|parties to (this|the))\b/i.test(qLower)) {
+        // Direct Informational Query: 1-3 direct sentences, NO risk score / safety assessment scaffolding
         replyPerspective = viewMode === "simple" ? "Plain Summary" : "AI Counsel (Document Overview)";
-        if (primaryChunk && primaryChunk.raw_text) {
-          citations = [`Page ${primaryChunk.page_number}: "${primaryChunk.raw_text.slice(0, 180)}..."`];
+        let summaryLead = "";
+        if (primaryChunk && primaryChunk.raw_text && primaryChunk.clause_type !== "Non-Contractual") {
+          const lines = primaryChunk.raw_text.split("\n").map(l => l.trim()).filter(l => l.length > 15);
+          summaryLead = lines.slice(0, 3).join(" ").trim();
         }
-        replyContent = viewMode === "simple"
-          ? `**Document Overview:** "${analysis?.document.filename || "Uploaded File"}"\n\n**What this agreement covers:**\n${analysis?.analysis.consensus_report.summary || "A commercial agreement audited for one-sided terms and traps."}\n\n**Overall Safety Assessment:** ${analysis?.analysis.risk_level === 'Critical' || analysis?.analysis.risk_level === 'High' ? '⚠️ High Attention Required' : '✅ Moderate / Manageable'} (Risk Score: ${analysis?.analysis.aggregate_risk_score.toFixed(1) || "1.3"}/10).\n\n**Key Areas to Review:** ${analysis?.analysis.critical_count || 0} Urgent fixes and ${analysis?.analysis.high_count || 0} Serious risks found.`
-          : `**Document Overview:** "${analysis?.document.filename || "Uploaded File"}"\n\n**Adversarial Audit Summary:**\n${analysis?.analysis.consensus_report.summary || "Audited across Defense, Plaintiff, Judge, Drafting, and Compliance agents."}\n\n**Risk Score:** ${analysis?.analysis.aggregate_risk_score.toFixed(1) || "1.3"}/10 (${analysis?.analysis.risk_level || "Low"} Risk Profile).`;
-      } else if (qLower.includes("plaintiff") || qLower.includes("opposing") || qLower.includes("attack") || qLower.includes("exploit") || qLower.includes("loophole")) {
+        if (!summaryLead || summaryLead.length < 25) {
+          summaryLead = `This document is a commercial agreement setting forth binding terms, rights, and obligations between the participating parties.`;
+        }
+        if (summaryLead.length > 280) {
+          summaryLead = summaryLead.slice(0, 277) + "...";
+        }
+        replyContent = `**Document Overview:** "${analysis?.document.filename || "Uploaded File"}"\n\n${summaryLead}`;
+        citations = []; // Informational summaries do not require a separate excerpt block
+      } else if (/\b(plaintiff|opposing|attack|exploit|loophole|biggest risk|main risk|flagged|why is this risky|vulnerabilit)\b/i.test(qLower)) {
+        // Risk / Finding-related Query: Detailed adversarial / plain finding review
         replyPerspective = viewMode === "simple" ? "Opposing Party View" : "Plaintiff Counsel";
         const plaintiffFindings = analysis?.findings.filter((f) => f.agent_name === "Plaintiff Counsel") || [];
         const topFinding = plaintiffFindings[0] || analysis?.findings[0];
@@ -948,12 +1002,12 @@ export default function Dashboard() {
             citations = [topFinding.evidence_quote];
           }
           replyContent = viewMode === "simple"
-            ? `**How the other side could take advantage of you:**\n\n1. **${plain.title}** (${topFinding.clause_type}):\n${plain.impact}\n\n**What you should negotiate:**\n${plain.action}`
-            : `From an aggressive Plaintiff/Opposing Counsel perspective, the primary litigation vulnerabilities and leverage points in this document are:\n\n1. **${topFinding.finding_type}** (${topFinding.clause_type}): ${topFinding.summary}\n\nOpposing counsel will seek to exploit uncapped remedies and unilateral ambiguity to extract settlements or impose emergency injunctions before full discovery.`;
+            ? `**High-Risk Term Identified:** **${plain.title}** (${topFinding.clause_type})\n\n**What this means:**\n${plain.whatItSays}\n\n**Why it matters to you:**\n${plain.impact}\n\n**Recommended Action:**\n${plain.action}`
+            : `**Adversarial Finding:** ${topFinding.finding_type} (${topFinding.clause_type})\n\n${topFinding.summary}\n\n**Litigation Assessment:**\nOpposing counsel can leverage broad or ambiguous wording to assert immediate breach or extract concessions before full trial.`;
         } else {
           replyContent = viewMode === "simple"
-            ? `The other side will have the most leverage if indemnity is uncapped or if termination notice periods are too short.`
-            : `Plaintiff Counsel evaluated the draft and noted that broad indemnity terms, ambiguous milestones, and uncapped remedies offer the greatest leverage for an adverse party seeking litigation advantage.`;
+            ? `No critical high-severity vulnerabilities were flagged in this document. Review boilerplate terms before execution.`
+            : `No high-severity risks or unilateral attack vectors were surfaced in the multi-agent findings trail.`;
           citations = [];
         }
       } else {
@@ -980,8 +1034,8 @@ export default function Dashboard() {
           replyPerspective = viewMode === "simple" ? "Document Text" : "AI Counsel (RAG Retrieved)";
           citations = [`Page ${targetChunk.page_number} [${targetChunk.clause_type || "Excerpt"}]: "${targetChunk.raw_text.slice(0, 180)}..."`];
           replyContent = viewMode === "simple"
-            ? `Regarding your question on **"${textToSend}"**, here is the relevant excerpt from page ${targetChunk.page_number} of your agreement:\n\n"${targetChunk.raw_text}"\n\n**Takeaway:** Check that this clause is mutual and doesn't leave your obligations uncapped.`
-            : `Based on retrieved context from page ${targetChunk.page_number} of "${analysis?.document.filename}" regarding "${textToSend}":\n\n"${targetChunk.raw_text}"\n\n**Legal Assessment:**\nThis text was reviewed against standard commercial and enforceability standards.`;
+            ? `Regarding your question on **"${textToSend}"**, here is the relevant excerpt from page ${targetChunk.page_number} of your agreement:\n\n"${targetChunk.raw_text}"\n\n**Takeaway:** Check that this clause is mutual and clearly defines scope and notice periods.`
+            : `Based on retrieved context from page ${targetChunk.page_number} of "${analysis?.document.filename}" regarding "${textToSend}":\n\n"${targetChunk.raw_text}"\n\n**Legal Assessment:**\nThis provision was reviewed against standard commercial practices and enforceability guidelines.`;
         } else {
           // Finding match fallback (only if keyword specifically matches the finding clause)
           const matchedFinding = analysis?.findings.find(
@@ -1025,9 +1079,9 @@ export default function Dashboard() {
       const fallbackMsg: ChatMessage = {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: `I reviewed your question regarding "${textToSend}". The document exhibits an aggregate risk score of ${analysis?.analysis.aggregate_risk_score.toFixed(1) || "1.3"}/10. Please inspect the Agent Findings Trail for clause-by-clause citations.`,
-        agent_perspective: "AI Counsel",
-        citations: analysis?.findings[0]?.evidence_quote ? [analysis.findings[0].evidence_quote] : [],
+        content: "I encountered an error analyzing your question. Please try rephrasing your inquiry.",
+        agent_perspective: "Legal Assistant",
+        citations: [],
         timestamp: new Date().toISOString()
       };
       setChatMessages((prev) => [...prev, fallbackMsg]);
