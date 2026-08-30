@@ -59,13 +59,9 @@ export default function Auth({ mode }: { mode: AuthMode }) {
           <div className="absolute inset-y-0 left-12 border-l border-[#d7ff52]/35" />
           
           <div className="relative z-10 p-20 pt-28 max-w-120">
-            <span className="eyebrow text-[#d7ff52]">Justice / inspected</span>
-            <p className="font-display mt-4 text-4xl font-semibold leading-[0.98] tracking-[-0.05em] text-[#f1eee6]">
+            <p className="font-display text-4xl font-semibold leading-[0.98] tracking-[-0.05em] text-[#f1eee6]">
               The strongest opinion is the one that can show its work.
             </p>
-            <div className="mt-7 flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-[#8f978e]">
-              <span className="h-2 w-2 rounded-full bg-[#d7ff52]" /> System legible / source grounded
-            </div>
           </div>
 
           {/* Lady Justice Transparent Outlined Figure */}
