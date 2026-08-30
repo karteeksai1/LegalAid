@@ -1798,8 +1798,8 @@ export default function Dashboard() {
                             </p>
                           </div>
 
-                          <div className="space-y-2 border-t border-[#d6d2c8] pt-4 bg-amber-50/70 p-3 border border-amber-200">
-                            <span className="text-[10px] font-mono uppercase tracking-wider text-amber-800 font-bold block flex items-center gap-1">
+                          <div className="space-y-2 bg-amber-50/70 p-3 border border-amber-200">
+                            <span className="text-[10px] font-mono uppercase tracking-wider text-amber-800 font-bold flex items-center gap-1">
                               ⚠️ Real-World Practical Impact
                             </span>
                             <p className="text-xs text-amber-950 leading-relaxed font-sans">
@@ -1807,8 +1807,8 @@ export default function Dashboard() {
                             </p>
                           </div>
 
-                          <div className="space-y-2 border-t border-[#d6d2c8] pt-4 bg-emerald-50/70 p-3 border border-emerald-200">
-                            <span className="text-[10px] font-mono uppercase tracking-wider text-emerald-800 font-bold block flex items-center gap-1">
+                          <div className="space-y-2 bg-emerald-50/70 p-3 border border-emerald-200">
+                            <span className="text-[10px] font-mono uppercase tracking-wider text-emerald-800 font-bold flex items-center gap-1">
                               💡 How To Negotiate & Fix This
                             </span>
                             <p className="text-xs text-emerald-950 leading-relaxed font-sans">
