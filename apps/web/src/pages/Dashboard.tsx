@@ -1250,35 +1250,51 @@ export default function Dashboard() {
   };
 
   const handleDeleteDocument = async (docIdToDelete: string, docFilename: string) => {
-    if (!confirm(`Are you sure you want to delete "${docFilename}"?`)) {
+    if (!confirm(`Are you sure you want to delete "${docFilename}"? This cannot be undone.`)) {
       return;
     }
 
-    try {
-      if (USE_BACKEND_API) {
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 4000);
-          await fetch(`/api/documents/${docIdToDelete}`, {
-            method: "DELETE",
-            signal: controller.signal
-          });
-          clearTimeout(timeoutId);
-        } catch (err) {
-          console.warn("Backend document delete offline or timed out, removing locally:", err);
-        }
-      }
+    // Step 1: If backend is available, call the delete endpoint and wait for confirmed success.
+    // Do NOT remove from UI until the backend confirms the deletion.
+    if (USE_BACKEND_API) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        const res = await fetch(`/api/documents/${docIdToDelete}`, {
+          method: "DELETE",
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
 
-      // Update documents state
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({ detail: `Server returned ${res.status}` }));
+          throw new Error(errData.detail || `Delete failed (HTTP ${res.status})`);
+        }
+        // Backend confirmed deletion — safe to proceed to UI cleanup
+      } catch (err: any) {
+        // DELETE failed — do NOT remove from UI. Surface the error.
+        const msg = err?.name === "AbortError"
+          ? "Delete request timed out — the document was not removed. Try again."
+          : `Could not delete "${docFilename}": ${err?.message || "Unknown error"}`;
+        console.error("Delete failed:", err);
+        toast.error(msg);
+        return; // Early return — document stays in the list
+      }
+    }
+
+    // Step 2: Remove from local state (only reached after backend confirms, or in local-only mode)
+    try {
       const remainingDocs = documents.filter((d) => d.id !== docIdToDelete);
       setDocuments(remainingDocs);
 
-      // Clean mock analyses and local storage
+      // Clean mock analyses cache
       setMockAnalyses((prev) => {
         const copy = { ...prev };
         delete copy[docIdToDelete];
         return copy;
       });
+
+      // Clean chat history from localStorage
       window.localStorage.removeItem(LOCAL_CHAT_PREFIX + docIdToDelete);
 
       // If active document was deleted, switch to next or clear
@@ -1294,8 +1310,8 @@ export default function Dashboard() {
 
       toast.success(`Deleted "${docFilename}"`);
     } catch (err) {
-      console.error("Failed to delete document:", err);
-      toast.error("Failed to delete document");
+      console.error("Failed to update local state after delete:", err);
+      toast.error("Document was deleted on the server but the UI failed to update. Please refresh.");
     }
   };
 

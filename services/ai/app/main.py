@@ -16,6 +16,7 @@ def startup():
     Base.metadata.create_all(bind=engine)
 
 
+app.include_router(documents_router, prefix="/api")
 app.include_router(documents_router)
 
 
