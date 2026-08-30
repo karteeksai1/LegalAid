@@ -851,16 +851,32 @@ export default function Dashboard() {
     }
   });
 
-  // ONE-TIME MIGRATION: Detect and fix sidebar ↔ detail-view status desync from corrupted localStorage.
-  // If a document in the sidebar says "completed" but its cached analysis says "rejected_non_contract" (or vice versa),
-  // reconcile them by making the analysis record authoritative.
+  // ONE-TIME MIGRATION: Detect and fix sidebar ↔ detail-view status desync and non-legal doc legacy states.
   useEffect(() => {
-    const migrationKey = "legalaid_desync_migration_v2";
+    const migrationKey = "legalaid_desync_migration_v3";
     if (window.localStorage.getItem(migrationKey)) return;
 
     let docsChanged = false;
+    let analysesChanged = false;
+    const updatedAnalyses = { ...mockAnalyses };
+    const nonLegalPattern = /\b(id\s*card|identity\s*card|badge|license|driving\s*licence|passport|hall\s*ticket|admit\s*card|resume|cv|biodata|receipt|invoice|bill|ticket|boarding\s*pass|photo|image|scan)\b/i;
+
     const fixedDocs = documents.map((doc) => {
-      const cachedAnalysis = mockAnalyses[doc.id];
+      // Fix non-legal documents that had legacy mock audits
+      if (nonLegalPattern.test(doc.filename) && doc.status === "completed") {
+        docsChanged = true;
+        analysesChanged = true;
+        const sanitizedAnalysis = buildDynamicDocumentAnalysis(doc.filename, doc.id);
+        updatedAnalyses[doc.id] = sanitizedAnalysis;
+        return {
+          ...doc,
+          status: "rejected_non_contract",
+          risk_score: null,
+          risk_level: null,
+        };
+      }
+
+      const cachedAnalysis = updatedAnalyses[doc.id];
       if (!cachedAnalysis) return doc;
       const analysisStatus = cachedAnalysis.document.status;
       if (doc.status !== analysisStatus) {
@@ -879,6 +895,9 @@ export default function Dashboard() {
 
     if (docsChanged) {
       setDocuments(fixedDocs);
+    }
+    if (analysesChanged) {
+      setMockAnalyses(updatedAnalyses);
     }
     window.localStorage.setItem(migrationKey, "done");
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1266,11 +1285,11 @@ export default function Dashboard() {
         });
         clearTimeout(timeoutId);
 
-        if (!res.ok) {
+        if (!res.ok && res.status !== 404) {
           const errData = await res.json().catch(() => ({ detail: `Server returned ${res.status}` }));
           throw new Error(errData.detail || `Delete failed (HTTP ${res.status})`);
         }
-        // Backend confirmed deletion — safe to proceed to UI cleanup
+        // Backend confirmed deletion (or document was already absent on server) — safe to proceed to UI cleanup
       } catch (err: any) {
         // DELETE failed — do NOT remove from UI. Surface the error.
         const msg = err?.name === "AbortError"
