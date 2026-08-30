@@ -346,6 +346,7 @@ async def upload_document(
 def list_documents(db: Session = Depends(get_db)):
     """List all uploaded documents."""
     docs = db.query(Document).order_by(Document.created_at.desc()).all()
+    logger.info(f"[DOCUMENTS:LIST] Fetched {len(docs)} documents from database.")
     results = []
     for doc in docs:
         analysis = db.query(AnalysisResult).filter(AnalysisResult.document_id == doc.id).first()
@@ -362,9 +363,14 @@ def list_documents(db: Session = Depends(get_db)):
     return results
 
 @router.get("/{document_id}")
-def get_document(document_id: uuid.UUID, db: Session = Depends(get_db)):
+def get_document(document_id: str, db: Session = Depends(get_db)):
     """Retrieve details of a single document."""
-    doc = db.query(Document).filter(Document.id == document_id).first()
+    try:
+        doc_uuid = uuid.UUID(document_id)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=404, detail="Document not found")
+        
+    doc = db.query(Document).filter(Document.id == doc_uuid).first()
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
         
@@ -381,33 +387,54 @@ def get_document(document_id: uuid.UUID, db: Session = Depends(get_db)):
     }
 
 @router.delete("/{document_id}", status_code=status.HTTP_200_OK)
-def delete_document(document_id: uuid.UUID, db: Session = Depends(get_db)):
-    """Delete a document and all associated analysis, findings, and chunks."""
-    doc = db.query(Document).filter(Document.id == document_id).first()
+def delete_document(document_id: str, db: Session = Depends(get_db)):
+    """Delete a document and all associated analysis, findings, and chunks with committed database transaction."""
+    logger.info(f"[DOCUMENTS:DELETE:START] Received request to delete document_id='{document_id}'")
+    try:
+        doc_uuid = uuid.UUID(document_id)
+    except (ValueError, TypeError):
+        logger.warning(f"[DOCUMENTS:DELETE:NOT_FOUND] Invalid UUID '{document_id}'")
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    doc = db.query(Document).filter(Document.id == doc_uuid).first()
     if not doc:
+        logger.warning(f"[DOCUMENTS:DELETE:NOT_FOUND] Document {doc_uuid} does not exist in DB")
         raise HTTPException(status_code=404, detail="Document not found")
     
+    filename = doc.filename
     # Delete associated findings
-    analyses = db.query(AnalysisResult).filter(AnalysisResult.document_id == document_id).all()
+    analyses = db.query(AnalysisResult).filter(AnalysisResult.document_id == doc_uuid).all()
+    deleted_findings = 0
     for a in analyses:
-        db.query(AgentFinding).filter(AgentFinding.analysis_result_id == a.id).delete()
+        del_f = db.query(AgentFinding).filter(AgentFinding.analysis_result_id == a.id).delete()
+        deleted_findings += del_f
     
     # Delete analyses
-    db.query(AnalysisResult).filter(AnalysisResult.document_id == document_id).delete()
+    deleted_analyses = db.query(AnalysisResult).filter(AnalysisResult.document_id == doc_uuid).delete()
     
     # Delete chunks
-    db.query(Chunk).filter(Chunk.document_id == document_id).delete()
+    deleted_chunks = db.query(Chunk).filter(Chunk.document_id == doc_uuid).delete()
     
     # Delete document
     db.delete(doc)
     db.commit()
     
-    return {"message": "Document deleted successfully", "document_id": str(document_id)}
+    logger.info(
+        f"[DOCUMENTS:DELETE:SUCCESS] Permanently deleted '{filename}' (id={doc_uuid}): "
+        f"{deleted_findings} findings, {deleted_analyses} analyses, {deleted_chunks} chunks removed. DB committed."
+    )
+    
+    return {"message": f"Document '{filename}' deleted successfully", "document_id": str(doc_uuid)}
 
 @router.get("/{document_id}/analysis")
-def get_analysis_results(document_id: uuid.UUID, db: Session = Depends(get_db)):
+def get_analysis_results(document_id: str, db: Session = Depends(get_db)):
     """Retrieve multi-agent findings and consensus reports."""
-    doc = db.query(Document).filter(Document.id == document_id).first()
+    try:
+        doc_uuid = uuid.UUID(document_id)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    doc = db.query(Document).filter(Document.id == doc_uuid).first()
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
         
@@ -520,9 +547,14 @@ class ChatMessageRequest(BaseModel):
     message: str
 
 @router.get("/{document_id}/chat")
-def get_document_chat_history(document_id: uuid.UUID, db: Session = Depends(get_db)):
+def get_document_chat_history(document_id: str, db: Session = Depends(get_db)):
     """Retrieve persisted Q&A history for a document."""
-    doc = db.query(Document).filter(Document.id == document_id).first()
+    try:
+        doc_uuid = uuid.UUID(document_id)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    doc = db.query(Document).filter(Document.id == doc_uuid).first()
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
         
@@ -654,12 +686,17 @@ def retrieve_rag_chunks(chunks: List[Chunk], query: str, top_k: int = 4) -> List
 
 @router.post("/{document_id}/chat")
 async def chat_with_document(
-    document_id: uuid.UUID,
+    document_id: str,
     payload: ChatMessageRequest,
     db: Session = Depends(get_db)
 ):
     """RAG-powered Q&A on the document with strict intent classification, security guardrails, and grounding."""
-    doc = db.query(Document).filter(Document.id == document_id).first()
+    try:
+        doc_uuid = uuid.UUID(document_id)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    doc = db.query(Document).filter(Document.id == doc_uuid).first()
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
         

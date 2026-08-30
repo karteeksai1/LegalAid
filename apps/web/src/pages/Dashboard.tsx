@@ -1265,6 +1265,10 @@ export default function Dashboard() {
 
   const signOut = () => {
     clearMockSession();
+    setDocuments([]);
+    setMockAnalyses({});
+    setSelectedDocId(null);
+    setAnalysis(null);
     setLocation("/login");
   };
 
@@ -1341,7 +1345,7 @@ export default function Dashboard() {
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
       const res = await fetch("/api/documents", { signal: controller.signal });
       clearTimeout(timeoutId);
 
@@ -1353,6 +1357,9 @@ export default function Dashboard() {
           if (!selectedDocId || !currentValid) {
             setSelectedDocId(data[0].id);
           }
+        } else {
+          setSelectedDocId(null);
+          setAnalysis(null);
         }
       }
     } catch (err) {
