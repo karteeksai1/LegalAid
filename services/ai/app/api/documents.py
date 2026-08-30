@@ -44,21 +44,31 @@ def extract_text(file_content: bytes, content_type: str) -> tuple[str, int]:
             if PdfReader is not None:
                 pdf = PdfReader(io.BytesIO(file_content))
                 page_texts = []
-                for page in pdf.pages:
+                empty_pages = 0
+                for i, page in enumerate(pdf.pages):
                     try:
                         t = page.extract_text()
-                    except Exception:
+                    except Exception as page_err:
+                        logger.warning(f"  Page {i+1}/{len(pdf.pages)}: extraction raised {type(page_err).__name__}: {page_err}")
                         t = ""
                     if t:
                         t_norm = re.sub(r'_{3,}', ' [BLANK_FIELD] ', t)
+                        word_count = len(re.findall(r'\b[a-zA-Z]{3,}\b', t_norm))
+                        logger.info(f"  Page {i+1}/{len(pdf.pages)}: {len(t)} chars, {word_count} words")
                         page_texts.append(t_norm)
+                    else:
+                        empty_pages += 1
+                        logger.warning(f"  Page {i+1}/{len(pdf.pages)}: 0 chars extracted (blank/scanned)")
                 total_pages = max(1, len(pdf.pages))
                 full_text = "\n\n".join(page_texts)
+                total_words = len(re.findall(r'\b[a-zA-Z]{3,}\b', full_text))
+                logger.info(f"PDF extraction complete: {total_pages} pages, {len(full_text)} chars, {total_words} words, {empty_pages} empty pages")
                 return full_text, total_pages
             else:
                 raw_str = file_content.decode("latin1", errors="ignore")
                 page_matches = re.findall(r'/Type\s*/Page\b', raw_str)
                 page_count = max(1, len(page_matches))
+                logger.warning(f"PdfReader unavailable — used raw latin1 decode: {page_count} pages, {len(raw_str)} chars")
                 return raw_str, page_count
         except Exception as e:
             logger.error(f"Failed to read PDF text: {e}")

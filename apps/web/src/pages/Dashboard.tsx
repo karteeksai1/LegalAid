@@ -824,19 +824,7 @@ export default function Dashboard() {
     try {
       const saved = window.localStorage.getItem(LOCAL_DOCS_KEY);
       if (!saved) return [];
-      const parsed: APIDocument[] = JSON.parse(saved);
-      return parsed.map((doc) => {
-        const check = isContractualDocument("", doc.filename);
-        if (!check.isContract) {
-          return {
-            ...doc,
-            status: "rejected_non_contract",
-            risk_score: null,
-            risk_level: null
-          };
-        }
-        return doc;
-      });
+      return JSON.parse(saved) as APIDocument[];
     } catch {
       return [];
     }
@@ -857,21 +845,44 @@ export default function Dashboard() {
     try {
       const saved = window.localStorage.getItem(LOCAL_ANALYSES_KEY);
       if (!saved) return {};
-      const parsed: Record<string, AnalysisResults> = JSON.parse(saved);
-      const sanitized: Record<string, AnalysisResults> = {};
-      for (const [id, a] of Object.entries(parsed)) {
-        const check = isContractualDocument("", a.document.filename);
-        if (!check.isContract) {
-          sanitized[id] = buildDynamicDocumentAnalysis(a.document.filename, id, "");
-        } else {
-          sanitized[id] = a;
-        }
-      }
-      return sanitized;
+      return JSON.parse(saved) as Record<string, AnalysisResults>;
     } catch {
       return {};
     }
   });
+
+  // ONE-TIME MIGRATION: Detect and fix sidebar ↔ detail-view status desync from corrupted localStorage.
+  // If a document in the sidebar says "completed" but its cached analysis says "rejected_non_contract" (or vice versa),
+  // reconcile them by making the analysis record authoritative.
+  useEffect(() => {
+    const migrationKey = "legalaid_desync_migration_v2";
+    if (window.localStorage.getItem(migrationKey)) return;
+
+    let docsChanged = false;
+    const fixedDocs = documents.map((doc) => {
+      const cachedAnalysis = mockAnalyses[doc.id];
+      if (!cachedAnalysis) return doc;
+      const analysisStatus = cachedAnalysis.document.status;
+      if (doc.status !== analysisStatus) {
+        console.warn(`[Migration] Fixing desync for "${doc.filename}": sidebar="${doc.status}" → analysis="${analysisStatus}"`);
+        docsChanged = true;
+        return {
+          ...doc,
+          status: analysisStatus,
+          risk_score: cachedAnalysis.analysis.aggregate_risk_score > 0 ? cachedAnalysis.analysis.aggregate_risk_score : null,
+          risk_level: cachedAnalysis.analysis.risk_level,
+          page_count: cachedAnalysis.document.page_count || doc.page_count,
+        };
+      }
+      return doc;
+    });
+
+    if (docsChanged) {
+      setDocuments(fixedDocs);
+    }
+    window.localStorage.setItem(migrationKey, "done");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Sync state changes with localStorage
   useEffect(() => {
@@ -1317,6 +1328,32 @@ export default function Dashboard() {
   const activeDoc = documents.find((d) => d.id === selectedDocId);
 
   // Fetch analysis details when selected document changes
+  // Helper: sync the sidebar documents array to match the authoritative analysis status.
+  // This ensures a single source of truth — the detail view drives the sidebar, not the other way around.
+  const syncDocumentStatus = (docId: string, analysisResult: AnalysisResults) => {
+    setDocuments((prev) =>
+      prev.map((doc) => {
+        if (doc.id !== docId) return doc;
+        const newStatus = analysisResult.document.status;
+        const newRiskScore = analysisResult.analysis.aggregate_risk_score > 0 ? analysisResult.analysis.aggregate_risk_score : null;
+        const newRiskLevel = analysisResult.analysis.risk_level;
+        const newPageCount = analysisResult.document.page_count || doc.page_count;
+        // Only update if something actually changed to avoid unnecessary re-renders
+        if (doc.status === newStatus && doc.risk_score === newRiskScore && doc.risk_level === newRiskLevel && doc.page_count === newPageCount) {
+          return doc;
+        }
+        return {
+          ...doc,
+          status: newStatus,
+          risk_score: newRiskScore,
+          risk_level: newRiskLevel,
+          page_count: newPageCount,
+        };
+      })
+    );
+  };
+
+  // Fetch analysis details when selected document changes
   useEffect(() => {
     if (!selectedDocId) {
       setAnalysis(null);
@@ -1326,6 +1363,8 @@ export default function Dashboard() {
     const cachedAnalysis = mockAnalyses[selectedDocId];
     if (cachedAnalysis) {
       setAnalysis(cachedAnalysis);
+      // Ensure sidebar matches the cached analysis (single source of truth)
+      syncDocumentStatus(selectedDocId, cachedAnalysis);
       setLoadingAnalysis(false);
       return;
     }
@@ -1342,25 +1381,27 @@ export default function Dashboard() {
           const data = await res.json();
           setAnalysis(data);
           setMockAnalyses((prev) => ({ ...prev, [selectedDocId]: data }));
-          setSelectedFinding(null); // Clear selected drawer
+          syncDocumentStatus(selectedDocId, data);
+          setSelectedFinding(null);
         } else {
-          // Fallback dynamic analysis if not found on backend
-          const dynamicAnalysis = buildDynamicDocumentAnalysis(activeDoc?.filename || "Legal Document", selectedDocId);
-          setAnalysis(dynamicAnalysis);
-          setMockAnalyses((prev) => ({ ...prev, [selectedDocId]: dynamicAnalysis }));
+          // API returned non-OK — do NOT fabricate a fallback analysis with empty text.
+          // Just show "Analysis Pending" (analysis stays null).
+          console.warn(`Analysis not available for ${selectedDocId} (HTTP ${res.status})`);
+          setAnalysis(null);
         }
       } catch (err) {
-        console.warn("Analysis fetch timed out or offline, using dynamic fallback:", err);
-        const dynamicAnalysis = buildDynamicDocumentAnalysis(activeDoc?.filename || "Legal Document", selectedDocId);
-        setAnalysis(dynamicAnalysis);
-        setMockAnalyses((prev) => ({ ...prev, [selectedDocId]: dynamicAnalysis }));
+        // Network failure / timeout — do NOT fabricate a fallback.
+        // Show "Analysis Pending" rather than a false rejection.
+        console.warn("Analysis fetch timed out or offline:", err);
+        setAnalysis(null);
       } finally {
         setLoadingAnalysis(false);
       }
     };
 
     fetchAnalysisData();
-  }, [mockAnalyses, selectedDocId, activeDoc?.filename]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDocId]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
