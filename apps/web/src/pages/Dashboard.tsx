@@ -426,19 +426,121 @@ interface AnalysisResults {
   }>;
 }
 
-export function isContractualDocument(text: string, fileName?: string): { isContract: boolean; reason: string } {
+export async function extractPdfTextAndPageCount(file: File): Promise<{ text: string; pageCount: number }> {
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    
+    // Safely convert bytes to string in chunks to avoid call stack limits
+    let latin1 = "";
+    const chunkSize = 65536;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const slice = bytes.subarray(i, i + chunkSize);
+      latin1 += String.fromCharCode.apply(null, Array.from(slice));
+    }
+
+    // 1. Calculate Exact Page Count from PDF Structure
+    let pageCount = 1;
+    const pageMatches = latin1.match(/\/Type\s*\/Page\b/g);
+    if (pageMatches && pageMatches.length > 0) {
+      pageCount = pageMatches.length;
+    }
+    const countMatch = latin1.match(/\/Count\s+(\d+)/);
+    if (countMatch && countMatch[1]) {
+      const parsed = parseInt(countMatch[1], 10);
+      if (parsed > 0 && parsed <= 500) {
+        pageCount = Math.max(pageCount, parsed);
+      }
+    }
+
+    // 2. Extract Text from PDF streams & text operators
+    const textPieces: string[] = [];
+
+    // Extract text in (string) Tj format
+    const tjRegex = /\(([^()]+)\)\s*Tj/g;
+    let match: RegExpExecArray | null;
+    while ((match = tjRegex.exec(latin1)) !== null) {
+      if (match[1] && match[1].trim().length > 1) {
+        textPieces.push(match[1]);
+      }
+    }
+
+    // Extract text in [(string)...] TJ format
+    const arrayTjRegex = /\[([^\]]+)\]\s*TJ/g;
+    while ((match = arrayTjRegex.exec(latin1)) !== null) {
+      if (match[1]) {
+        const inner = match[1];
+        const innerStrings = inner.match(/\(([^()]+)\)/g);
+        if (innerStrings) {
+          const joined = innerStrings.map(s => s.slice(1, -1)).join("");
+          if (joined.trim().length > 1) {
+            textPieces.push(joined);
+          }
+        }
+      }
+    }
+
+    // Also extract raw text between BT and ET
+    const btEtRegex = /BT\s+([\s\S]*?)\s+ET/g;
+    while ((match = btEtRegex.exec(latin1)) !== null) {
+      if (match[1]) {
+        const block = match[1];
+        const blockStrings = block.match(/\(([^()]+)\)/g);
+        if (blockStrings) {
+          const blockText = blockStrings.map(s => s.slice(1, -1)).join(" ");
+          if (blockText.trim().length > 10) {
+            textPieces.push(blockText);
+          }
+        }
+      }
+    }
+
+    let extractedText = textPieces.join(" ");
+    extractedText = extractedText.replace(/_{3,}/g, " [BLANK_FIELD] ");
+
+    if (extractedText.trim().length >= 40) {
+      return { text: extractedText, pageCount };
+    }
+
+    // Fallback to clean ASCII text
+    const cleanAscii = latin1.replace(/[^\x20-\x7E\n\r\t]/g, " ").replace(/\s+/g, " ");
+    return { text: cleanAscii, pageCount };
+  } catch (err) {
+    console.warn("Client PDF extraction error:", err);
+    return { text: "", pageCount: 1 };
+  }
+}
+
+export function isContractualDocument(
+  text: string, 
+  fileName?: string,
+  pageCount: number = 1
+): { isContract: boolean; reason: string; failureMode: "valid" | "extraction_failed" | "non_contractual" } {
   const name = fileName || "";
   const nonLegalFilenamePattern = /\b(id\s*card|identity\s*card|badge|license|driving\s*licence|passport|hall\s*ticket|admit\s*card|resume|cv|biodata|receipt|invoice|bill|ticket|boarding\s*pass|photo|image|scan)\b/i;
   
-  // Strip PDF binary noise
-  const cleanText = text.replace(/\/[A-Z][a-zA-Z0-9]+|<<|>>|stream|endstream|obj|endobj|%\w+/g, " ");
+  // Normalize PDF binary noise and underscore fill-in placeholder lines
+  const cleanText = text
+    .replace(/\/[A-Z][a-zA-Z0-9]+|<<|>>|stream|endstream|obj|endobj|%\w+/g, " ")
+    .replace(/_{3,}/g, " [BLANK_FIELD] ");
   const words = cleanText.toLowerCase().match(/\b[a-zA-Z]{3,}\b/g) || [];
+
+  // Sanity check: Multi-page document (>= 2 pages) with suspiciously low word count (< 40 words)
+  // is an EXTRACTION/OCR failure, NOT a non-legal judgment!
+  if (pageCount >= 2 && words.length < 40) {
+    return {
+      isContract: false,
+      reason: `We couldn't read this document properly — only ${words.length} words extracted from a ${pageCount}-page document. Try re-uploading or use a text-based PDF.`,
+      failureMode: "extraction_failed"
+    };
+  }
 
   if (name && nonLegalFilenamePattern.test(name)) {
     if (words.length < 80) {
       return {
         isContract: false,
-        reason: `File "${name}" appears to be a non-legal document (identification/record) without contractual provisions.`
+        reason: `File "${name}" appears to be a non-legal document (identification/record) without contractual provisions.`,
+        failureMode: "non_contractual"
       };
     }
   }
@@ -446,7 +548,8 @@ export function isContractualDocument(text: string, fileName?: string): { isCont
   if (words.length < 35) {
     return {
       isContract: false,
-      reason: "Extracted text is too short to be a legal contract (under 35 words)."
+      reason: "Extracted text is too short to be a legal contract (under 35 words).",
+      failureMode: "non_contractual"
     };
   }
 
@@ -455,31 +558,40 @@ export function isContractualDocument(text: string, fileName?: string): { isCont
     "terms and conditions", "governing law", "jurisdiction", "indemn",
     "severab", "confidential", "termination", "warrant", "liability",
     "in witness whereof", "covenant", "hereby", "herein", "hereto", "shall",
-    "non-disclosure", "disclosing party", "receiving party", "injunctive relief"
+    "non-disclosure", "disclosing party", "receiving party", "injunctive relief",
+    "obligations", "definitions", "miscellaneous", "remedies", "survival", "exceptions"
   ];
 
   const matched = strongIndicators.filter((ind) => cleanText.toLowerCase().includes(ind));
   if (matched.length < 2) {
     return {
       isContract: false,
-      reason: "Document does not contain contractual language, obligations, or legal provisions."
+      reason: "Document does not contain contractual language, obligations, or legal provisions.",
+      failureMode: "non_contractual"
     };
   }
 
-  return { isContract: true, reason: "Valid contractual document." };
+  return { isContract: true, reason: "Valid contractual document.", failureMode: "valid" };
 }
 
-export function buildDynamicDocumentAnalysis(fileName: string, documentId: string, rawText?: string): AnalysisResults {
+export function buildDynamicDocumentAnalysis(
+  fileName: string, 
+  documentId: string, 
+  rawText?: string,
+  explicitPageCount?: number
+): AnalysisResults {
   const text = rawText || "";
-  const { isContract, reason } = isContractualDocument(text, fileName);
+  const pageCount = explicitPageCount || (text ? Math.max(1, Math.ceil(text.length / 3000)) : 1);
+  const { isContract, reason, failureMode } = isContractualDocument(text, fileName, pageCount);
 
   if (!isContract) {
+    const isExtractionFailure = failureMode === "extraction_failed";
     return {
       document: {
         id: documentId,
         filename: fileName,
-        page_count: 1,
-        status: "rejected_non_contract",
+        page_count: pageCount,
+        status: isExtractionFailure ? "extraction_failed" : "rejected_non_contract",
         is_legal_contract: false,
         rejection_reason: reason
       },
@@ -492,10 +604,14 @@ export function buildDynamicDocumentAnalysis(fileName: string, documentId: strin
         medium_count: 0,
         low_count: 0,
         consensus_report: {
-          summary: "This document does not appear to be a legal agreement — no contractual clauses, covenants, or obligations were detected. Multi-agent risk audit was skipped to prevent hallucinated findings.",
+          summary: isExtractionFailure
+            ? `Text extraction was incomplete for "${fileName}" (${pageCount} pages detected). The system could not extract sufficient readable text to conduct an audit. Please re-upload a clear text-based PDF.`
+            : "This document does not appear to be a legal agreement — no contractual clauses, covenants, or obligations were detected. Multi-agent risk audit was skipped to prevent hallucinated findings.",
           strengths: [],
           vulnerabilities: [],
-          recommendations: []
+          recommendations: isExtractionFailure 
+            ? ["Re-upload using a standard text-based PDF or run OCR before uploading."]
+            : []
         }
       },
       findings: [],
@@ -504,7 +620,7 @@ export function buildDynamicDocumentAnalysis(fileName: string, documentId: strin
         chunk_id: 0,
         page_number: 1,
         raw_text: text.slice(0, 2000),
-        clause_type: "Non-Contractual"
+        clause_type: isExtractionFailure ? "Extraction Issue" : "Non-Contractual"
       }] : []
     };
   }
@@ -961,10 +1077,15 @@ export default function Dashboard() {
 
       const allChunks = analysis?.chunks || [];
       const primaryChunk = allChunks[0];
+      const isExtractionFail = analysis?.document.status === "extraction_failed";
       const isNonLegalDoc = analysis?.document.status === "rejected_non_contract" || analysis?.document.is_legal_contract === false;
 
-      // Handle Non-Legal Document Query
-      if (isNonLegalDoc) {
+      // Handle Extraction Failed or Non-Legal Document Query
+      if (isExtractionFail) {
+        replyPerspective = "AI Assistant (Extraction Issue)";
+        replyContent = `We were unable to extract sufficient text from this ${analysis?.document.page_count || 1}-page document ("${analysis?.document.filename || "Uploaded File"}"). Please try re-uploading a searchable, text-based PDF or high-quality OCR scan.`;
+        citations = [];
+      } else if (isNonLegalDoc) {
         replyPerspective = "AI Assistant (Non-Legal Document)";
         replyContent = `This document ("${analysis?.document.filename || "Uploaded File"}") is a non-legal document (such as an identification card or personal record). It does not contain contractual clauses, legal obligations, or risk provisions.`;
         citations = [];
@@ -1251,10 +1372,20 @@ export default function Dashboard() {
     formData.append("file", file);
     
     let fileText = "";
-    try {
-      fileText = await file.text();
-    } catch {
-      fileText = "";
+    let pageCount = 1;
+    if (file.name.toLowerCase().endsWith(".pdf") || file.type.includes("pdf")) {
+      const parsed = await extractPdfTextAndPageCount(file);
+      fileText = parsed.text;
+      pageCount = parsed.pageCount;
+    } else {
+      try {
+        fileText = await file.text();
+        fileText = fileText.replace(/_{3,}/g, " [BLANK_FIELD] ");
+        pageCount = Math.max(1, Math.ceil(fileText.length / 3000));
+      } catch {
+        fileText = "";
+        pageCount = 1;
+      }
     }
 
     setUploading(true);
@@ -1263,7 +1394,7 @@ export default function Dashboard() {
 
     if (!USE_BACKEND_API) {
       const documentId = `local-${crypto.randomUUID()}`;
-      const dynamicAnalysis = buildDynamicDocumentAnalysis(file.name, documentId, fileText);
+      const dynamicAnalysis = buildDynamicDocumentAnalysis(file.name, documentId, fileText, pageCount);
       const mockDocument: APIDocument = {
         id: documentId,
         filename: file.name,
@@ -1282,7 +1413,9 @@ export default function Dashboard() {
       setShowUploadModal(false);
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
-      if (dynamicAnalysis.document.status === "rejected_non_contract") {
+      if (dynamicAnalysis.document.status === "extraction_failed") {
+        toast.error(`Could not extract readable text from "${file.name}" (${pageCount} pages detected). Try re-uploading a text-based PDF.`);
+      } else if (dynamicAnalysis.document.status === "rejected_non_contract") {
         toast.error("Document does not appear to be a legal agreement — risk audit skipped.");
       } else {
         toast.success("Document analyzed successfully!");
@@ -1308,7 +1441,9 @@ export default function Dashboard() {
       }
       
       const data = await res.json();
-      if (data.status === "rejected_non_contract") {
+      if (data.status === "extraction_failed") {
+        toast.error(data.message || `Could not read document properly (${data.page_count} pages detected).`);
+      } else if (data.status === "rejected_non_contract") {
         toast.error("Document does not appear to be a legal agreement — risk audit skipped.");
       } else {
         toast.success("Document analyzed successfully!");
@@ -1321,7 +1456,7 @@ export default function Dashboard() {
     } catch (err) {
       console.warn("Upload service unavailable or timed out, generating grounded local analysis:", err);
       const documentId = `local-${crypto.randomUUID()}`;
-      const dynamicAnalysis = buildDynamicDocumentAnalysis(file.name, documentId, fileText);
+      const dynamicAnalysis = buildDynamicDocumentAnalysis(file.name, documentId, fileText, pageCount);
       const mockDocument: APIDocument = {
         id: documentId,
         filename: file.name,
@@ -1337,7 +1472,9 @@ export default function Dashboard() {
       setSelectedDocId(documentId);
       setAnalysis(dynamicAnalysis);
       setShowUploadModal(false);
-      if (dynamicAnalysis.document.status === "rejected_non_contract") {
+      if (dynamicAnalysis.document.status === "extraction_failed") {
+        toast.error(`Could not extract readable text from "${file.name}" (${pageCount} pages detected). Try re-uploading a text-based PDF.`);
+      } else if (dynamicAnalysis.document.status === "rejected_non_contract") {
         toast.error("Document does not appear to be a legal agreement — risk audit skipped.");
       } else {
         toast.success("Document analyzed successfully!");
@@ -1422,7 +1559,11 @@ export default function Dashboard() {
                     <div className="flex items-start justify-between gap-2">
                       <span className="font-display font-semibold text-sm truncate flex-1">{doc.filename}</span>
                       <div className="flex items-center gap-1.5 shrink-0">
-                        {doc.status === "rejected_non_contract" ? (
+                        {doc.status === "extraction_failed" ? (
+                          <span className="text-[9px] font-mono px-1.5 py-0.5 bg-rose-100 text-rose-900 border border-rose-300 font-bold">
+                            UNREADABLE
+                          </span>
+                        ) : doc.status === "rejected_non_contract" ? (
                           <span className="text-[9px] font-mono px-1.5 py-0.5 bg-amber-100 text-amber-900 border border-amber-300 font-bold">
                             NON-LEGAL
                           </span>
@@ -1458,11 +1599,17 @@ export default function Dashboard() {
                     <div className="flex items-center justify-between text-[10px] font-mono text-[#626860] mt-1.5">
                       <span>{doc.page_count ? `${doc.page_count} pg` : "TXT File"}</span>
                       <span className={`uppercase tracking-wider ${
-                        doc.status === "rejected_non_contract"
-                          ? "text-amber-700 font-semibold"
-                          : isActive ? "text-[#d7ff52]" : "text-[#3158ff]"
+                        doc.status === "extraction_failed"
+                          ? "text-rose-700 font-semibold"
+                          : doc.status === "rejected_non_contract"
+                            ? "text-amber-700 font-semibold"
+                            : isActive ? "text-[#d7ff52]" : "text-[#3158ff]"
                       }`}>
-                        {doc.status === "rejected_non_contract" ? "Non-Contractual" : doc.status}
+                        {doc.status === "extraction_failed"
+                          ? "Extraction Issue"
+                          : doc.status === "rejected_non_contract"
+                            ? "Non-Contractual"
+                            : doc.status}
                       </span>
                     </div>
                   </div>
@@ -1721,6 +1868,25 @@ export default function Dashboard() {
                         <Send className="h-4 w-4" /> Send
                       </button>
                     </form>
+                  </div>
+                </div>
+              ) : analysis.document.status === "extraction_failed" ? (
+                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center max-w-lg mx-auto">
+                  <div className="h-16 w-16 rounded-full bg-rose-100 border border-rose-300 flex items-center justify-center text-rose-700 text-3xl mb-4">
+                    ⚠️
+                  </div>
+                  <h2 className="font-display text-2xl font-bold tracking-tight text-[#101412]">
+                    Unable to Read Document Text
+                  </h2>
+                  <p className="mt-3 text-sm text-[#626860] leading-relaxed">
+                    We couldn't extract sufficient readable text from this {analysis.document.page_count || 1}-page document. The file may be a scanned image without selectable text or encoded with non-standard fonts.
+                  </p>
+                  <div className="mt-6 p-4 bg-white border border-[#d6d2c8] text-left text-xs font-mono text-slate-700 w-full space-y-2">
+                    <div className="text-[10px] uppercase font-bold text-rose-600">Extraction Issue Audit Log</div>
+                    <div>• File: <span className="text-black font-semibold">{analysis.document.filename}</span></div>
+                    <div>• Detected Pages: <span className="text-black font-semibold">{analysis.document.page_count || 1} pg</span></div>
+                    <div>• Reason: {analysis.document.rejection_reason || "Incomplete text extraction."}</div>
+                    <div>• Action: Please re-upload a searchable, text-based PDF or OCR-processed scan.</div>
                   </div>
                 </div>
               ) : analysis.document.status === "rejected_non_contract" || analysis.document.is_legal_contract === false ? (

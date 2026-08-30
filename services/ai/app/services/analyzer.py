@@ -179,34 +179,45 @@ def generate_consensus_reasoning(finding: Dict[str, Any]) -> Dict[str, Any]:
         "plain_arbitration_rule": plain_rule
     }
 
-def is_contractual_document(text: str, filename: str = "") -> tuple[bool, str]:
-    """Validates if the document text contains sufficient contractual language and structure."""
-    # Check filename for non-legal indicators (e.g. ID card, badge, license, photo)
-    non_legal_filename_pattern = r"(?i)\b(id\s*card|identity\s*card|badge|license|driving\s*licence|passport|hall\s*ticket|admit\s*card|resume|cv|biodata|receipt|invoice|bill|ticket|boarding\s*pass|photo|image|scan)\b"
+def is_contractual_document(text: str, filename: str = "", page_count: int = 1) -> tuple[bool, str, str]:
+    """
+    Validates if the document text contains sufficient contractual language and structure.
+    Returns: (is_contract: bool, reason: str, failure_mode: str)
+    where failure_mode in ("valid", "extraction_failed", "non_contractual")
+    """
+    # Normalize underscores and blank fill-in fields so they don't corrupt word counts or tokenization
     clean_text = re.sub(r'/[A-Z][a-zA-Z0-9]+|<<|>>|stream|endstream|obj|endobj|%\w+', ' ', text)
+    clean_text = re.sub(r'_{3,}', ' [BLANK_FIELD] ', clean_text)
     words = re.findall(r'\b[a-zA-Z]{3,}\b', clean_text.lower())
 
+    # Sanity check: If page_count >= 2 but words < 40, this is an extraction/OCR failure, NOT a non-legal judgment!
+    if page_count >= 2 and len(words) < 40:
+        return False, f"We couldn't read this document properly — only {len(words)} words extracted from a {page_count}-page document. Try re-uploading or use a text-based PDF.", "extraction_failed"
+
+    # Check filename for non-legal indicators (e.g. ID card, badge, license, photo)
+    non_legal_filename_pattern = r"(?i)\b(id\s*card|identity\s*card|badge|license|driving\s*licence|passport|hall\s*ticket|admit\s*card|resume|cv|biodata|receipt|invoice|bill|ticket|boarding\s*pass|photo|image|scan)\b"
     if filename and re.search(non_legal_filename_pattern, filename):
         if len(words) < 80:
-            return False, f"File '{filename}' appears to be a non-legal document (ID/credential) without contractual terms."
+            return False, f"File '{filename}' appears to be a non-legal document (ID/credential) without contractual terms.", "non_contractual"
 
     if len(words) < 35:
-        return False, "Extracted text is too short to be a valid legal contract (under 35 words)."
+        return False, "Extracted text is too short to be a valid legal contract (under 35 words).", "non_contractual"
     
     strong_indicators = [
         "agreement", "contract", "parties", "witnesseth", "whereas", "recitals",
         "terms and conditions", "governing law", "jurisdiction", "indemn",
         "severab", "confidential", "termination", "warrant", "liability",
         "in witness whereof", "covenant", "hereby", "herein", "hereto", "shall",
-        "non-disclosure", "disclosing party", "receiving party", "injunctive relief"
+        "non-disclosure", "disclosing party", "receiving party", "injunctive relief",
+        "obligations", "definitions", "miscellaneous", "remedies", "survival"
     ]
     
     matched_indicators = [ind for ind in strong_indicators if re.search(r'\b' + ind, clean_text.lower())]
     
     if len(matched_indicators) < 2:
-        return False, "Document does not contain contractual language, obligations, or legal provisions."
+        return False, "Document does not contain contractual language, obligations, or legal provisions.", "non_contractual"
         
-    return True, "Valid contractual document."
+    return True, "Valid contractual document.", "valid"
 
 def run_rule_based_fallback(chunks: List[Chunk]) -> List[Dict[str, Any]]:
     """A fallback rule-based analysis that strictly extracts findings grounded in actual chunk text."""

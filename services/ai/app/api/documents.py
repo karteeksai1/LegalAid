@@ -38,16 +38,28 @@ def get_or_create_default_user(db: Session) -> User:
     return user
 
 def extract_text(file_content: bytes, content_type: str) -> tuple[str, int]:
-    """Extracts text and page count from files."""
+    """Extracts text and page count from files with underscore and format normalization."""
     if "pdf" in content_type.lower():
         try:
-            pdf = PdfReader(io.BytesIO(file_content))
-            page_texts = []
-            for page in pdf.pages:
-                t = page.extract_text()
-                if t:
-                    page_texts.append(t)
-            return "\n\n".join(page_texts), len(pdf.pages)
+            if PdfReader is not None:
+                pdf = PdfReader(io.BytesIO(file_content))
+                page_texts = []
+                for page in pdf.pages:
+                    try:
+                        t = page.extract_text()
+                    except Exception:
+                        t = ""
+                    if t:
+                        t_norm = re.sub(r'_{3,}', ' [BLANK_FIELD] ', t)
+                        page_texts.append(t_norm)
+                total_pages = max(1, len(pdf.pages))
+                full_text = "\n\n".join(page_texts)
+                return full_text, total_pages
+            else:
+                raw_str = file_content.decode("latin1", errors="ignore")
+                page_matches = re.findall(r'/Type\s*/Page\b', raw_str)
+                page_count = max(1, len(page_matches))
+                return raw_str, page_count
         except Exception as e:
             logger.error(f"Failed to read PDF text: {e}")
             raise HTTPException(
@@ -57,8 +69,8 @@ def extract_text(file_content: bytes, content_type: str) -> tuple[str, int]:
     else:
         # Assume text file
         try:
-            text = file_content.decode("utf-8")
-            # Estimate pages (roughly 3000 characters per page)
+            text = file_content.decode("utf-8", errors="replace")
+            text = re.sub(r'_{3,}', ' [BLANK_FIELD] ', text)
             pages = max(1, len(text) // 3000)
             return text, pages
         except Exception as e:
@@ -117,21 +129,28 @@ async def upload_document(
     file: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
-    # 1. Read file content
+    """Uploads and analyzes a document through multi-agent legal review."""
+    # 1. Read file and compute hash
     content = await file.read()
+    if not content:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Uploaded file is empty."
+        )
+        
     sha256 = hashlib.sha256(content).hexdigest()
     
-    # 2. Check if already exists to avoid redundant analysis
+    # 2. Check for Duplicate
     existing = db.query(Document).filter(Document.sha256 == sha256).first()
     if existing:
-        # Check if analysis results exist
         analysis = db.query(AnalysisResult).filter(AnalysisResult.document_id == existing.id).first()
         if analysis:
             return {
-                "message": "Document already processed",
+                "message": "Document already analyzed",
                 "document_id": str(existing.id),
                 "filename": existing.filename,
                 "status": existing.status,
+                "page_count": existing.page_count,
                 "risk_score": float(analysis.aggregate_risk_score)
             }
         # If document exists but not analyzed, we proceed to analyze it
@@ -145,10 +164,16 @@ async def upload_document(
     # 4. Extract text
     raw_text, page_count = extract_text(content, file.content_type)
     
-    # 4b. Contract Relevance Gate: check if document is a legal agreement
-    is_contract, contract_reason = is_contractual_document(raw_text, file.filename)
+    # 4b. Contract Relevance & Extraction Integrity Gate
+    is_contract, contract_reason, failure_mode = is_contractual_document(raw_text, file.filename, page_count)
     if not is_contract:
-        logger.info(f"Document '{file.filename}' rejected as non-contractual: {contract_reason}")
+        status_label = "extraction_failed" if failure_mode == "extraction_failed" else "rejected_non_contract"
+        client_msg = (
+            f"We couldn't read this document properly ({page_count} pages detected). Try re-uploading or use a text-based PDF."
+            if failure_mode == "extraction_failed"
+            else "This document does not appear to be a legal agreement — no contractual clauses or obligations were detected."
+        )
+        logger.info(f"Document '{file.filename}' stopped [{status_label}]: {contract_reason}")
         if not existing:
             document = Document(
                 id=doc_id,
@@ -157,15 +182,16 @@ async def upload_document(
                 content_type=file.content_type or "application/octet-stream",
                 storage_uri=f"local://{doc_id}",
                 sha256=sha256,
-                status="rejected_non_contract",
+                status=status_label,
                 page_count=page_count,
-                metadata_json={"rejection_reason": contract_reason, "is_legal_contract": False}
+                metadata_json={"rejection_reason": contract_reason, "is_legal_contract": False, "failure_mode": failure_mode}
             )
             db.add(document)
             db.commit()
         else:
-            existing.status = "rejected_non_contract"
-            existing.metadata_json = {"rejection_reason": contract_reason, "is_legal_contract": False}
+            existing.status = status_label
+            existing.page_count = page_count
+            existing.metadata_json = {"rejection_reason": contract_reason, "is_legal_contract": False, "failure_mode": failure_mode}
             db.commit()
 
         # Clean any old chunks/analysis
@@ -173,13 +199,13 @@ async def upload_document(
         db.query(AnalysisResult).filter(AnalysisResult.document_id == doc_id).delete()
         db.commit()
 
-        # Save single chunk for text inspection without triggering multi-agent audit
+        # Save single chunk for inspection
         chunk = Chunk(
             id=uuid.uuid4(),
             document_id=doc_id,
             chunk_id=0,
             page_number=1,
-            clause_type="Non-Contractual",
+            clause_type="Extraction Issue" if failure_mode == "extraction_failed" else "Non-Contractual",
             party_scope="Unspecified",
             raw_text=raw_text[:2000] if raw_text else "No text extracted.",
             token_count=max(1, len(raw_text) // 4) if raw_text else 1
@@ -188,12 +214,13 @@ async def upload_document(
         db.commit()
 
         return {
-            "message": "This document does not appear to be a legal agreement — no contractual clauses or obligations were detected.",
+            "message": client_msg,
             "document_id": str(doc_id),
             "filename": file.filename,
-            "status": "rejected_non_contract",
+            "status": status_label,
             "is_legal_contract": False,
             "rejection_reason": contract_reason,
+            "page_count": page_count,
             "risk_score": None,
             "risk_level": "None"
         }
@@ -374,26 +401,30 @@ def get_analysis_results(document_id: uuid.UUID, db: Session = Depends(get_db)):
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
         
-    if doc.status == "rejected_non_contract":
+    if doc.status in ("rejected_non_contract", "extraction_failed"):
+        is_extraction_fail = doc.status == "extraction_failed"
         chunks = db.query(Chunk).filter(Chunk.document_id == doc.id).order_by(Chunk.chunk_id.asc()).all()
         chunk_list = [{
             "id": str(c.id),
             "chunk_id": c.chunk_id,
             "page_number": c.page_number,
             "raw_text": c.raw_text,
-            "clause_type": c.clause_type or "Non-Contractual"
+            "clause_type": c.clause_type or ("Extraction Issue" if is_extraction_fail else "Non-Contractual")
         } for c in chunks]
         return {
             "document": {
                 "id": str(doc.id),
                 "filename": doc.filename,
                 "page_count": doc.page_count,
-                "status": "rejected_non_contract",
+                "status": doc.status,
                 "is_legal_contract": False,
-                "rejection_reason": (doc.metadata_json or {}).get("rejection_reason", "Document does not appear to be a legal agreement.")
+                "rejection_reason": (doc.metadata_json or {}).get(
+                    "rejection_reason", 
+                    "We couldn't read this document properly." if is_extraction_fail else "Document does not appear to be a legal agreement."
+                )
             },
             "analysis": {
-                "id": f"rejected-{doc.id}",
+                "id": f"{doc.status}-{doc.id}",
                 "aggregate_risk_score": 0.0,
                 "risk_level": "None",
                 "critical_count": 0,
@@ -401,10 +432,14 @@ def get_analysis_results(document_id: uuid.UUID, db: Session = Depends(get_db)):
                 "medium_count": 0,
                 "low_count": 0,
                 "consensus_report": {
-                    "summary": "This document does not appear to be a legal agreement — no contractual clauses, covenants, or obligations were detected. Multi-agent risk analysis was skipped.",
+                    "summary": (
+                        f"We couldn't read this document properly ({doc.page_count} pages detected). The text extraction was incomplete. Multi-agent risk audit was not performed."
+                        if is_extraction_fail
+                        else "This document does not appear to be a legal agreement — no contractual clauses, covenants, or obligations were detected. Multi-agent risk analysis was skipped."
+                    ),
                     "strengths": [],
                     "vulnerabilities": [],
-                    "recommendations": []
+                    "recommendations": ["Re-upload using a standard text-based PDF or OCR scan."] if is_extraction_fail else []
                 }
             },
             "findings": [],
@@ -675,6 +710,23 @@ async def chat_with_document(
             "role": "assistant",
             "content": reply_msg or "This is a general legal concept. In standard commercial contracts, parties negotiate specific boundaries to allocate risk.",
             "agent_perspective": "Legal Knowledge Base",
+            "citations": [],
+            "timestamp": now_iso
+        }
+        history.append(user_entry)
+        history.append(assistant_entry)
+        metadata["chat_history"] = history
+        doc.metadata_json = metadata
+        db.commit()
+        return {"user_message": user_entry, "assistant_message": assistant_entry}
+
+    # Handle extraction failed document in Q&A
+    if doc.status == "extraction_failed":
+        assistant_entry = {
+            "id": str(uuid.uuid4()),
+            "role": "assistant",
+            "content": f"We were unable to extract sufficient text from this {doc.page_count or 1}-page document ('{doc.filename}'). Please try re-uploading a searchable, text-based PDF or high-quality scan.",
+            "agent_perspective": "AI Assistant (Extraction Issue)",
             "citations": [],
             "timestamp": now_iso
         }
