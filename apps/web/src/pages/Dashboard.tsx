@@ -402,6 +402,8 @@ interface AnalysisResults {
     filename: string;
     page_count: number;
     status: string;
+    is_legal_contract?: boolean;
+    rejection_reason?: string;
   };
   analysis: {
     id: string;
@@ -423,162 +425,255 @@ interface AnalysisResults {
   }>;
 }
 
-function buildMockAnalysis(fileName: string, documentId: string): AnalysisResults {
+export function isContractualDocument(text: string): { isContract: boolean; reason: string } {
+  const words = text.toLowerCase().match(/\b\w+\b/g) || [];
+  if (words.length < 35) {
+    return {
+      isContract: false,
+      reason: "Extracted text is too short to be a legal contract (under 35 words)."
+    };
+  }
+
+  const strongIndicators = [
+    "agreement", "contract", "parties", "witnesseth", "whereas", "recitals",
+    "terms and conditions", "governing law", "jurisdiction", "indemn",
+    "severab", "confidential", "termination", "warrant", "liability",
+    "in witness whereof", "covenant", "hereby", "herein", "hereto", "shall",
+    "non-disclosure", "disclosing party", "receiving party", "injunctive relief"
+  ];
+
+  const matched = strongIndicators.filter((ind) => text.toLowerCase().includes(ind));
+  if (matched.length < 2) {
+    return {
+      isContract: false,
+      reason: "Document does not contain contractual language, obligations, or legal provisions."
+    };
+  }
+
+  return { isContract: true, reason: "Valid contractual document." };
+}
+
+export function buildDynamicDocumentAnalysis(fileName: string, documentId: string, rawText?: string): AnalysisResults {
+  const text = rawText || "";
+  const { isContract, reason } = isContractualDocument(text);
+
+  if (!isContract) {
+    return {
+      document: {
+        id: documentId,
+        filename: fileName,
+        page_count: 1,
+        status: "rejected_non_contract",
+        is_legal_contract: false,
+        rejection_reason: reason
+      },
+      analysis: {
+        id: `analysis-${documentId}`,
+        aggregate_risk_score: 0.0,
+        risk_level: "None",
+        critical_count: 0,
+        high_count: 0,
+        medium_count: 0,
+        low_count: 0,
+        consensus_report: {
+          summary: "This document does not appear to be a legal agreement — no contractual clauses, covenants, or obligations were detected. Multi-agent risk audit was skipped to prevent hallucinated findings.",
+          strengths: [],
+          vulnerabilities: [],
+          recommendations: []
+        }
+      },
+      findings: [],
+      chunks: text ? [{
+        id: `${documentId}-chunk-0`,
+        chunk_id: 0,
+        page_number: 1,
+        raw_text: text.slice(0, 2000),
+        clause_type: "Non-Contractual"
+      }] : []
+    };
+  }
+
+  // Contractual document: scan actual text for clauses and extract real verbatim quotes
+  const rules = [
+    {
+      pattern: /(?:indemnify|indemnification|hold harmless)/i,
+      agent_name: "Defense Counsel",
+      clause_type: "Indemnity",
+      finding_type: "Overbroad Indemnity Exposure",
+      summary: "Broad indemnification obligation identified without reciprocal cap in source text.",
+      severity_score: 8,
+      risk_level: "Critical"
+    },
+    {
+      pattern: /(?:indemnify|indemnification|hold harmless)/i,
+      agent_name: "Plaintiff Counsel",
+      clause_type: "Indemnity",
+      finding_type: "Adversarial Indemnity Loophole",
+      summary: "Opposing counsel can leverage broad indemnity terms for preliminary dispute funding.",
+      severity_score: 9,
+      risk_level: "Critical"
+    },
+    {
+      pattern: /(?:limitation of liability|liability cap|in no event shall .* liability exceed)/i,
+      agent_name: "Judge",
+      clause_type: "Limitation of Liability",
+      finding_type: "Liability Cap Scope",
+      summary: "Damages are subject to aggregate liability limitations. Scrutinize exclusions.",
+      severity_score: 7,
+      risk_level: "High"
+    },
+    {
+      pattern: /(?:terminate for convenience|terminate this agreement upon|written notice of termination)/i,
+      agent_name: "Drafting Counsel",
+      clause_type: "Termination",
+      finding_type: "Termination Notice Mechanism",
+      summary: "Contract cancellation mechanism defined. Verify transition terms.",
+      severity_score: 6,
+      risk_level: "Medium"
+    },
+    {
+      pattern: /(?:confidential information|receiving party shall protect|non-disclosure|proprietary information)/i,
+      agent_name: "Compliance Officer",
+      clause_type: "Confidentiality",
+      finding_type: "Confidentiality Protection Scope",
+      summary: "Non-disclosure obligations govern sensitive business disclosures.",
+      severity_score: 5,
+      risk_level: "Medium"
+    },
+    {
+      pattern: /(?:injunctive relief|equitable relief|irreparable harm|without bond)/i,
+      agent_name: "Plaintiff Counsel",
+      clause_type: "Remedies",
+      finding_type: "Immediate Injunctive Relief Threat",
+      summary: "Permits opposing party to seek emergency court injunctions without bond.",
+      severity_score: 7,
+      risk_level: "High"
+    },
+    {
+      pattern: /(?:survival|shall survive|period of (\d+|twenty|ten|five) years)/i,
+      agent_name: "Compliance Officer",
+      clause_type: "Survival",
+      finding_type: "Extended Survival Term",
+      summary: "Confidentiality or restrictive terms survive termination for an extended period.",
+      severity_score: 6,
+      risk_level: "Medium"
+    },
+    {
+      pattern: /(?:intellectual property|ip right|ownership|copyright|patent)/i,
+      agent_name: "Defense Counsel",
+      clause_type: "Intellectual Property",
+      finding_type: "IP Assignment Risk",
+      summary: "Ownership assignment terms present. Clarify background know-how carve-outs.",
+      severity_score: 7,
+      risk_level: "High"
+    },
+    {
+      pattern: /(?:governing law|jurisdiction|arbitration venue|dispute resolution)/i,
+      agent_name: "Compliance Officer",
+      clause_type: "Governing Law",
+      finding_type: "Dispute Jurisdiction Scope",
+      summary: "Dispute resolution and governing forum defined.",
+      severity_score: 5,
+      risk_level: "Medium"
+    }
+  ];
+
+  const lines = text.split("\n").map(l => l.trim()).filter(l => l.length > 10);
+  const findings: Finding[] = [];
+  const chunks: Array<{ id: string; chunk_id: number; page_number: number; raw_text: string; clause_type: string }> = [];
+
+  let chunkId = 0;
+  for (const rule of rules) {
+    if (rule.pattern.test(text)) {
+      let evidence = "";
+      for (const line of lines) {
+        if (rule.pattern.test(line)) {
+          evidence = line;
+          break;
+        }
+      }
+      if (!evidence) {
+        const match = text.match(rule.pattern);
+        if (match && match.index !== undefined) {
+          evidence = text.slice(Math.max(0, match.index - 20), Math.min(text.length, match.index + 120)).trim();
+        }
+      }
+
+      if (evidence && (text.includes(evidence) || text.includes(evidence.slice(0, 30)))) {
+        const cId = `${documentId}-chunk-${chunkId}`;
+        chunks.push({
+          id: cId,
+          chunk_id: chunkId,
+          page_number: Math.floor(chunkId / 2) + 1,
+          raw_text: evidence,
+          clause_type: rule.clause_type
+        });
+
+        findings.push({
+          id: `${documentId}-finding-${chunkId}`,
+          agent_name: rule.agent_name,
+          clause_type: rule.clause_type,
+          finding_type: rule.finding_type,
+          summary: rule.summary,
+          evidence_quote: evidence.slice(0, 180),
+          verification_status: "VERIFIED",
+          severity_score: rule.severity_score,
+          confidence: 0.90,
+          risk_level: rule.risk_level,
+          chunk_text: evidence,
+          consensus_reasoning: {
+            summary: `Consensus Engine audited ${rule.clause_type} and verified grounding in source text.`,
+            deliberation: [
+              { agent: rule.agent_name, stance: "Primary Finding", score: rule.severity_score, argument: rule.summary },
+              { agent: "Judge", stance: "Enforceability", score: Math.max(1, rule.severity_score - 1), argument: "Evaluated clause structure against commercial norms." }
+            ],
+            arbitration_rule: `Consensus calibrated to ${rule.severity_score}/10 based on verified clause wording.`
+          }
+        });
+        chunkId++;
+      }
+    }
+  }
+
+  const critical = findings.filter(f => f.risk_level === "Critical").length;
+  const high = findings.filter(f => f.risk_level === "High").length;
+  const medium = findings.filter(f => f.risk_level === "Medium").length;
+  const low = findings.filter(f => f.risk_level === "Low").length;
+
+  const rawScore = findings.length > 0 ? Math.min(10.0, 1.0 + (critical * 2.0) + (high * 1.2) + (medium * 0.5) + (low * 0.1)) : 1.0;
+  const riskLevel = rawScore >= 8.0 ? "Critical" : rawScore >= 6.5 ? "High" : rawScore >= 4.0 ? "Medium" : "Low";
+
   return {
     document: {
       id: documentId,
       filename: fileName,
-      page_count: 12,
+      page_count: Math.max(1, Math.ceil(text.length / 3000)),
       status: "completed",
+      is_legal_contract: true
     },
     analysis: {
       id: `analysis-${documentId}`,
-      aggregate_risk_score: 8.4,
-      risk_level: "High",
-      critical_count: 2,
-      high_count: 2,
-      medium_count: 2,
-      low_count: 1,
+      aggregate_risk_score: rawScore,
+      risk_level: riskLevel,
+      critical_count: critical,
+      high_count: high,
+      medium_count: medium,
+      low_count: low,
       consensus_report: {
-        summary:
-          "The document shows meaningful litigation exposure in indemnity, liability carve-outs, and ambiguous termination obligations. The strongest risks are evidence-backed and should be tightened before execution.",
-        strengths: [
-          "Core commercial structure is readable and sectioned clearly.",
-          "Governing law and dispute forum are identifiable.",
-          "Confidentiality obligations are present and mostly mutual.",
-        ],
-        vulnerabilities: [
-          "Indemnity language is broad enough to include indirect and punitive losses.",
-          "Plaintiff Counsel identified weaponizable carve-outs bypassing liability limits.",
-          "Termination rights lack transition assistance and survival clarity.",
-        ],
-        recommendations: [
-          "Limit indemnity to third-party claims and verified direct losses.",
-          "Add a mutual aggregate cap and narrow uncapped exclusions.",
-          "Define survival, cure periods, and post-termination support.",
-        ],
-      },
+        summary: `Document audited across ${findings.length} verified clause findings with aggregate risk score ${rawScore.toFixed(1)}/10.`,
+        strengths: findings.filter(f => f.severity_score <= 5).map(f => `${f.clause_type}: ${f.summary}`),
+        vulnerabilities: findings.filter(f => f.severity_score >= 7).map(f => `${f.clause_type}: ${f.summary}`),
+        recommendations: findings.filter(f => f.severity_score >= 7).map(f => `Review and amend the ${f.clause_type} section.`)
+      }
     },
-    findings: [
-      {
-        id: `${documentId}-finding-1`,
-        agent_name: "Defense Counsel",
-        clause_type: "Indemnification",
-        finding_type: "Overbroad indemnity exposure",
-        summary:
-          "The indemnity obligation appears uncapped and extends to broad loss categories, creating a high-value adversarial attack path.",
-        evidence_quote:
-          "The supplier shall indemnify the customer for all losses, whether direct, indirect, incidental, consequential, or punitive.",
-        verification_status: "VERIFIED",
-        severity_score: 8,
-        confidence: 0.92,
-        risk_level: "Critical",
-        chunk_text:
-          "Indemnification. The supplier shall indemnify the customer for all losses, whether direct, indirect, incidental, consequential, or punitive, arising from or relating to the agreement.",
-        consensus_reasoning: {
-          summary: "Consensus Engine deliberated across 3 agent perspectives to calibrate final severity score to 8/10.",
-          deliberation: [
-            { agent: "Defense Counsel", stance: "Client Exposure", score: 8, argument: "Indemnity lacks reciprocal cap, exposing client to third-party claims." },
-            { agent: "Plaintiff Counsel", stance: "Adversarial Attack Path", score: 9, argument: "Opposing party can weaponize broad loss terms to claim indirect, incidental, and legal fees without proving direct breach." },
-            { agent: "Judge", stance: "Judicial Enforceability", score: 7, argument: "Courts generally uphold commercial indemnity as written unless clearly unconscionable. High litigation burden exists." }
-          ],
-          arbitration_rule: "Consensus weighted toward Plaintiff adversarial exploit risk (9/10) and Judge enforceability standard (7/10), settling at final severity of 8/10."
-        }
-      },
-      {
-        id: `${documentId}-finding-plaintiff-1`,
-        agent_name: "Plaintiff Counsel",
-        clause_type: "Indemnification",
-        finding_type: "Adversarial Indemnity Loophole",
-        summary:
-          "Opposing counsel can leverage this broad indemnity to demand defense costs and settlement contributions even before liability is adjudicated in court.",
-        evidence_quote:
-          "The supplier shall indemnify the customer for all losses, whether direct, indirect, incidental, consequential, or punitive.",
-        verification_status: "VERIFIED",
-        severity_score: 9,
-        confidence: 0.94,
-        risk_level: "Critical",
-        chunk_text:
-          "Indemnification. The supplier shall indemnify the customer for all losses, whether direct, indirect, incidental, consequential, or punitive, arising from or relating to the agreement.",
-        consensus_reasoning: {
-          summary: "Consensus Engine verified Plaintiff Counsel litigation vector and aligned severity with adversarial leverage.",
-          deliberation: [
-            { agent: "Plaintiff Counsel", stance: "Maximum Leverage", score: 9, argument: "Uncapped indemnification allows immediate preliminary motions for defense funding." },
-            { agent: "Judge", stance: "Enforceability Risk", score: 7, argument: "Clause is commercially harsh but enforceable under standard freedom of contract." },
-            { agent: "Defense Counsel", stance: "Defensive Exposure", score: 8, argument: "Creates severe unhedged balance sheet vulnerability." }
-          ],
-          arbitration_rule: "Weighted toward Plaintiff adversarial attack path (9/10), requiring urgent renegotiation."
-        }
-      },
-      {
-        id: `${documentId}-finding-2`,
-        agent_name: "Judge",
-        clause_type: "Limitation of Liability",
-        finding_type: "Liability cap diluted by exclusions",
-        summary:
-          "The limitation clause contains exceptions that could swallow the cap and create imbalance between the parties.",
-        evidence_quote:
-          "Liability cap shall not apply to payment obligations, confidentiality, data misuse, or any breach deemed material.",
-        verification_status: "VERIFIED",
-        severity_score: 7,
-        confidence: 0.86,
-        risk_level: "High",
-        chunk_text:
-          "Limitation of Liability. Liability cap shall not apply to payment obligations, confidentiality, data misuse, or any breach deemed material by the customer.",
-        consensus_reasoning: {
-          summary: "Consensus calibrated to 7/10 based on judicial scrutiny of unconscionable liability carve-outs.",
-          deliberation: [
-            { agent: "Judge", stance: "Equitable Balance", score: 7, argument: "Unilateral exclusions that swallow the entire liability limitation create severe judicial scrutiny." },
-            { agent: "Plaintiff Counsel", stance: "Carve-out Exploitation", score: 8, argument: "Carve-outs for 'material breach' allow plaintiff to bypass the damages cap entirely." },
-            { agent: "Defense Counsel", stance: "Risk Mitigation", score: 6, argument: "Aggregate liability cap exists but carve-outs dilute protection." }
-          ],
-          arbitration_rule: "Consensus calibrated to 7/10: Plaintiff carve-out risk balanced against Judge assessment of judicial scrutiny."
-        }
-      },
-      {
-        id: `${documentId}-finding-3`,
-        agent_name: "Drafting Counsel",
-        clause_type: "Termination",
-        finding_type: "Missing transition mechanics",
-        summary:
-          "The termination section describes notice but does not define post-termination cooperation, data return, or service continuity.",
-        evidence_quote:
-          "Either party may terminate for convenience with ninety days written notice after the initial service period.",
-        verification_status: "VERIFIED",
-        severity_score: 6,
-        confidence: 0.81,
-        risk_level: "Medium",
-        chunk_text:
-          "Termination. Either party may terminate for convenience with ninety days written notice after the initial service period.",
-        consensus_reasoning: {
-          summary: "Consensus calibrated to 6/10: Weighted toward commercial continuity risk and drafting ambiguity.",
-          deliberation: [
-            { agent: "Drafting Counsel", stance: "Clarity & Notice", score: 5, argument: "Notice period defined, but transition mechanics and survival terms are missing." },
-            { agent: "Plaintiff Counsel", stance: "Commercial Leverage", score: 7, argument: "Opposing party can terminate for convenience abruptly after setup costs are absorbed." },
-            { agent: "Judge", stance: "Contractual Freedom", score: 6, argument: "Termination for convenience is enforceable; main risk is operational discontinuity." }
-          ],
-          arbitration_rule: "Weighted toward commercial continuity risk identified by Plaintiff Counsel and Drafting ambiguity."
-        }
-      },
-    ],
-    chunks: [
-      {
-        id: `${documentId}-chunk-1`,
-        chunk_id: 1,
-        page_number: 4,
-        raw_text:
-          "Indemnification. The supplier shall indemnify the customer for all losses, whether direct, indirect, incidental, consequential, or punitive.",
-        clause_type: "Indemnification",
-      },
-      {
-        id: `${documentId}-chunk-2`,
-        chunk_id: 2,
-        page_number: 7,
-        raw_text:
-          "Liability cap shall not apply to payment obligations, confidentiality, data misuse, or any breach deemed material.",
-        clause_type: "Limitation of Liability",
-      },
-    ],
+    findings,
+    chunks: chunks.length > 0 ? chunks : [{
+      id: `${documentId}-chunk-0`,
+      chunk_id: 0,
+      page_number: 1,
+      raw_text: text.slice(0, 500) || "Document text extracted.",
+      clause_type: "General"
+    }]
   };
 }
 
@@ -1013,7 +1108,7 @@ export default function Dashboard() {
       setLoadingAnalysis(true);
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2000);
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
         const res = await fetch(`/api/documents/${selectedDocId}/analysis`, { signal: controller.signal });
         clearTimeout(timeoutId);
 
@@ -1023,16 +1118,16 @@ export default function Dashboard() {
           setMockAnalyses((prev) => ({ ...prev, [selectedDocId]: data }));
           setSelectedFinding(null); // Clear selected drawer
         } else {
-          // Fallback mock analysis if not found on backend
-          const localMock = buildMockAnalysis(activeDoc?.filename || "Legal Document", selectedDocId);
-          setAnalysis(localMock);
-          setMockAnalyses((prev) => ({ ...prev, [selectedDocId]: localMock }));
+          // Fallback dynamic analysis if not found on backend
+          const dynamicAnalysis = buildDynamicDocumentAnalysis(activeDoc?.filename || "Legal Document", selectedDocId);
+          setAnalysis(dynamicAnalysis);
+          setMockAnalyses((prev) => ({ ...prev, [selectedDocId]: dynamicAnalysis }));
         }
       } catch (err) {
-        console.warn("Analysis fetch timed out or offline, using local fallback:", err);
-        const localMock = buildMockAnalysis(activeDoc?.filename || "Legal Document", selectedDocId);
-        setAnalysis(localMock);
-        setMockAnalyses((prev) => ({ ...prev, [selectedDocId]: localMock }));
+        console.warn("Analysis fetch timed out or offline, using dynamic fallback:", err);
+        const dynamicAnalysis = buildDynamicDocumentAnalysis(activeDoc?.filename || "Legal Document", selectedDocId);
+        setAnalysis(dynamicAnalysis);
+        setMockAnalyses((prev) => ({ ...prev, [selectedDocId]: dynamicAnalysis }));
       } finally {
         setLoadingAnalysis(false);
       }
@@ -1050,39 +1145,49 @@ export default function Dashboard() {
     const formData = new FormData();
     formData.append("file", file);
     
+    let fileText = "";
+    try {
+      fileText = await file.text();
+    } catch {
+      fileText = "";
+    }
+
     setUploading(true);
     setShowUploadModal(true);
     setUploadStatusMsg("Uploading and extracting text...");
 
     if (!USE_BACKEND_API) {
       const documentId = `local-${crypto.randomUUID()}`;
+      const dynamicAnalysis = buildDynamicDocumentAnalysis(file.name, documentId, fileText);
       const mockDocument: APIDocument = {
         id: documentId,
         filename: file.name,
         content_type: file.type || "text/plain",
-        status: "completed",
-        page_count: file.type.includes("pdf") ? 12 : 1,
+        status: dynamicAnalysis.document.status,
+        page_count: dynamicAnalysis.document.page_count,
         created_at: new Date().toISOString(),
-        risk_score: 8.2,
-        risk_level: "High",
+        risk_score: dynamicAnalysis.analysis.aggregate_risk_score > 0 ? dynamicAnalysis.analysis.aggregate_risk_score : null,
+        risk_level: dynamicAnalysis.analysis.risk_level,
       };
-      const mockAnalysis = buildMockAnalysis(file.name, documentId);
-      setUploadStatusMsg("Generating local demo analysis...");
+      setUploadStatusMsg("Generating grounded analysis...");
       setDocuments((current) => [mockDocument, ...current.filter((doc) => doc.id !== documentId)]);
-      setMockAnalyses((current) => ({ ...current, [documentId]: mockAnalysis }));
+      setMockAnalyses((current) => ({ ...current, [documentId]: dynamicAnalysis }));
       setSelectedDocId(documentId);
-      setAnalysis(mockAnalysis);
+      setAnalysis(dynamicAnalysis);
       setShowUploadModal(false);
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
-      toast.success("Document analyzed successfully!");
+      if (dynamicAnalysis.document.status === "rejected_non_contract") {
+        toast.error("Document does not appear to be a legal agreement — risk audit skipped.");
+      } else {
+        toast.success("Document analyzed successfully!");
+      }
       return;
     }
     
     try {
-      // Fast failover timeout of 3500ms
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
 
       setUploadStatusMsg("Extracting text and spawning specialized agents...");
       const res = await fetch("/api/documents/upload", {
@@ -1094,36 +1199,44 @@ export default function Dashboard() {
       
       if (!res.ok) {
         const errData = await res.json();
-        throw new Error(errData.error || "Upload failed");
+        throw new Error(errData.detail || errData.error || "Upload failed");
       }
       
       const data = await res.json();
-      toast.success("Document analyzed successfully!");
+      if (data.status === "rejected_non_contract") {
+        toast.error("Document does not appear to be a legal agreement — risk audit skipped.");
+      } else {
+        toast.success("Document analyzed successfully!");
+      }
       setUploadStatusMsg("Aggregating consensus results...");
       
       await fetchDocuments();
       setSelectedDocId(data.document_id);
       setShowUploadModal(false);
     } catch (err) {
-      console.warn("Upload service unavailable or timed out, generating instant local analysis:", err);
+      console.warn("Upload service unavailable or timed out, generating grounded local analysis:", err);
       const documentId = `local-${crypto.randomUUID()}`;
+      const dynamicAnalysis = buildDynamicDocumentAnalysis(file.name, documentId, fileText);
       const mockDocument: APIDocument = {
         id: documentId,
         filename: file.name,
         content_type: file.type || "text/plain",
-        status: "completed",
-        page_count: file.type.includes("pdf") ? 12 : 1,
+        status: dynamicAnalysis.document.status,
+        page_count: dynamicAnalysis.document.page_count,
         created_at: new Date().toISOString(),
-        risk_score: 8.2,
-        risk_level: "High",
+        risk_score: dynamicAnalysis.analysis.aggregate_risk_score > 0 ? dynamicAnalysis.analysis.aggregate_risk_score : null,
+        risk_level: dynamicAnalysis.analysis.risk_level,
       };
-      const mockAnalysis = buildMockAnalysis(file.name, documentId);
       setDocuments((current) => [mockDocument, ...current.filter((doc) => doc.id !== documentId)]);
-      setMockAnalyses((current) => ({ ...current, [documentId]: mockAnalysis }));
+      setMockAnalyses((current) => ({ ...current, [documentId]: dynamicAnalysis }));
       setSelectedDocId(documentId);
-      setAnalysis(mockAnalysis);
+      setAnalysis(dynamicAnalysis);
       setShowUploadModal(false);
-      toast.success("Document analyzed successfully!");
+      if (dynamicAnalysis.document.status === "rejected_non_contract") {
+        toast.error("Document does not appear to be a legal agreement — risk audit skipped.");
+      } else {
+        toast.success("Document analyzed successfully!");
+      }
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -1203,7 +1316,11 @@ export default function Dashboard() {
                   >
                     <div className="flex items-start justify-between gap-2">
                       <span className="font-display font-semibold text-sm truncate">{doc.filename}</span>
-                      {doc.risk_score !== null && (
+                      {doc.status === "rejected_non_contract" ? (
+                        <span className="text-[9px] font-mono px-1.5 py-0.5 bg-amber-100 text-amber-900 border border-amber-300 font-bold">
+                          NON-LEGAL
+                        </span>
+                      ) : doc.risk_score !== null && (
                         <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-none font-bold ${
                           doc.risk_level === 'Critical' || doc.risk_level === 'High'
                             ? "bg-red-500 text-white"
@@ -1217,8 +1334,12 @@ export default function Dashboard() {
                     </div>
                     <div className="flex items-center justify-between text-[10px] font-mono text-[#626860] mt-1.5">
                       <span>{doc.page_count ? `${doc.page_count} pg` : "TXT File"}</span>
-                      <span className={`uppercase tracking-wider ${isActive ? "text-[#d7ff52]" : "text-[#3158ff]"}`}>
-                        {doc.status}
+                      <span className={`uppercase tracking-wider ${
+                        doc.status === "rejected_non_contract"
+                          ? "text-amber-700 font-semibold"
+                          : isActive ? "text-[#d7ff52]" : "text-[#3158ff]"
+                      }`}>
+                        {doc.status === "rejected_non_contract" ? "Non-Contractual" : doc.status}
                       </span>
                     </div>
                   </button>
@@ -1334,22 +1455,29 @@ export default function Dashboard() {
                     </button>
                   </div>
 
-                  <div className="flex items-center gap-3 bg-[#101412] px-4 py-2 text-[#f1eee6]">
-                    <div className="text-right">
-                      <div className="text-[9px] font-mono uppercase tracking-widest text-[#d7ff52] font-semibold">
-                        {viewMode === "simple" ? "Safety Score" : "Risk Score"}
+                  {analysis.document.status === "rejected_non_contract" || analysis.document.is_legal_contract === false ? (
+                    <div className="flex items-center gap-2 bg-amber-100 border border-amber-300 px-3.5 py-2 text-amber-900 font-mono text-xs font-bold shadow-sm">
+                      <AlertTriangle className="h-4 w-4 text-amber-700" />
+                      <span>NON-LEGAL DOCUMENT</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3 bg-[#101412] px-4 py-2 text-[#f1eee6]">
+                      <div className="text-right">
+                        <div className="text-[9px] font-mono uppercase tracking-widest text-[#d7ff52] font-semibold">
+                          {viewMode === "simple" ? "Safety Score" : "Risk Score"}
+                        </div>
+                        <div className="font-mono text-[9px] text-[#8f978e] mt-0.5">
+                          {viewMode === "simple" 
+                            ? (analysis.analysis.risk_level === 'Critical' || analysis.analysis.risk_level === 'High' ? '⚠️ High Attention' : '✅ Moderate')
+                            : analysis.analysis.risk_level
+                          }
+                        </div>
                       </div>
-                      <div className="font-mono text-[9px] text-[#8f978e] mt-0.5">
-                        {viewMode === "simple" 
-                          ? (analysis.analysis.risk_level === 'Critical' || analysis.analysis.risk_level === 'High' ? '⚠️ High Attention' : '✅ Moderate')
-                          : analysis.analysis.risk_level
-                        }
+                      <div className="font-display text-2xl sm:text-3xl font-extrabold text-[#d7ff52] leading-none">
+                        {analysis.analysis.aggregate_risk_score.toFixed(1)}
                       </div>
                     </div>
-                    <div className="font-display text-2xl sm:text-3xl font-extrabold text-[#d7ff52] leading-none">
-                      {analysis.analysis.aggregate_risk_score.toFixed(1)}
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
 
@@ -1470,6 +1598,24 @@ export default function Dashboard() {
                         <Send className="h-4 w-4" /> Send
                       </button>
                     </form>
+                  </div>
+                </div>
+              ) : analysis.document.status === "rejected_non_contract" || analysis.document.is_legal_contract === false ? (
+                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center max-w-lg mx-auto">
+                  <div className="h-16 w-16 rounded-full bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-700 text-3xl mb-4">
+                    ⚠️
+                  </div>
+                  <h2 className="font-display text-2xl font-bold tracking-tight text-[#101412]">
+                    Not a Legal Agreement
+                  </h2>
+                  <p className="mt-3 text-sm text-[#626860] leading-relaxed">
+                    This document does not appear to be a legal contract or agreement — no contractual clauses, covenants, or legal obligations were detected in the extracted text.
+                  </p>
+                  <div className="mt-6 p-4 bg-white border border-[#d6d2c8] text-left text-xs font-mono text-slate-700 w-full space-y-2">
+                    <div className="text-[10px] uppercase font-bold text-slate-500">Rejection Audit Log</div>
+                    <div>• File: <span className="text-black font-semibold">{analysis.document.filename}</span></div>
+                    <div>• Reason: {analysis.document.rejection_reason || "No contractual language or clauses detected."}</div>
+                    <div>• Action: Multi-agent risk audit skipped (0 findings generated).</div>
                   </div>
                 </div>
               ) : (

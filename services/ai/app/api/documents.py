@@ -13,7 +13,7 @@ from app.models.chunk import Chunk
 from app.models.analysis import AnalysisResult
 from app.models.finding import AgentFinding
 from app.models.user import User
-from app.services.analyzer import analyze_document_content
+from app.services.analyzer import analyze_document_content, is_contractual_document
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 logger = logging.getLogger(__name__)
@@ -142,6 +142,59 @@ async def upload_document(
     # 4. Extract text
     raw_text, page_count = extract_text(content, file.content_type)
     
+    # 4b. Contract Relevance Gate: check if document is a legal agreement
+    is_contract, contract_reason = is_contractual_document(raw_text)
+    if not is_contract:
+        logger.info(f"Document '{file.filename}' rejected as non-contractual: {contract_reason}")
+        if not existing:
+            document = Document(
+                id=doc_id,
+                owner_id=user.id,
+                filename=file.filename,
+                content_type=file.content_type or "application/octet-stream",
+                storage_uri=f"local://{doc_id}",
+                sha256=sha256,
+                status="rejected_non_contract",
+                page_count=page_count,
+                metadata_json={"rejection_reason": contract_reason, "is_legal_contract": False}
+            )
+            db.add(document)
+            db.commit()
+        else:
+            existing.status = "rejected_non_contract"
+            existing.metadata_json = {"rejection_reason": contract_reason, "is_legal_contract": False}
+            db.commit()
+
+        # Clean any old chunks/analysis
+        db.query(Chunk).filter(Chunk.document_id == doc_id).delete()
+        db.query(AnalysisResult).filter(AnalysisResult.document_id == doc_id).delete()
+        db.commit()
+
+        # Save single chunk for text inspection without triggering multi-agent audit
+        chunk = Chunk(
+            id=uuid.uuid4(),
+            document_id=doc_id,
+            chunk_id=0,
+            page_number=1,
+            clause_type="Non-Contractual",
+            party_scope="Unspecified",
+            raw_text=raw_text[:2000] if raw_text else "No text extracted.",
+            token_count=max(1, len(raw_text) // 4) if raw_text else 1
+        )
+        db.add(chunk)
+        db.commit()
+
+        return {
+            "message": "This document does not appear to be a legal agreement — no contractual clauses or obligations were detected.",
+            "document_id": str(doc_id),
+            "filename": file.filename,
+            "status": "rejected_non_contract",
+            "is_legal_contract": False,
+            "rejection_reason": contract_reason,
+            "risk_score": None,
+            "risk_level": "None"
+        }
+
     try:
         # Create Document record if it doesn't exist
         if not existing:
@@ -294,6 +347,43 @@ def get_analysis_results(document_id: uuid.UUID, db: Session = Depends(get_db)):
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
         
+    if doc.status == "rejected_non_contract":
+        chunks = db.query(Chunk).filter(Chunk.document_id == doc.id).order_by(Chunk.chunk_id.asc()).all()
+        chunk_list = [{
+            "id": str(c.id),
+            "chunk_id": c.chunk_id,
+            "page_number": c.page_number,
+            "raw_text": c.raw_text,
+            "clause_type": c.clause_type or "Non-Contractual"
+        } for c in chunks]
+        return {
+            "document": {
+                "id": str(doc.id),
+                "filename": doc.filename,
+                "page_count": doc.page_count,
+                "status": "rejected_non_contract",
+                "is_legal_contract": False,
+                "rejection_reason": (doc.metadata_json or {}).get("rejection_reason", "Document does not appear to be a legal agreement.")
+            },
+            "analysis": {
+                "id": f"rejected-{doc.id}",
+                "aggregate_risk_score": 0.0,
+                "risk_level": "None",
+                "critical_count": 0,
+                "high_count": 0,
+                "medium_count": 0,
+                "low_count": 0,
+                "consensus_report": {
+                    "summary": "This document does not appear to be a legal agreement — no contractual clauses, covenants, or obligations were detected. Multi-agent risk analysis was skipped.",
+                    "strengths": [],
+                    "vulnerabilities": [],
+                    "recommendations": []
+                }
+            },
+            "findings": [],
+            "chunks": chunk_list
+        }
+
     analysis = db.query(AnalysisResult).filter(AnalysisResult.document_id == doc.id).first()
     if not analysis:
         raise HTTPException(status_code=404, detail="Analysis results not yet generated")

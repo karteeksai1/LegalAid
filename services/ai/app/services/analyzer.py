@@ -179,23 +179,44 @@ def generate_consensus_reasoning(finding: Dict[str, Any]) -> Dict[str, Any]:
         "plain_arbitration_rule": plain_rule
     }
 
+def is_contractual_document(text: str) -> tuple[bool, str]:
+    """Validates if the document text contains sufficient contractual language and structure."""
+    words = re.findall(r'\b\w+\b', text.lower())
+    if len(words) < 35:
+        return False, "Extracted text is too short to be a valid legal contract (under 35 words)."
+    
+    strong_indicators = [
+        "agreement", "contract", "parties", "witnesseth", "whereas", "recitals",
+        "terms and conditions", "governing law", "jurisdiction", "indemn",
+        "severab", "confidential", "termination", "warrant", "liability",
+        "in witness whereof", "covenant", "hereby", "herein", "hereto", "shall",
+        "non-disclosure", "disclosing party", "receiving party", "injunctive relief"
+    ]
+    
+    matched_indicators = [ind for ind in strong_indicators if re.search(r'\b' + ind, text.lower())]
+    
+    if len(matched_indicators) < 2:
+        return False, "Document does not contain contractual language, obligations, or legal provisions."
+        
+    return True, "Valid contractual document."
+
 def run_rule_based_fallback(chunks: List[Chunk]) -> List[Dict[str, Any]]:
-    """A fallback rule-based analysis that generates contextual legal findings including Plaintiff Counsel."""
-    logger.info("Executing rule-based fallback analysis engine...")
+    """A fallback rule-based analysis that strictly extracts findings grounded in actual chunk text."""
+    logger.info("Executing grounded rule-based fallback analysis engine...")
     findings = []
     
     rules = [
         {
-            "pattern": r"(?i)indemnity|indemnify|hold harmless",
+            "pattern": r"(?i)\b(indemnify|indemnification|hold harmless)\b",
             "agent": "Defense Counsel",
             "clause": "Indemnity",
             "type": "Unbalanced Indemnification",
-            "summary": "The clause contains broad indemnity obligations that could force the company to pay for all third-party disputes and losses without a clear cap or reciprocal indemnity. Recommend making this mutual and limiting the scope to direct breaches.",
+            "summary": "The clause contains broad indemnity obligations that could force the company to pay for third-party disputes and losses without a reciprocal cap. Recommend making this mutual.",
             "severity": 8,
             "confidence": 0.90
         },
         {
-            "pattern": r"(?i)indemnity|indemnify|hold harmless",
+            "pattern": r"(?i)\b(indemnify|indemnification|hold harmless)\b",
             "agent": "Plaintiff Counsel",
             "clause": "Indemnity",
             "type": "Adversarial Indemnity Loophole",
@@ -204,34 +225,34 @@ def run_rule_based_fallback(chunks: List[Chunk]) -> List[Dict[str, Any]]:
             "confidence": 0.92
         },
         {
-            "pattern": r"(?i)limitation of liability|liability cap|consequential damages",
+            "pattern": r"(?i)\b(limitation of liability|liability cap|in no event shall .* liability exceed)\b",
             "agent": "Judge",
             "clause": "Liability",
             "type": "Unconscionable Liability Cap",
-            "summary": "The limitation of liability clause places an exceptionally low cap on damages (or excludes standard damages), which might be ruled unconscionable or void in courts of law. Suggest raising the cap or adding standard exceptions for willful misconduct.",
+            "summary": "The limitation of liability clause places an aggregate cap on damages. Review exclusions to ensure critical breaches remain compensable.",
             "severity": 7,
             "confidence": 0.85
         },
         {
-            "pattern": r"(?i)limitation of liability|liability cap|consequential damages",
+            "pattern": r"(?i)\b(limitation of liability|liability cap|in no event shall .* liability exceed)\b",
             "agent": "Plaintiff Counsel",
             "clause": "Liability",
             "type": "Carve-out Exploitation Vector",
-            "summary": "The un-capped carve-outs allow an aggressive opposing party to re-characterize simple breach claims as 'confidentiality' or 'gross negligence' to bypass the liability cap entirely.",
+            "summary": "The carve-outs allow an aggressive opposing party to re-characterize breach claims to bypass the liability cap entirely.",
             "severity": 8,
             "confidence": 0.88
         },
         {
-            "pattern": r"(?i)terminate for convenience|convenience|without cause",
+            "pattern": r"(?i)\b(terminate for convenience|terminate this agreement upon|written notice of termination)\b",
             "agent": "Drafting Counsel",
             "clause": "Termination",
             "type": "Unilateral Termination Right",
-            "summary": "The contract grants one party the right to terminate for convenience on short notice (e.g., under 30 days). This introduces severe business continuity risks. Recommend extending the notice window.",
+            "summary": "The contract grants termination rights on short notice. Recommend ensuring adequate transition periods.",
             "severity": 6,
             "confidence": 0.80
         },
         {
-            "pattern": r"(?i)terminate for convenience|convenience|without cause",
+            "pattern": r"(?i)\b(terminate for convenience|terminate this agreement upon|written notice of termination)\b",
             "agent": "Plaintiff Counsel",
             "clause": "Termination",
             "type": "Adversarial Termination Trap",
@@ -240,49 +261,67 @@ def run_rule_based_fallback(chunks: List[Chunk]) -> List[Dict[str, Any]]:
             "confidence": 0.85
         },
         {
-            "pattern": r"(?i)governing law|jurisdiction|arbitration venue",
+            "pattern": r"(?i)\b(governing law|jurisdiction|arbitration venue|dispute resolution)\b",
             "agent": "Compliance Officer",
             "clause": "Governing Law",
-            "type": "Unfavorable Jurisdiction",
-            "summary": "Disputes are governed by external or foreign state law, which could lead to high legal travel and litigation costs. Recommend negotiating local jurisdiction or neutral binding arbitration.",
+            "type": "Dispute Jurisdiction Scope",
+            "summary": "Disputes are governed by specified state or national jurisdiction. Review forum convenience and dispute procedures.",
             "severity": 5,
             "confidence": 0.95
         },
         {
-            "pattern": r"(?i)intellectual property|ip right|ownership|copyright|patent",
+            "pattern": r"(?i)\b(intellectual property|ip right|ownership|copyright|patent)\b",
             "agent": "Defense Counsel",
             "clause": "Intellectual Property",
             "type": "IP Assignment Risk",
-            "summary": "The intellectual property language assigns ownership of all created materials to the client without protecting background technology or general know-how. Recommend adding background IP carveouts.",
+            "summary": "The intellectual property language assigns ownership of created materials. Recommend clarifying background IP protections.",
             "severity": 7,
             "confidence": 0.85
         },
         {
-            "pattern": r"(?i)intellectual property|ip right|ownership|copyright|patent",
+            "pattern": r"(?i)\b(intellectual property|ip right|ownership|copyright|patent)\b",
             "agent": "Plaintiff Counsel",
             "clause": "Intellectual Property",
             "type": "Aggressive Ownership Claim",
-            "summary": "Opposing party can assert complete copyright ownership over proprietary templates and tooling developed prior to the agreement.",
+            "summary": "Opposing party can assert complete copyright ownership over proprietary templates and tooling.",
             "severity": 8,
             "confidence": 0.90
         },
         {
-            "pattern": r"(?i)non-compete|non compete|restrictive covenant",
+            "pattern": r"(?i)\b(non-compete|non compete|restrictive covenant)\b",
             "agent": "Judge",
             "clause": "Restrictive Covenants",
             "type": "Overbroad Restrictive Covenant",
-            "summary": "The non-compete clause applies for an excessive duration or overbroad geographical area, which standard labor courts routinely void as a restraint of trade. Suggest narrowing the scope and time constraint.",
+            "summary": "The non-compete clause applies across broad territories. Suggest narrowing the scope and time constraint.",
             "severity": 6,
             "confidence": 0.88
         },
         {
-            "pattern": r"(?i)confidential|nondisclosure|disclosure of information",
+            "pattern": r"(?i)\b(confidential information|receiving party shall protect|non-disclosure|proprietary information)\b",
             "agent": "Compliance Officer",
             "clause": "Confidentiality",
-            "type": "Indefinite Confidentiality Duration",
-            "summary": "Confidentiality obligations persist indefinitely rather than expiring after a typical term of years (e.g., 3-5 years). This creates long-term storage compliance and monitoring overhead. Recommend adding a sunset clause.",
+            "type": "Confidentiality Protection Scope",
+            "summary": "Confidentiality obligations govern sensitive business disclosures. Ensure clear expiration or survival terms are set.",
             "severity": 5,
             "confidence": 0.92
+        },
+        {
+            "pattern": r"(?i)\b(injunctive relief|equitable relief|irreparable harm|without bond)\b",
+            "agent": "Plaintiff Counsel",
+            "clause": "Remedies",
+            "type": "Injunctive Relief Exposure",
+            "summary": "Allows opposing party to seek emergency court injunctions without posting bond in case of alleged breach.",
+            "severity": 7,
+            "confidence": 0.88
+        },
+        {
+            "pattern": r"(?i)\b(survival|shall survive|period of (\d+|twenty|ten|five) years)\b",
+            "agent": "Compliance Officer",
+            "clause": "Survival",
+            "type": "Extended Survival Obligation",
+            "summary": "Post-termination survival terms impose multi-year compliance monitoring and liability exposure.",
+            "severity": 6,
+            "confidence": 0.90
         }
     ]
 
@@ -290,94 +329,34 @@ def run_rule_based_fallback(chunks: List[Chunk]) -> List[Dict[str, Any]]:
         text = chunk.raw_text
         for rule in rules:
             if re.search(rule["pattern"], text):
-                lines = text.split("\n")
+                lines = [l.strip() for l in text.split("\n") if len(l.strip()) > 10]
                 evidence = ""
                 for line in lines:
                     if re.search(rule["pattern"], line):
-                        evidence = line.strip()
+                        evidence = line
                         break
                 if not evidence and lines:
-                    evidence = lines[0].strip()
+                    evidence = lines[0]
                 if len(evidence) > 200:
                     evidence = evidence[:197] + "..."
                 
-                if not any(f["chunk_id"] == chunk.id and f["finding_type"] == rule["type"] for f in findings):
-                    finding_item = {
-                        "chunk_id": chunk.id,
-                        "agent_name": rule["agent"],
-                        "clause_type": rule["clause"],
-                        "finding_type": rule["type"],
-                        "summary": rule["summary"],
-                        "evidence_quote": evidence or text[:150],
-                        "severity_score": rule["severity"],
-                        "confidence": rule["confidence"],
-                        "verification_status": "verified",
-                        "risk_level": "Critical" if rule["severity"] >= 8 else ("High" if rule["severity"] >= 7 else "Medium")
-                    }
-                    finding_item["consensus_reasoning"] = generate_consensus_reasoning(finding_item)
-                    findings.append(finding_item)
-
-    if not findings and chunks:
-        f1 = {
-            "chunk_id": chunks[0].id,
-            "agent_name": "Judge",
-            "clause_type": "Entire Agreement",
-            "finding_type": "Standard Boilerplate Review",
-            "summary": "Document lacks standard integration clauses. Recommend adding an 'Entire Agreement' boilerplate to prevent parol evidence issues.",
-            "evidence_quote": chunks[0].raw_text[:100],
-            "severity_score": 3,
-            "confidence": 0.80,
-            "verification_status": "verified",
-            "risk_level": "Low"
-        }
-        f1["consensus_reasoning"] = generate_consensus_reasoning(f1)
-        findings.append(f1)
-
-        f2 = {
-            "chunk_id": chunks[0].id,
-            "agent_name": "Plaintiff Counsel",
-            "clause_type": "Definitions",
-            "finding_type": "Vague Definition Exploitation",
-            "summary": "Undefined terms allow opposing counsel to interpret scope narrowly for obligations and broadly for remedies.",
-            "evidence_quote": chunks[0].raw_text[:100],
-            "severity_score": 5,
-            "confidence": 0.85,
-            "verification_status": "verified",
-            "risk_level": "Medium"
-        }
-        f2["consensus_reasoning"] = generate_consensus_reasoning(f2)
-        findings.append(f2)
-
-        f3 = {
-            "chunk_id": chunks[0].id,
-            "agent_name": "Defense Counsel",
-            "clause_type": "Definitions",
-            "finding_type": "Vague Definition Scope",
-            "summary": "Key business and technical definitions are undefined. Verify that all capitalized terms in the document are clearly defined in an index.",
-            "evidence_quote": chunks[0].raw_text[:100],
-            "severity_score": 4,
-            "confidence": 0.85,
-            "verification_status": "verified",
-            "risk_level": "Low"
-        }
-        f3["consensus_reasoning"] = generate_consensus_reasoning(f3)
-        findings.append(f3)
-
-    # Add finding for Citation agent
-    f_cite = {
-        "chunk_id": chunks[0].id if chunks else None,
-        "agent_name": "Citation & Evidence Agent",
-        "clause_type": "Grounded Check",
-        "finding_type": "Fact Verification",
-        "summary": "Citation audit confirms all findings are 100% grounded in document text. Sources match indices.",
-        "evidence_quote": chunks[0].raw_text[:100] if chunks else "",
-        "severity_score": 2,
-        "confidence": 0.98,
-        "verification_status": "verified",
-        "risk_level": "Low"
-    }
-    f_cite["consensus_reasoning"] = generate_consensus_reasoning(f_cite)
-    findings.append(f_cite)
+                # Strict verification: evidence MUST exist in the chunk
+                if evidence and (evidence in text or evidence[:30] in text):
+                    if not any(f["chunk_id"] == chunk.id and f["finding_type"] == rule["type"] for f in findings):
+                        finding_item = {
+                            "chunk_id": chunk.id,
+                            "agent_name": rule["agent"],
+                            "clause_type": rule["clause"],
+                            "finding_type": rule["type"],
+                            "summary": rule["summary"],
+                            "evidence_quote": evidence,
+                            "severity_score": rule["severity"],
+                            "confidence": rule["confidence"],
+                            "verification_status": "verified",
+                            "risk_level": "Critical" if rule["severity"] >= 8 else ("High" if rule["severity"] >= 7 else "Medium")
+                        }
+                        finding_item["consensus_reasoning"] = generate_consensus_reasoning(finding_item)
+                        findings.append(finding_item)
     
     return findings
 
@@ -392,39 +371,57 @@ def get_risk_level(score: float) -> str:
         return "Low"
 
 def analyze_document_content(chunks: List[Chunk]) -> Dict[str, Any]:
-    """Orchestrates multi-agent analysis and runs the consensus builder."""
-    findings = []
+    """Orchestrates multi-agent analysis and runs the consensus builder with hard grounding verification."""
+    full_text = "\n\n".join([c.raw_text for c in chunks])
+    raw_findings = []
     use_llm = True
     
-    for agent_name, agent_info in AGENTS.items():
-        if agent_name == "Citation & Evidence Agent":
-            continue
-        try:
-            for chunk in chunks[:4]:
-                agent_results = run_llm_analysis(agent_name, agent_info["system_prompt"], chunk.raw_text)
-                for res in agent_results:
-                    severity = int(res.get("severity_score", 5))
-                    f_item = {
-                        "chunk_id": chunk.id,
-                        "agent_name": agent_name,
-                        "clause_type": res.get("clause_type", "Unspecified"),
-                        "finding_type": res.get("finding_type", "General Issue"),
-                        "summary": res.get("summary", ""),
-                        "evidence_quote": res.get("evidence_quote", ""),
-                        "severity_score": severity,
-                        "confidence": float(res.get("confidence", 0.8)),
-                        "verification_status": "unverified",
-                        "risk_level": "Critical" if severity >= 8 else ("High" if severity >= 7 else ("Medium" if severity >= 4 else "Low"))
-                    }
-                    f_item["consensus_reasoning"] = generate_consensus_reasoning(f_item)
-                    findings.append(f_item)
-        except Exception as e:
-            logger.warning(f"Agent {agent_name} failed with error: {e}. Falling back to rule engine.")
-            use_llm = False
-            break
+    settings = get_settings()
+    api_key = settings.groq_api_key
+    
+    if not api_key or "your-" in api_key.lower():
+        use_llm = False
 
-    if not use_llm or not findings:
-        findings = run_rule_based_fallback(chunks)
+    if use_llm:
+        for agent_name, agent_info in AGENTS.items():
+            if agent_name == "Citation & Evidence Agent":
+                continue
+            try:
+                for chunk in chunks[:4]:
+                    agent_results = run_llm_analysis(agent_name, agent_info["system_prompt"], chunk.raw_text)
+                    for res in agent_results:
+                        severity = int(res.get("severity_score", 5))
+                        f_item = {
+                            "chunk_id": chunk.id,
+                            "agent_name": agent_name,
+                            "clause_type": res.get("clause_type", "Unspecified"),
+                            "finding_type": res.get("finding_type", "General Issue"),
+                            "summary": res.get("summary", ""),
+                            "evidence_quote": res.get("evidence_quote", ""),
+                            "severity_score": severity,
+                            "confidence": float(res.get("confidence", 0.8)),
+                            "verification_status": "unverified",
+                            "risk_level": "Critical" if severity >= 8 else ("High" if severity >= 7 else ("Medium" if severity >= 4 else "Low"))
+                        }
+                        f_item["consensus_reasoning"] = generate_consensus_reasoning(f_item)
+                        raw_findings.append(f_item)
+            except Exception as e:
+                logger.warning(f"Agent {agent_name} failed with error: {e}. Falling back to rule engine.")
+                use_llm = False
+                break
+
+    if not use_llm or not raw_findings:
+        raw_findings = run_rule_based_fallback(chunks)
+
+    # Hard Grounding Assertion: Filter out ANY finding whose evidence_quote is not in the document
+    findings = []
+    for f in raw_findings:
+        quote = (f.get("evidence_quote") or "").strip()
+        if quote and (quote in full_text or quote[:40] in full_text):
+            f["verification_status"] = "verified"
+            findings.append(f)
+        else:
+            logger.warning(f"GROUNDING ENFORCEMENT: Discarding hallucinated/ungrounded finding '{f.get('finding_type')}' with quote '{quote}'")
         
     # Consensus Aggregator & Risk Scoring
     critical_count = sum(1 for f in findings if f["risk_level"] == "Critical")
@@ -432,8 +429,11 @@ def analyze_document_content(chunks: List[Chunk]) -> Dict[str, Any]:
     medium_count = sum(1 for f in findings if f["risk_level"] == "Medium")
     low_count = sum(1 for f in findings if f["risk_level"] == "Low")
     
-    raw_score = 1.0 + (critical_count * 2.0) + (high_count * 1.2) + (medium_count * 0.5) + (low_count * 0.1)
-    aggregate_risk_score = min(10.0, raw_score)
+    if findings:
+        raw_score = 1.0 + (critical_count * 2.0) + (high_count * 1.2) + (medium_count * 0.5) + (low_count * 0.1)
+        aggregate_risk_score = min(10.0, raw_score)
+    else:
+        aggregate_risk_score = 1.0
     risk_level = get_risk_level(aggregate_risk_score)
     
     strengths = []
