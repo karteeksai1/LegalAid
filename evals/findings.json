@@ -1,0 +1,123 @@
+[
+{
+"file_name": "ZtoExpressCaymanInc_20160930_F-1_EX-10.10_9752871_EX-10.10_Transportation Agreement.txt",
+"agent_name": "Risk & Liability Counsel",
+"clause_type": "Indemnity / Liability",
+"finding_type": "Uncapped Carrier Liability for Theft and Parcel Loss",
+"summary": "Party B bears all economic loss and liquidated damages arising from theft or disposal of stolen goods by its personnel, with no monetary cap or limitation of liability.",
+"evidence_quote": "Party B shall be responsible for all of Party A's economic loss and relevant liquidated damages arising out of any theft and disposal of stolen goods conducted by Party B's personnel.",
+"severity_score": 9,
+"risk_level": "Critical",
+"confidence": 0.99
+},
+{
+"file_name": "ZtoExpressCaymanInc_20160930_F-1_EX-10.10_9752871_EX-10.10_Transportation Agreement.txt",
+"agent_name": "Risk & Liability Counsel",
+"clause_type": "Liability",
+"finding_type": "One-Sided Liability Allocation",
+"summary": "The agreement broadly assigns consequences and legal liability to Party B while expressly removing liability from Party A, creating a materially one-sided allocation of operational risk.",
+"evidence_quote": "Party B shall bear any consequences and legal liability arising out of Party B's non-compliance, and Party A shall have no liability.",
+"severity_score": 8,
+"risk_level": "Critical",
+"confidence": 0.98
+},
+{
+"file_name": "ZtoExpressCaymanInc_20160930_F-1_EX-10.10_9752871_EX-10.10_Transportation Agreement.txt",
+"agent_name": "Opposing Counsel",
+"clause_type": "Termination",
+"finding_type": "Unilateral Termination for Failure to Follow Party A's Directions",
+"summary": "Party A can terminate without further legal liability when Party B does not comply with Party A's management and arrangement, giving Party A a broad termination vector with no equivalent right for Party B.",
+"evidence_quote": "Party A has the right to terminate this Agreement without further legal liability in the case that Party B does not comply with Party A's management and arrangement.",
+"severity_score": 7,
+"risk_level": "High",
+"confidence": 0.99
+},
+{
+"file_name": "ZtoExpressCaymanInc_20160930_F-1_EX-10.10_9752871_EX-10.10_Transportation Agreement.txt",
+"agent_name": "Opposing Counsel",
+"clause_type": "Termination",
+"finding_type": "Early-Termination Trap and Additional Loss Exposure",
+"summary": "Party B cannot terminate early without Party A's written consent and may owe one month's freight plus unspecified additional losses, creating an asymmetric exit obligation.",
+"evidence_quote": "Party B shall obtain Party A's written consent in the case the early termination of the Agreement. Party B shall pay one-month freight as liquidated damages in case of termination of the Agreement without consent. Within the contract period, Party B shall not charge the freight difference if Party A rents same-level vehicles. Party B shall also compensate Party A's other losses.",
+"severity_score": 8,
+"risk_level": "Critical",
+"confidence": 0.99
+},
+{
+"file_name": "ZtoExpressCaymanInc_20160930_F-1_EX-10.10_9752871_EX-10.10_Transportation Agreement.txt",
+"agent_name": "Neutral Legal Reviewer",
+"clause_type": "Interpretation",
+"finding_type": "Unilateral Interpretation Authority",
+"summary": "Any disagreement in interpretation is resolved by giving Party A final interpretive authority, creating a significant contractual imbalance.",
+"evidence_quote": "Any different interpretation of this Agreement by both Parties is subject to final interpretation by Party A.",
+"severity_score": 7,
+"risk_level": "High",
+"confidence": 0.99
+},
+{
+"file_name": "ZtoExpressCaymanInc_20160930_F-1_EX-10.10_9752871_EX-10.10_Transportation Agreement.txt",
+"agent_name": "Transaction Counsel",
+"clause_type": "Payment",
+"finding_type": "Unilateral Freight Determination and Settlement Ambiguity",
+"summary": "The settlement amount is based on EXW weight determined by Party A, giving one party control over a material pricing input and creating payment-dispute risk.",
+"evidence_quote": "the final clearance amount is subject to actual carriage amount and EX-warehouse ("EXW") weight determined by Party A.",
+"severity_score": 6,
+"risk_level": "Medium",
+"confidence": 0.98
+},
+{
+"file_name": "ZtoExpressCaymanInc_20160930_F-1_EX-10.10_9752871_EX-10.10_Transportation Agreement.txt",
+"agent_name": "Transaction Counsel",
+"clause_type": "Performance Standard",
+"finding_type": "Missing Transportation Time Specification",
+"summary": "The agreement contains an incomplete transportation-time provision, leaving a core service-level obligation undefined.",
+"evidence_quote": "4. Transportation route, time and relevant rules (a) Transportation time:",
+"severity_score": 5,
+"risk_level": "Medium",
+"confidence": 0.99
+},
+{
+"file_name": "ZtoExpressCaymanInc_20160930_F-1_EX-10.10_9752871_EX-10.10_Transportation Agreement.txt",
+"agent_name": "Regulatory & Compliance Counsel",
+"clause_type": "Force Majeure",
+"finding_type": "Force Majeure Relief Subject to Party A Approval",
+"summary": "The force majeure procedure requires recording the event with Party A's approval, potentially making recognition of qualifying events dependent on the counterparty.",
+"evidence_quote": "In the special event of changes to route and time and severe weather (or other force majeure events), Party B shall be in touch with Party A in time and record such special event on the parcel transfer documents with Party A's approval.",
+"severity_score": 6,
+"risk_level": "Medium",
+"confidence": 0.97
+},
+{
+"file_name": "ZtoExpressCaymanInc_20160930_F-1_EX-10.10_9752871_EX-10.10_Transportation Agreement.txt",
+"agent_name": "Risk & Liability Counsel",
+"clause_type": "Parcel Damage",
+"finding_type": "Broad Damage Compensation Standard Controlled by Party A",
+"summary": "Parcel damage caused by Party B's employees is compensated according to Party A's rules, while those rules are not defined in the agreement and no express liability cap is stated.",
+"evidence_quote": "Any parcel damage resulting from the fault of Party B's employees shall be compensated by Party B in accordance with Party A's relevant rules.",
+"severity_score": 7,
+"risk_level": "High",
+"confidence": 0.97
+},
+{
+"file_name": "ZtoExpressCaymanInc_20160930_F-1_EX-10.10_9752871_EX-10.10_Transportation Agreement.txt",
+"agent_name": "Opposing Counsel",
+"clause_type": "Termination",
+"finding_type": "Termination Without Compensation for Capacity Shortfall",
+"summary": "Party A may terminate without compensation if vehicle capacity is insufficient to satisfy its needs, placing capacity risk entirely on Party B.",
+"evidence_quote": "In the event the vehicle space insufficiency which causes Party A's need unable to be satisfied nor can it be adjusted to satisfy Party A's need, Party A can terminate this Agreement without any compensation.",
+"severity_score": 7,
+"risk_level": "High",
+"confidence": 0.98
+},
+{
+"file_name": "ZtoExpressCaymanInc_20160930_F-1_EX-10.10_9752871_EX-10.10_Transportation Agreement.txt",
+"agent_name": "Regulatory & Compliance Counsel",
+"clause_type": "Dispute Resolution",
+"finding_type": "Potential Venue Ambiguity and Forum Friction",
+"summary": "Disputes are assigned to the People's Court where the agreement was signed, which may create uncertainty or inconvenience regarding the appropriate forum.",
+"evidence_quote": "Any dispute arising out of the execution of this Agreement, which cannot be negotiated and settled by both Parties, shall be subject to the jurisdiction of the People's Court where this Agreement is signed.",
+"severity_score": 5,
+"risk_level": "Medium",
+"confidence": 0.95
+}
+]
