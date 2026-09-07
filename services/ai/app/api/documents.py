@@ -593,29 +593,91 @@ def detect_security_threats(question: str) -> tuple:
 
     return (None, None)
 
+OFF_TOPIC_REFUSALS = [
+    "That's outside what I can help with here — I focus on reviewing the terms in your uploaded agreement. Would you like to check your contract's cancellation terms, liability limits, or payment rules instead?",
+    "I can only help with questions about your uploaded document. I'm happy to walk you through the biggest risks, dispute terms, or key obligations if you'd like!",
+    "I'm set up to review contract language rather than answer general questions. Feel free to ask about specific clauses, termination rights, or payment responsibilities in your agreement.",
+    "That falls outside the scope of your contract review. What would you like to examine in your document — perhaps the liability caps, notice periods, or confidentiality terms?"
+]
+
+LITIGATION_PREDICTION_REFUSAL = (
+    "I can't predict court outcomes or litigation odds — I focus on what's actually written in your agreement. "
+    "Would you like me to walk you through your document's dispute resolution clauses or liability limits instead?"
+)
+
+_off_topic_counter = 0
+
+def get_friendly_off_topic_refusal(question: str) -> str:
+    global _off_topic_counter
+    idx = (_off_topic_counter + abs(hash(question))) % len(OFF_TOPIC_REFUSALS)
+    _off_topic_counter += 1
+    return OFF_TOPIC_REFUSALS[idx]
+
+SYNONYM_MAP = {
+    "cancel": ["terminat", "cancell", "convenience", "end", "expir"],
+    "cancelling": ["terminat", "cancell", "convenience"],
+    "cancellation": ["terminat", "cancell", "convenience"],
+    "drop": ["terminat", "sever", "convenience"],
+    "fire": ["terminat", "discharge", "employment", "sever"],
+    "fired": ["terminat", "discharge", "employment"],
+    "quit": ["terminat", "resign", "notice"],
+    "warning": ["notice", "cure", "written", "days", "notif"],
+    "pay": ["payment", "fee", "compensation", "invoice", "remunerat", "reimburse", "price"],
+    "paying": ["payment", "fee", "compensation", "invoice", "remunerat", "price"],
+    "paid": ["payment", "fee", "compensation", "invoice"],
+    "cost": ["fee", "expense", "payment", "price"],
+    "price": ["fee", "payment", "rate", "cost"],
+    "bill": ["invoice", "payment", "fee"],
+    "billing": ["invoice", "payment", "fee"],
+    "mess": ["breach", "default", "liab", "negligen", "indemn", "error"],
+    "breaks": ["breach", "damage", "default", "liab", "loss"],
+    "break": ["breach", "damage", "default", "liab"],
+    "trap": ["liab", "indemn", "unilateral", "sole discretion", "remed", "waiver", "risk"],
+    "traps": ["liab", "indemn", "unilateral", "sole discretion", "remed", "waiver", "risk"],
+    "steal": ["infring", "intellectual property", "confidential", "proprietary", "misappropriat"],
+    "stealing": ["infring", "intellectual property", "confidential", "proprietary", "misappropriat"],
+    "code": ["software", "intellectual property", "work product", "deliverable", "confidential"],
+    "idea": ["intellectual property", "confidential", "proprietary", "trade secret"],
+    "ideas": ["intellectual property", "confidential", "proprietary", "trade secret"],
+    "own": ["ownership", "title", "intellectual property", "proprietary", "vest"],
+    "owns": ["ownership", "title", "intellectual property", "proprietary", "vest"],
+    "ownership": ["ownership", "title", "intellectual property", "proprietary", "vest"],
+    "sue": ["litigat", "court", "dispute", "jurisdiction", "remed", "claim", "damages"],
+    "suing": ["litigat", "court", "dispute", "jurisdiction", "remed", "claim"],
+    "lawsuit": ["litigat", "court", "dispute", "claim", "action"],
+    "fix": ["amend", "modifi", "negotiat", "cure", "remed"],
+    "leave": ["terminat", "depart", "withdraw", "notice"],
+    "walk": ["terminat", "withdraw", "remed"]
+}
+
 def classify_user_intent(question: str) -> tuple:
-    """Classifies the user query into 'prompt_injection', 'citation_fabrication', 'off_topic', 'general_legal', or 'in_document_legal'."""
+    """Classifies the user query into 'prompt_injection', 'citation_fabrication', 'litigation_prediction', 'off_topic', 'general_legal', or 'in_document_legal'."""
     threat_type, threat_reply = detect_security_threats(question)
     if threat_type:
         return (threat_type, threat_reply)
 
     q = question.strip().lower()
 
-    # 1. Math / calculation detection
-    if re.search(r'(?:\d+\s*[\*\+\-\/\^xX%]\s*\d+)|(?:\b(calculate|math|square root|multiply|divided by|plus|minus)\b.*\d+)', q):
-        return ("off_topic", None)
+    # 1. Outcome / Litigation Prediction questions (specific tailored refusal)
+    if re.search(r'\b(can i win|will i win|how do i win|can we win|will we win|chances? of winning|odds of winning|beat them in court|predict (the )?outcome|guarantee (a )?win)\b', q):
+        return ("litigation_prediction", LITIGATION_PREDICTION_REFUSAL)
 
-    # 2. Off-topic generic domains
+    # 2. Math / calculation detection
+    if re.search(r'(?:\d+\s*[\*\+\-\/\^xX%]\s*\d+)|(?:\b(calculate|math|square root|multiply|divided by|plus|minus)\b.*\d+)', q):
+        return ("off_topic", get_friendly_off_topic_refusal(question))
+
+    # 3. Off-topic generic domains
     off_topic_words = [
         "python", "javascript", "typescript", "c++", "java", "html", "css", "sql", "function", "script",
         "weather", "forecast", "recipe", "cook", "bake", "joke", "funny", "story", "poem", "song",
         "president", "capital of", "how far is", "tallest building", "super bowl", "football", "soccer",
-        "movie", "actor", "actress", "lyrics", "translate to", "who was the", "who is the"
+        "movie", "actor", "actress", "lyrics", "translate to"
     ]
-    if any(w in q for w in off_topic_words):
-        return ("off_topic", None)
+    has_contract_context = any(ck in q for ck in ["contract", "agreement", "clause", "document", "nda", "terms", "deal", "provision"])
+    if any(w in q for w in off_topic_words) and not has_contract_context:
+        return ("off_topic", get_friendly_off_topic_refusal(question))
 
-    # 3. General legal definitions
+    # 4. General legal definitions
     legal_glossary = {
         "indemnity": "A promise where one party agrees to pay for the other party's lawsuit costs or damages if something goes wrong.",
         "liability cap": "The maximum dollar limit one party can be forced to pay if there is a breach or dispute.",
@@ -639,7 +701,7 @@ def classify_user_intent(question: str) -> tuple:
             if has_doc_ref:
                 return ("in_document_legal", None)
 
-    # 4. In-document legal questions
+    # 5. In-document legal & everyday conversational contract questions
     legal_keywords = [
         "indemn", "liab", "terminat", "notice", "cure", "confidential", "ip ", "intellectual property",
         "payment", "milestone", "breach", "govern", "jurisdiction", "court", "risk", "finding",
@@ -648,21 +710,33 @@ def classify_user_intent(question: str) -> tuple:
         "warranty", "damages", "carve-out", "severab", "force majeure", "overview", "about",
         "definition", "defined", "scope", "flag", "flagged", "issue", "vulnerability", "vulnerabilities",
         "problem", "arbitrat", "term", "terms", "provision", "section", "agreement", "contract",
-        "document", "score", "audit", "recommendation", "enforceab"
+        "document", "score", "audit", "recommendation", "enforceab",
+        # Everyday informal phrasing for contract concepts
+        "cancel", "cancelling", "cancellation", "drop me", "drop us", "want out", "out early",
+        "get out", "walk away", "fire me", "fired", "firing", "quit", "leave", "leaving",
+        "warning", "without warning", "give notice",
+        "pay", "paying", "paid", "price", "cost", "fee", "fees", "bill", "billing",
+        "charge", "charges", "rate", "rates", "invoice", "mess up", "messes up", "messed up",
+        "screw up", "screws up", "fault", "blame", "breaks", "something breaks",
+        "trap", "traps", "trick", "catch", "gotcha", "unfair", "exposure", "dangerous",
+        "sue", "suing", "lawsuit", "dispute", "steal", "stealing", "stole", "code",
+        "idea", "ideas", "own", "owns", "ownership", "keep", "secret", "secrets",
+        "fix", "change", "modify", "amend", "remedy", "remedies", "negotiat", "obligat",
+        "rights", "bound", "promise", "guarantee", "default", "sign", "signing"
     ]
     if has_doc_ref or any(kw in q for kw in legal_keywords):
         return ("in_document_legal", None)
 
-    # 5. Common greetings
+    # 6. Common greetings
     if re.match(r'^(hi|hello|hey|help|greetings|good morning|good afternoon)\b', q):
         return ("in_document_legal", "greeting")
 
-    return ("off_topic", None)
+    return ("off_topic", get_friendly_off_topic_refusal(question))
 
 def retrieve_rag_chunks(chunks: List[Chunk], query: str, top_k: int = 4) -> List[Chunk]:
-    """Rank and retrieve the most relevant chunks using keyword & semantic scoring."""
+    """Rank and retrieve the most relevant chunks using keyword, synonym & semantic scoring."""
     query_words = set(re.findall(r'\w+', query.lower()))
-    stopwords = {"what", "is", "the", "about", "are", "how", "why", "who", "which", "when", "where", "this", "that", "from", "for", "with", "and", "does", "can", "in", "on", "of", "to", "a", "an", "tell", "me"}
+    stopwords = {"what", "is", "the", "about", "are", "how", "why", "who", "which", "when", "where", "this", "that", "from", "for", "with", "and", "does", "can", "in", "on", "of", "to", "a", "an", "tell", "me", "they", "them", "without", "you"}
     keywords = [w for w in query_words if w not in stopwords and len(w) > 2]
     
     if not keywords:
@@ -672,13 +746,19 @@ def retrieve_rag_chunks(chunks: List[Chunk], query: str, top_k: int = 4) -> List
     for c in chunks:
         score = 0
         text_lower = c.raw_text.lower()
+        clause_lower = (c.clause_type or "").lower()
         if len(query.strip()) > 4 and query.lower() in text_lower:
             score += 10
         for kw in keywords:
             cnt = text_lower.count(kw)
             score += cnt * 2
-        if c.clause_type and any(kw in c.clause_type.lower() for kw in keywords):
-            score += 4
+            if kw in clause_lower:
+                score += 4
+            for syn in SYNONYM_MAP.get(kw, []):
+                syn_cnt = text_lower.count(syn)
+                score += syn_cnt * 1
+                if syn in clause_lower:
+                    score += 3
         if score > 0:
             scored.append((score, c))
         
@@ -737,12 +817,28 @@ async def chat_with_document(
         db.commit()
         return {"user_message": user_entry, "assistant_message": assistant_entry}
 
+    if intent == "litigation_prediction":
+        assistant_entry = {
+            "id": str(uuid.uuid4()),
+            "role": "assistant",
+            "content": reply_msg or LITIGATION_PREDICTION_REFUSAL,
+            "agent_perspective": "Neutral Legal Reviewer",
+            "citations": [],
+            "timestamp": now_iso
+        }
+        history.append(user_entry)
+        history.append(assistant_entry)
+        metadata["chat_history"] = history
+        doc.metadata_json = metadata
+        db.commit()
+        return {"user_message": user_entry, "assistant_message": assistant_entry}
+
     if intent == "off_topic":
         assistant_entry = {
             "id": str(uuid.uuid4()),
             "role": "assistant",
-            "content": "I am an AI legal assistant focused on reviewing your uploaded document. I can only answer questions related to your contract's terms, risks, or legal provisions.",
-            "agent_perspective": "AI Legal Assistant",
+            "content": reply_msg or get_friendly_off_topic_refusal(question),
+            "agent_perspective": "Contract Review Assistant",
             "citations": [],
             "timestamp": now_iso
         }

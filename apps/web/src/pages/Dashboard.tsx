@@ -244,7 +244,7 @@ export function getPlainArbitrationRule(rule: string) {
   return "Our AI panel agreed on the interpretation that best protects the document owner from unexpected liabilities.";
 }
 
-export type IntentClass = "off_topic" | "general_legal" | "in_document_legal" | "prompt_injection" | "citation_fabrication";
+export type IntentClass = "off_topic" | "general_legal" | "in_document_legal" | "prompt_injection" | "citation_fabrication" | "litigation_prediction";
 
 export interface IntentResult {
   intent: IntentClass;
@@ -283,13 +283,22 @@ export function classifyUserIntent(question: string): IntentResult {
     };
   }
 
-  // 1. Math, arithmetic, calculations (e.g. "what is 24*89", "calculate 5+10", "x * y")
+  // 1. Outcome / Litigation Prediction questions (specific tailored refusal)
+  const isLitigationPrediction = /\b(can i win|will i win|how do i win|can we win|will we win|chances? of winning|odds of winning|beat them in court|predict (the )?outcome|guarantee (a )?win)\b/i.test(q);
+  if (isLitigationPrediction) {
+    return {
+      intent: "litigation_prediction",
+      generalAnswer: "I can't predict court outcomes or litigation odds — I focus on what's actually written in your agreement. Would you like me to walk you through your document's dispute resolution clauses or liability limits instead?"
+    };
+  }
+
+  // 2. Math, arithmetic, calculations (e.g. "what is 24*89", "calculate 5+10", "x * y")
   const hasMath = /(?:\d+\s*[\*\+\-\/\^xX%]\s*\d+)|(?:\b(calculate|math|square root|multiply|divided by|plus|minus)\b.*\d+)/i.test(q);
   if (hasMath) {
     return { intent: "off_topic" };
   }
 
-  // 2. Off-topic generic domains (programming, weather, cooking, jokes, general trivia, sports)
+  // 3. Off-topic generic domains (programming, weather, cooking, jokes, general trivia, sports)
   const offTopicPatterns = [
     /\b(python|javascript|typescript|c\+\+|java|html|css|sql|function|script|algorithm|binary search|debug code)\b/i,
     /\b(weather|forecast|temperature|rain|sunny)\b/i,
@@ -297,20 +306,21 @@ export function classifyUserIntent(question: string): IntentResult {
     /\b(joke|funny|riddle|story|poem|song|lyrics)\b/i,
     /\b(president|capital of|how far is|tallest building|mount everest|speed of light|super bowl)\b/i,
     /\b(football|basketball|soccer|nba|nfl|fifa|championship|movie|actor|actress)\b/i,
-    /\b(translate to (spanish|french|german|hindi|chinese)|how do you say|who was the|who is the)\b/i
+    /\b(translate to (spanish|french|german|hindi|chinese)|how do you say)\b/i
   ];
-  if (offTopicPatterns.some((pattern) => pattern.test(q))) {
+  const hasContractContext = /(contract|agreement|clause|document|nda|terms|deal|provision)/i.test(q);
+  if (offTopicPatterns.some((pattern) => pattern.test(q)) && !hasContractContext) {
     return { intent: "off_topic" };
   }
 
-  // 3. Document-specific reference keywords
+  // 4. Document-specific reference keywords
   const docKeywords = [
     "this document", "this contract", "this agreement", "the document", "the contract",
     "the agreement", "uploaded", "in here", "this draft", "my contract", "our deal"
   ];
   const hasDocRef = docKeywords.some((kw) => q.includes(kw));
 
-  // 4. General Legal Questions (educational concept questions not referencing the draft)
+  // 5. General Legal Questions (educational concept questions not referencing the draft)
   const isGeneralExplicit = /\b(in general|generally|in law|standard practice|definition of|by definition|define )\b/i.test(q);
   const isConceptQuery = /^(what is (an?|the definition of)|what does .* mean|define )/i.test(q);
   const matchedGlossaryKey = Object.keys(LEGAL_GLOSSARY).find((term) => q.includes(term.toLowerCase()));
@@ -329,7 +339,7 @@ export function classifyUserIntent(question: string): IntentResult {
     }
   }
 
-  // 5. In-Document Legal: Specific clause families, findings, questions about terms
+  // 6. In-Document Legal: Specific clause families, findings, and everyday contract concepts
   const legalKeywords = [
     "indemn", "liab", "terminat", "notice", "cure", "confidential", "ip ", "intellectual property",
     "payment", "milestone", "breach", "govern", "jurisdiction", "court", "risk", "finding",
@@ -338,7 +348,19 @@ export function classifyUserIntent(question: string): IntentResult {
     "warranty", "damages", "carve-out", "severab", "force majeure", "overview", "about",
     "definition", "defined", "scope", "flag", "flagged", "issue", "vulnerability", "vulnerabilities",
     "problem", "arbitrat", "term", "terms", "provision", "section", "agreement", "contract",
-    "document", "score", "audit", "recommendation", "enforceab"
+    "document", "score", "audit", "recommendation", "enforceab",
+    // Everyday informal phrasing for contract concepts
+    "cancel", "cancelling", "cancellation", "drop me", "drop us", "want out", "out early",
+    "get out", "walk away", "fire me", "fired", "firing", "quit", "leave", "leaving",
+    "warning", "without warning", "give notice",
+    "pay", "paying", "paid", "price", "cost", "fee", "fees", "bill", "billing",
+    "charge", "charges", "rate", "rates", "invoice", "mess up", "messes up", "messed up",
+    "screw up", "screws up", "fault", "blame", "breaks", "something breaks",
+    "trap", "traps", "trick", "catch", "gotcha", "unfair", "exposure", "dangerous",
+    "sue", "suing", "lawsuit", "dispute", "steal", "stealing", "stole", "code",
+    "idea", "ideas", "own", "owns", "ownership", "keep", "secret", "secrets",
+    "fix", "change", "modify", "amend", "remedy", "remedies", "negotiat", "obligat",
+    "rights", "bound", "promise", "guarantee", "default", "sign", "signing"
   ];
 
   const hasLegalKeyword = legalKeywords.some((kw) => q.includes(kw));
@@ -347,14 +369,69 @@ export function classifyUserIntent(question: string): IntentResult {
     return { intent: "in_document_legal" };
   }
 
-  // 6. Common greetings
+  // 7. Common greetings
   if (/^(hi|hello|hey|help|greetings|good morning|good afternoon)\b/i.test(q)) {
     return { intent: "in_document_legal", topic: "greeting" };
   }
 
-  // 7. Non-legal text or unknown query
+  // 8. Non-legal text or unknown query
   return { intent: "off_topic" };
 }
+
+const OFF_TOPIC_REFUSALS = [
+  "That's outside what I can help with here — I focus on reviewing the terms in your uploaded agreement. Would you like to check your contract's cancellation terms, liability limits, or payment rules instead?",
+  "I can only help with questions about your uploaded document. I'm happy to walk you through the biggest risks, dispute terms, or key obligations if you'd like!",
+  "I'm set up to review contract language rather than answer general questions. Feel free to ask about specific clauses, termination rights, or payment responsibilities in your agreement.",
+  "That falls outside the scope of your contract review. What would you like to examine in your document — perhaps the liability caps, notice periods, or confidentiality terms?"
+];
+
+let clientOffTopicCounter = 0;
+function getFriendlyOffTopicRefusal(question: string): string {
+  let hash = 0;
+  for (let i = 0; i < question.length; i++) {
+    hash = (hash << 5) - hash + question.charCodeAt(i);
+    hash |= 0;
+  }
+  const idx = Math.abs(clientOffTopicCounter++ + hash) % OFF_TOPIC_REFUSALS.length;
+  return OFF_TOPIC_REFUSALS[idx] || "That's outside what I can help with here — I focus on reviewing the terms in your uploaded agreement. Would you like to check your contract's cancellation terms, liability limits, or payment rules instead?";
+}
+
+const SYNONYM_MAP: Record<string, string[]> = {
+  cancel: ["terminat", "cancell", "convenience", "end", "expir"],
+  cancelling: ["terminat", "cancell", "convenience"],
+  cancellation: ["terminat", "cancell", "convenience"],
+  drop: ["terminat", "sever", "convenience"],
+  fire: ["terminat", "discharge", "employment", "sever"],
+  fired: ["terminat", "discharge", "employment"],
+  quit: ["terminat", "resign", "notice"],
+  warning: ["notice", "cure", "written", "days", "notif"],
+  pay: ["payment", "fee", "compensation", "invoice", "remunerat", "reimburse", "price"],
+  paying: ["payment", "fee", "compensation", "invoice", "remunerat", "price"],
+  paid: ["payment", "fee", "compensation", "invoice"],
+  cost: ["fee", "expense", "payment", "price"],
+  price: ["fee", "payment", "rate", "cost"],
+  bill: ["invoice", "payment", "fee"],
+  billing: ["invoice", "payment", "fee"],
+  mess: ["breach", "default", "liab", "negligen", "indemn", "error"],
+  breaks: ["breach", "damage", "default", "liab", "loss"],
+  break: ["breach", "damage", "default", "liab"],
+  trap: ["liab", "indemn", "unilateral", "sole discretion", "remed", "waiver", "risk"],
+  traps: ["liab", "indemn", "unilateral", "sole discretion", "remed", "waiver", "risk"],
+  steal: ["infring", "intellectual property", "confidential", "proprietary", "misappropriat"],
+  stealing: ["infring", "intellectual property", "confidential", "proprietary", "misappropriat"],
+  code: ["software", "intellectual property", "work product", "deliverable", "confidential"],
+  idea: ["intellectual property", "confidential", "proprietary", "trade secret"],
+  ideas: ["intellectual property", "confidential", "proprietary", "trade secret"],
+  own: ["ownership", "title", "intellectual property", "proprietary", "vest"],
+  owns: ["ownership", "title", "intellectual property", "proprietary", "vest"],
+  ownership: ["ownership", "title", "intellectual property", "proprietary", "vest"],
+  sue: ["litigat", "court", "dispute", "jurisdiction", "remed", "claim", "damages"],
+  suing: ["litigat", "court", "dispute", "jurisdiction", "remed", "claim"],
+  lawsuit: ["litigat", "court", "dispute", "claim", "action"],
+  fix: ["amend", "modifi", "negotiat", "cure", "remed"],
+  leave: ["terminat", "depart", "withdraw", "notice"],
+  walk: ["terminat", "withdraw", "remed"]
+};
 
 interface ConsensusReasoning {
   summary: string;
@@ -1183,12 +1260,26 @@ export default function Dashboard() {
       return;
     }
 
+    if (intentResult.intent === "litigation_prediction") {
+      const assistantMsg: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: intentResult.generalAnswer || "I can't predict court outcomes or litigation odds — I focus on what's actually written in your agreement. Would you like me to walk you through your document's dispute resolution clauses or liability limits instead?",
+        agent_perspective: "Neutral Legal Reviewer",
+        citations: [],
+        timestamp: new Date().toISOString()
+      };
+      setChatMessages((prev) => [...prev, assistantMsg]);
+      setSendingChat(false);
+      return;
+    }
+
     if (intentResult.intent === "off_topic") {
       const assistantMsg: ChatMessage = {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: "I am an AI legal assistant focused on reviewing your uploaded document. I can only answer questions related to your contract's terms, risks, or legal provisions.",
-        agent_perspective: "Legal Assistant",
+        content: getFriendlyOffTopicRefusal(textToSend),
+        agent_perspective: "Contract Review Assistant",
         citations: [],
         timestamp: new Date().toISOString()
       };
@@ -1300,8 +1391,8 @@ export default function Dashboard() {
           citations = [];
         }
       } else {
-        // Strict keyword relevance search across chunks
-        const stopwords = new Set(["what", "is", "the", "about", "are", "how", "why", "who", "which", "when", "where", "this", "that", "from", "for", "with", "and", "does", "can", "in", "on", "of", "to", "a", "an", "tell", "me", "my", "our"]);
+        // Strict keyword & synonym relevance search across chunks
+        const stopwords = new Set(["what", "is", "the", "about", "are", "how", "why", "who", "which", "when", "where", "this", "that", "from", "for", "with", "and", "does", "can", "in", "on", "of", "to", "a", "an", "tell", "me", "my", "our", "they", "them", "without", "you"]);
         const keywords = qLower.split(/\W+/).filter((w) => w.length > 2 && !stopwords.has(w));
 
         const scoredChunks = allChunks.map((chunk) => {
@@ -1309,8 +1400,13 @@ export default function Dashboard() {
           const c = (chunk.clause_type || "").toLowerCase();
           let matchCount = 0;
           for (const kw of keywords) {
-            if (c.includes(kw)) matchCount += 3;
-            if (t.includes(kw)) matchCount += 1;
+            if (c.includes(kw)) matchCount += 4;
+            if (t.includes(kw)) matchCount += 2;
+            const syns = SYNONYM_MAP[kw] || [];
+            for (const syn of syns) {
+              if (c.includes(syn)) matchCount += 3;
+              if (t.includes(syn)) matchCount += 1;
+            }
           }
           return { chunk, score: matchCount };
         }).filter((item) => item.score > 0);
@@ -1344,7 +1440,7 @@ export default function Dashboard() {
               : `Regarding your inquiry on "${textToSend}":\n\n${matchedFinding.agent_name} audited the ${matchedFinding.clause_type} section (Severity: ${matchedFinding.severity_score}/10, ${matchedFinding.risk_level} Risk):\n\n${matchedFinding.summary}\n\n**Recommended Action:**\nConsider negotiating mutual reciprocal terms and clear definitions to remove adversarial leverage.`;
           } else {
             // Zero matches found in document: never fabricate or pull arbitrary chunks!
-            replyPerspective = viewMode === "simple" ? "Plain English Advisor" : "Citation & Evidence Agent";
+            replyPerspective = viewMode === "simple" ? "Plain English Advisor" : "Legal Evidence & Citation Reviewer";
             replyContent = viewMode === "simple"
               ? `I searched your agreement for provisions related to "${textToSend}", but this document does not contain any matching clauses or mentions of this topic.`
               : `No provisions or clauses directly matching "${textToSend}" were identified in the verified text of "${analysis?.document.filename}".`;
