@@ -99,14 +99,33 @@ Format your response as a valid JSON list of objects:
 ]
 """
     
-    chat_completion = client.chat.completions.create(
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": prompt}
-        ],
-        model=settings.groq_model,
-        temperature=0.1
-    )
+    model_candidates = [settings.groq_model, "llama-3.1-8b-instant", "llama-3.1-70b-versatile", "llama3-70b-8192", "llama3-8b-8192"]
+    # Deduplicate while preserving order
+    seen = set()
+    models_to_try = [m for m in model_candidates if m and not (m in seen or seen.add(m))]
+
+    chat_completion = None
+    last_err = None
+    for model_name in models_to_try:
+        try:
+            chat_completion = client.chat.completions.create(
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": prompt}
+                ],
+                model=model_name,
+                temperature=0.1
+            )
+            break
+        except Exception as err:
+            last_err = err
+            if "model_not_found" in str(err) or "does not exist" in str(err):
+                logger.info(f"Model {model_name} not available, trying next candidate...")
+                continue
+            raise err
+
+    if not chat_completion:
+        raise last_err
     
     response_text = chat_completion.choices[0].message.content
     return clean_json_response(response_text)
