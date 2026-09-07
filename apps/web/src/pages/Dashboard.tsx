@@ -426,12 +426,94 @@ interface AnalysisResults {
   }>;
 }
 
+async function decompressPdfStream(streamBytes: Uint8Array): Promise<string> {
+  if (typeof DecompressionStream === "undefined" || streamBytes.length === 0) return "";
+  try {
+    const ds = new DecompressionStream("deflate");
+    const writer = ds.writable.getWriter();
+    writer.write(streamBytes as unknown as BufferSource);
+    writer.close();
+    const reader = ds.readable.getReader();
+    const chunks: Uint8Array[] = [];
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value) chunks.push(value);
+    }
+    const totalLen = chunks.reduce((acc, c) => acc + c.length, 0);
+    const result = new Uint8Array(totalLen);
+    let offset = 0;
+    for (const c of chunks) {
+      result.set(c, offset);
+      offset += c.length;
+    }
+    return new TextDecoder("latin1").decode(result);
+  } catch {
+    try {
+      const ds = new DecompressionStream("deflate-raw");
+      const writer = ds.writable.getWriter();
+      writer.write(streamBytes as unknown as BufferSource);
+      writer.close();
+      const reader = ds.readable.getReader();
+      const chunks: Uint8Array[] = [];
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value) chunks.push(value);
+      }
+      const totalLen = chunks.reduce((acc, c) => acc + c.length, 0);
+      const result = new Uint8Array(totalLen);
+      let offset = 0;
+      for (const c of chunks) {
+        result.set(c, offset);
+        offset += c.length;
+      }
+      return new TextDecoder("latin1").decode(result);
+    } catch {
+      return "";
+    }
+  }
+}
+
+function parsePdfTextOperators(source: string): string[] {
+  const pieces: string[] = [];
+  // Tj format: (text) Tj
+  const tjRegex = /\(([^()]+)\)\s*Tj/g;
+  let m: RegExpExecArray | null;
+  while ((m = tjRegex.exec(source)) !== null) {
+    if (m[1] && m[1].trim().length > 1) pieces.push(m[1]);
+  }
+  // TJ format: [(t1)...(t2)] TJ
+  const arrayTjRegex = /\[([^\]]+)\]\s*TJ/g;
+  while ((m = arrayTjRegex.exec(source)) !== null) {
+    if (m[1]) {
+      const innerStrings = m[1].match(/\(([^()]+)\)/g);
+      if (innerStrings) {
+        const joined = innerStrings.map(s => s.slice(1, -1)).join("");
+        if (joined.trim().length > 1) pieces.push(joined);
+      }
+    }
+  }
+  // BT ... ET blocks
+  const btEtRegex = /BT\s+([\s\S]*?)\s+ET/g;
+  while ((m = btEtRegex.exec(source)) !== null) {
+    if (m[1]) {
+      const blockStrings = m[1].match(/\(([^()]+)\)/g);
+      if (blockStrings) {
+        const blockText = blockStrings.map(s => s.slice(1, -1)).join(" ");
+        if (blockText.trim().length > 5) pieces.push(blockText);
+      }
+    }
+  }
+  return pieces;
+}
+
 export async function extractPdfTextAndPageCount(file: File): Promise<{ text: string; pageCount: number }> {
   try {
     const arrayBuffer = await file.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
     
-    // Safely convert bytes to string in chunks to avoid call stack limits
+    // Safely convert bytes to string in chunks for header and structure inspection
     let latin1 = "";
     const chunkSize = 65536;
     for (let i = 0; i < bytes.length; i += chunkSize) {
@@ -439,7 +521,7 @@ export async function extractPdfTextAndPageCount(file: File): Promise<{ text: st
       latin1 += String.fromCharCode.apply(null, Array.from(slice));
     }
 
-    // 1. Calculate Exact Page Count from PDF Structure
+    // 1. Calculate Page Count from PDF Structure
     let pageCount = 1;
     const pageMatches = latin1.match(/\/Type\s*\/Page\b/g);
     if (pageMatches && pageMatches.length > 0) {
@@ -453,58 +535,36 @@ export async function extractPdfTextAndPageCount(file: File): Promise<{ text: st
       }
     }
 
-    // 2. Extract Text from PDF streams & text operators
-    const textPieces: string[] = [];
+    // 2. Extract Text from uncompressed streams
+    const textPieces: string[] = parsePdfTextOperators(latin1);
 
-    // Extract text in (string) Tj format
-    const tjRegex = /\(([^()]+)\)\s*Tj/g;
-    let match: RegExpExecArray | null;
-    while ((match = tjRegex.exec(latin1)) !== null) {
-      if (match[1] && match[1].trim().length > 1) {
-        textPieces.push(match[1]);
-      }
-    }
-
-    // Extract text in [(string)...] TJ format
-    const arrayTjRegex = /\[([^\]]+)\]\s*TJ/g;
-    while ((match = arrayTjRegex.exec(latin1)) !== null) {
-      if (match[1]) {
-        const inner = match[1];
-        const innerStrings = inner.match(/\(([^()]+)\)/g);
-        if (innerStrings) {
-          const joined = innerStrings.map(s => s.slice(1, -1)).join("");
-          if (joined.trim().length > 1) {
-            textPieces.push(joined);
-          }
-        }
-      }
-    }
-
-    // Also extract raw text between BT and ET
-    const btEtRegex = /BT\s+([\s\S]*?)\s+ET/g;
-    while ((match = btEtRegex.exec(latin1)) !== null) {
-      if (match[1]) {
-        const block = match[1];
-        const blockStrings = block.match(/\(([^()]+)\)/g);
-        if (blockStrings) {
-          const blockText = blockStrings.map(s => s.slice(1, -1)).join(" ");
-          if (blockText.trim().length > 10) {
-            textPieces.push(blockText);
+    // 3. Find and decompress FlateDecode binary streams
+    const streamRegex = /stream\r?\n/g;
+    let streamMatch: RegExpExecArray | null;
+    while ((streamMatch = streamRegex.exec(latin1)) !== null) {
+      const startIndex = streamMatch.index + streamMatch[0].length;
+      const endIndex = latin1.indexOf("endstream", startIndex);
+      if (endIndex > startIndex && endIndex - startIndex < 2000000) {
+        const streamBytes = bytes.subarray(startIndex, endIndex);
+        const decompressed = await decompressPdfStream(streamBytes);
+        if (decompressed) {
+          const streamPieces = parsePdfTextOperators(decompressed);
+          if (streamPieces.length > 0) {
+            textPieces.push(...streamPieces);
           }
         }
       }
     }
 
     let extractedText = textPieces.join(" ");
-    extractedText = extractedText.replace(/_{3,}/g, " [BLANK_FIELD] ");
+    extractedText = extractedText.replace(/_{2,}/g, " [BLANK] ");
 
     if (extractedText.trim().length >= 40) {
       return { text: extractedText, pageCount };
     }
 
-    // Fallback to clean ASCII text
-    const cleanAscii = latin1.replace(/[^\x20-\x7E\n\r\t]/g, " ").replace(/\s+/g, " ");
-    return { text: cleanAscii, pageCount };
+    // If no operators yielded real text, do NOT return binary stream noise
+    return { text: "", pageCount };
   } catch (err) {
     console.warn("Client PDF extraction error:", err);
     return { text: "", pageCount: 1 };
@@ -1342,10 +1402,6 @@ export default function Dashboard() {
 
   const signOut = () => {
     clearMockSession();
-    setDocuments([]);
-    setMockAnalyses({});
-    setSelectedDocId(null);
-    setAnalysis(null);
     setLocation("/login");
   };
 

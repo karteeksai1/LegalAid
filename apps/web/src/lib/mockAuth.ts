@@ -27,19 +27,4 @@ export function getMockSession(): MockSession | null {
 
 export function clearMockSession() {
   window.localStorage.removeItem(SESSION_KEY);
-  window.localStorage.removeItem("legalaid_documents");
-  window.localStorage.removeItem("legalaid_analyses");
-  window.localStorage.removeItem("legalaid_selected_doc_id");
-  try {
-    const keysToRemove: string[] = [];
-    for (let i = 0; i < window.localStorage.length; i++) {
-      const key = window.localStorage.key(i);
-      if (key && key.startsWith("legalaid_chat_")) {
-        keysToRemove.push(key);
-      }
-    }
-    keysToRemove.forEach((k) => window.localStorage.removeItem(k));
-  } catch (e) {
-    console.warn("Error purging localStorage on logout:", e);
-  }
 }
