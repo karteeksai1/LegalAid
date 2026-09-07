@@ -183,10 +183,13 @@ def load_ground_truth(test_files: List[Path]) -> Dict[str, List[Dict[str, Any]]]
     ground_truth_map: Dict[str, List[Dict[str, Any]]] = {f.name: [] for f in test_files}
     doc_text_map: Dict[str, str] = {f.name: extract_text_from_file(f) for f in test_files}
 
-    if not FINDINGS_DIR.exists():
-        return ground_truth_map
+    finding_files = []
+    # Check evals/findings.json directly
+    if (EVALS_DIR / "findings.json").exists():
+        finding_files.append(EVALS_DIR / "findings.json")
+    if FINDINGS_DIR.exists():
+        finding_files.extend(list(FINDINGS_DIR.glob("*.json")) + list(FINDINGS_DIR.glob("*.txt")))
 
-    finding_files = list(FINDINGS_DIR.glob("*.json")) + list(FINDINGS_DIR.glob("*.txt"))
     unrouted_findings: List[Dict[str, Any]] = []
 
     for fpath in finding_files:
@@ -206,10 +209,21 @@ def load_ground_truth(test_files: List[Path]) -> Dict[str, List[Dict[str, Any]]]
                 break
 
         if isinstance(data, list):
-            if direct_match:
-                ground_truth_map[direct_match].extend(data)
-            else:
-                unrouted_findings.extend(data)
+            for item in data:
+                # Check if item itself specifies file_name / filename / document
+                item_file = item.get("file_name") or item.get("filename") or item.get("document")
+                item_matched = False
+                if item_file:
+                    for tf in test_files:
+                        if tf.name.lower() == item_file.lower() or tf.stem.lower() in item_file.lower() or item_file.lower() in tf.name.lower():
+                            ground_truth_map[tf.name].append(item)
+                            item_matched = True
+                            break
+                if not item_matched:
+                    if direct_match:
+                        ground_truth_map[direct_match].append(item)
+                    else:
+                        unrouted_findings.append(item)
         elif isinstance(data, dict):
             found_mapping = False
             for k, val in data.items():
@@ -220,15 +234,21 @@ def load_ground_truth(test_files: List[Path]) -> Dict[str, List[Dict[str, Any]]]
                             found_mapping = True
                             break
             if not found_mapping:
-                if "findings" in data and isinstance(data["findings"], list):
-                    if direct_match:
-                        ground_truth_map[direct_match].extend(data["findings"])
-                    else:
-                        unrouted_findings.extend(data["findings"])
-                elif direct_match:
-                    ground_truth_map[direct_match].append(data)
-                else:
-                    unrouted_findings.append(data)
+                items_list = data.get("findings", [data]) if isinstance(data.get("findings"), list) else [data]
+                for item in items_list:
+                    item_file = item.get("file_name") or item.get("filename") or item.get("document")
+                    item_matched = False
+                    if item_file:
+                        for tf in test_files:
+                            if tf.name.lower() == item_file.lower() or tf.stem.lower() in item_file.lower() or item_file.lower() in tf.name.lower():
+                                ground_truth_map[tf.name].append(item)
+                                item_matched = True
+                                break
+                    if not item_matched:
+                        if direct_match:
+                            ground_truth_map[direct_match].append(item)
+                        else:
+                            unrouted_findings.append(item)
 
     # Auto-route unrouted findings by matching quotes or summary mentions to contract texts
     for item in unrouted_findings:

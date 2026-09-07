@@ -60,7 +60,7 @@
 "clause_type": "Payment",
 "finding_type": "Unilateral Freight Determination and Settlement Ambiguity",
 "summary": "The settlement amount is based on EXW weight determined by Party A, giving one party control over a material pricing input and creating payment-dispute risk.",
-"evidence_quote": "the final clearance amount is subject to actual carriage amount and EX-warehouse ("EXW") weight determined by Party A.",
+"evidence_quote": "the final clearance amount is subject to actual carriage amount and EX-warehouse (\\\"EXW\\\") weight determined by Party A.",
 "severity_score": 6,
 "risk_level": "Medium",
 "confidence": 0.98
