@@ -519,15 +519,23 @@ export function isContractualDocument(
   const name = fileName || "";
   const nonLegalFilenamePattern = /\b(id\s*card|identity\s*card|badge|license|driving\s*licence|passport|hall\s*ticket|admit\s*card|resume|cv|biodata|receipt|invoice|bill|ticket|boarding\s*pass|photo|image|scan)\b/i;
   
-  // Normalize PDF binary noise and underscore fill-in placeholder lines
+  // 1. Clean and normalize placeholders (underscores, dots, brackets, dashes, blank markers)
   const cleanText = text
     .replace(/\/[A-Z][a-zA-Z0-9]+|<<|>>|stream|endstream|obj|endobj|%\w+/g, " ")
-    .replace(/_{3,}/g, " [BLANK_FIELD] ");
-  const words = cleanText.toLowerCase().match(/\b[a-zA-Z]{3,}\b/g) || [];
+    .replace(/_{2,}/g, " [BLANK] ")
+    .replace(/\.{3,}/g, " [BLANK] ")
+    .replace(/-{3,}/g, " [BLANK] ")
+    .replace(/\[[\s_.-]*\]/g, " [BLANK] ")
+    .replace(/\([\s_.-]{2,}\)/g, " [BLANK] ");
 
-  // Sanity check: Multi-page document (>= 2 pages) with suspiciously low word count (< 40 words)
+  // Normalized text with collapsed whitespace for robust multi-word phrase matching
+  const normText = cleanText.replace(/\s+/g, " ").toLowerCase();
+  const words = normText.match(/\b[a-zA-Z]{3,}\b/g) || [];
+
+  // 2. Sanity check: Multi-page document (>= 2 pages) with suspiciously low word count (< 35 words)
   // is an EXTRACTION/OCR failure, NOT a non-legal judgment!
-  if (pageCount >= 2 && words.length < 40) {
+  if (pageCount >= 2 && words.length < 35) {
+    console.warn(`[CLASSIFIER:EXTRACTION_FAIL] ${pageCount} pages but only ${words.length} words extracted for '${name}'`);
     return {
       isContract: false,
       reason: `We couldn't read this document properly — only ${words.length} words extracted from a ${pageCount}-page document. Try re-uploading or use a text-based PDF.`,
@@ -535,8 +543,10 @@ export function isContractualDocument(
     };
   }
 
+  // 3. Check filename for explicitly non-legal indicators (e.g. ID card, badge, license, photo)
   if (name && nonLegalFilenamePattern.test(name)) {
     if (words.length < 80) {
+      console.info(`[CLASSIFIER:NON_LEGAL_FILE] Filename '${name}' matches non-legal pattern with ${words.length} words.`);
       return {
         isContract: false,
         reason: `File "${name}" appears to be a non-legal document (identification/record) without contractual provisions.`,
@@ -545,33 +555,100 @@ export function isContractualDocument(
     }
   }
 
-  if (words.length < 35) {
+  if (words.length < 30) {
+    console.info(`[CLASSIFIER:TOO_SHORT] Document '${name}' has only ${words.length} words.`);
     return {
       isContract: false,
-      reason: "Extracted text is too short to be a legal contract (under 35 words).",
+      reason: "Extracted text is too short to be a valid legal contract (under 30 words).",
       failureMode: "non_contractual"
     };
   }
 
-  const strongIndicators = [
-    "agreement", "contract", "parties", "witnesseth", "whereas", "recitals",
-    "terms and conditions", "governing law", "jurisdiction", "indemn",
-    "severab", "confidential", "termination", "warrant", "liability",
-    "in witness whereof", "covenant", "hereby", "herein", "hereto", "shall",
-    "non-disclosure", "disclosing party", "receiving party", "injunctive relief",
-    "obligations", "definitions", "miscellaneous", "remedies", "survival", "exceptions"
+  // 4. Multi-Feature Signal Extraction
+  // Feature Category A: Title / Header / Filename Contract Indicators
+  const contractTitleSignals = [
+    /\b(?:non[-\s]*disclosure|confidentiality|mutual|services|vendor|employment|lease|license|consulting|nda|mou|sla)\s+agreement\b/i,
+    /\b(?:terms\s+(?:and|&)\s+conditions|terms\s+of\s+service|commercial\s+contract|legal\s+agreement)\b/i,
+    /\b(?:mutual\s+non[-\s]*disclosure\s+agreement|confidentiality\s+and\s+non[-\s]*disclosure\s+agreement)\b/i
   ];
+  const matchedTitleSignals = contractTitleSignals.filter((pat) => pat.test(normText));
+  const filenameContractSignal = Boolean(name && /\b(agreement|contract|nda|mou|sla|lease|license|deed|settlement|terms|confidentiality)\b/i.test(name));
 
-  const matched = strongIndicators.filter((ind) => cleanText.toLowerCase().includes(ind));
-  if (matched.length < 2) {
-    return {
-      isContract: false,
-      reason: "Document does not contain contractual language, obligations, or legal provisions.",
-      failureMode: "non_contractual"
-    };
+  // Feature Category B: Defined Parties & Recitals
+  const partyRecitalSignals = [
+    /\b(?:by\s+and\s+between|entered\s+into\s+by|entered\s+into\s+on|between\s+and\s+among)\b/i,
+    /\b(?:hereinafter\s+referred\s+to\s+as|hereinafter\s+called|referred\s+to\s+as\s+the)\b/i,
+    /\b(?:disclosing\s+part(?:y|ies)|receiving\s+part(?:y|ies)|the\s+parties\s+hereto|parties\s+agree)\b/i,
+    /\b(?:witnesseth|whereas|recitals|in\s+consideration\s+of\s+the\s+mutual\s+covenants)\b/i,
+    /\b(?:in\s+witness\s+whereof|signed\s+for\s+and\s+on\s+behalf\s+of|authorized\s+signator(?:y|ies))\b/i
+  ];
+  const matchedPartySignals = partyRecitalSignals.filter((pat) => pat.test(normText));
+
+  // Feature Category C: Clause Headings & Section Structure
+  const sectionStructureSignals = [
+    /\b(?:section|clause|article|paragraph)\s+\d+\b/i,
+    /\b(?:definitions|obligations|exceptions|permitted\s+disclosures|compelled\s+disclosure|no\s+license|no\s+liability)\b/i,
+    /\b(?:remedies|injunctive\s+relief|term\s+(?:and\s+survival|and\s+termination)|survival|governing\s+law|jurisdiction|miscellaneous|severability|entire\s+agreement|indemnification)\b/i
+  ];
+  const matchedSectionSignals = sectionStructureSignals.filter((pat) => pat.test(normText));
+
+  // Feature Category D: Binding Legal Obligation / Covenant Verbs
+  const obligationPatterns = [
+    /\bshall\b/gi,
+    /\bshall\s+not\b/gi,
+    /\bagrees?\s+to\b/gi,
+    /\bhereby\s+agrees?\b/gi,
+    /\bcovenants?\s+that\b/gi,
+    /\bundertakes?\s+to\b/gi,
+    /\bwill\s+maintain\b/gi,
+    /\bhold[s]?\s+harmless\b/gi,
+    /\bindemnif(?:y|ies|ication)\b/gi
+  ];
+  const matchedObligations: string[] = [];
+  obligationPatterns.forEach((pat) => {
+    const found = normText.match(pat);
+    if (found) matchedObligations.push(...found);
+  });
+
+  // Feature Category E: Core Legal Keyword Indicators
+  const coreKeywords = [
+    "agreement", "contract", "parties", "confidential", "confidentiality",
+    "obligations", "obligation", "liability", "indemn", "severab",
+    "jurisdiction", "covenant", "warrant", "remedies", "breach",
+    "termination", "survival", "arbitrat", "disclose", "disclosure",
+    "governing law", "miscellaneous", "injunctive"
+  ];
+  const matchedKeywords = coreKeywords.filter((kw) => new RegExp(`\\b${kw}`, "i").test(normText));
+
+  // 5. Diagnostic Feature Logging
+  const totalSignals = matchedTitleSignals.length + (filenameContractSignal ? 1 : 0) + matchedPartySignals.length + matchedSectionSignals.length;
+  console.info(`[CLASSIFIER:SIGNALS] File='${name}' (Pages=${pageCount}, Words=${words.length}):`, {
+    filenameContractSignal,
+    titleMatches: matchedTitleSignals.length,
+    partyMatches: matchedPartySignals.length,
+    sectionMatches: matchedSectionSignals.length,
+    obligationCount: matchedObligations.length,
+    keywordMatches: matchedKeywords
+  });
+
+  // 6. Comprehensive Multi-Criteria Classification Decision
+  // Criteria 1: Clear contract structure (Title/Filename + Party structure OR Section structure)
+  const isStructuralContract = (matchedTitleSignals.length > 0 || filenameContractSignal) && (matchedPartySignals.length > 0 || matchedSectionSignals.length > 0 || matchedObligations.length >= 2);
+
+  // Criteria 2: Strong lexical & obligation density
+  const isLexicalContract = matchedKeywords.length >= 2 || (matchedObligations.length >= 3 && matchedKeywords.length >= 1);
+
+  // Criteria 3: Overall composite signal threshold
+  if (isStructuralContract || isLexicalContract || totalSignals >= 2) {
+    return { isContract: true, reason: "Valid contractual document.", failureMode: "valid" };
   }
 
-  return { isContract: true, reason: "Valid contractual document.", failureMode: "valid" };
+  console.warn(`[CLASSIFIER:REJECTED_NON_CONTRACT] Document '${name}' failed legal criteria (totalSignals=${totalSignals}, keywords=${matchedKeywords.length}, obligations=${matchedObligations.length})`);
+  return {
+    isContract: false,
+    reason: "Document does not contain contractual language, obligations, or legal provisions.",
+    failureMode: "non_contractual"
+  };
 }
 
 export function buildDynamicDocumentAnalysis(

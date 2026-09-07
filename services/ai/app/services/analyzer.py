@@ -182,42 +182,121 @@ def generate_consensus_reasoning(finding: Dict[str, Any]) -> Dict[str, Any]:
 def is_contractual_document(text: str, filename: str = "", page_count: int = 1) -> tuple[bool, str, str]:
     """
     Validates if the document text contains sufficient contractual language and structure.
+    Tolerates template/placeholder formatting (underscores, ellipses, bracketed blanks).
     Returns: (is_contract: bool, reason: str, failure_mode: str)
     where failure_mode in ("valid", "extraction_failed", "non_contractual")
     """
-    # Normalize underscores and blank fill-in fields so they don't corrupt word counts or tokenization
+    # 1. Clean and normalize placeholders (underscores, dots, brackets, dashes, blank markers)
     clean_text = re.sub(r'/[A-Z][a-zA-Z0-9]+|<<|>>|stream|endstream|obj|endobj|%\w+', ' ', text)
-    clean_text = re.sub(r'_{3,}', ' [BLANK_FIELD] ', clean_text)
-    words = re.findall(r'\b[a-zA-Z]{3,}\b', clean_text.lower())
+    # Strip template blanks so they don't break token streams or regex matching
+    clean_text = re.sub(r'_{2,}', ' [BLANK] ', clean_text)
+    clean_text = re.sub(r'\.{3,}', ' [BLANK] ', clean_text)
+    clean_text = re.sub(r'-{3,}', ' [BLANK] ', clean_text)
+    clean_text = re.sub(r'\[[\s_.-]*\]', ' [BLANK] ', clean_text)
+    clean_text = re.sub(r'\([\s_.-]{2,}\)', ' [BLANK] ', clean_text)
+    
+    # Normalized text with collapsed whitespace for robust multi-word phrase matching
+    norm_text = re.sub(r'\s+', ' ', clean_text).lower()
+    words = re.findall(r'\b[a-zA-Z]{3,}\b', norm_text)
 
-    # Sanity check: If page_count >= 2 but words < 40, this is an extraction/OCR failure, NOT a non-legal judgment!
-    if page_count >= 2 and len(words) < 40:
+    # 2. Sanity check: Multi-page document (>= 2 pages) with suspiciously low word count (< 35 words)
+    # is an EXTRACTION/OCR failure, NOT a non-legal judgment!
+    if page_count >= 2 and len(words) < 35:
+        logger.warning(f"[CLASSIFIER:EXTRACTION_FAIL] {page_count} pages but only {len(words)} words extracted for '{filename}'")
         return False, f"We couldn't read this document properly — only {len(words)} words extracted from a {page_count}-page document. Try re-uploading or use a text-based PDF.", "extraction_failed"
 
-    # Check filename for non-legal indicators (e.g. ID card, badge, license, photo)
+    # 3. Check filename for explicitly non-legal indicators (e.g. ID card, badge, license, photo)
     non_legal_filename_pattern = r"(?i)\b(id\s*card|identity\s*card|badge|license|driving\s*licence|passport|hall\s*ticket|admit\s*card|resume|cv|biodata|receipt|invoice|bill|ticket|boarding\s*pass|photo|image|scan)\b"
     if filename and re.search(non_legal_filename_pattern, filename):
         if len(words) < 80:
+            logger.info(f"[CLASSIFIER:NON_LEGAL_FILE] Filename '{filename}' matches non-legal pattern with {len(words)} words.")
             return False, f"File '{filename}' appears to be a non-legal document (ID/credential) without contractual terms.", "non_contractual"
 
-    if len(words) < 35:
-        return False, "Extracted text is too short to be a valid legal contract (under 35 words).", "non_contractual"
-    
-    strong_indicators = [
-        "agreement", "contract", "parties", "witnesseth", "whereas", "recitals",
-        "terms and conditions", "governing law", "jurisdiction", "indemn",
-        "severab", "confidential", "termination", "warrant", "liability",
-        "in witness whereof", "covenant", "hereby", "herein", "hereto", "shall",
-        "non-disclosure", "disclosing party", "receiving party", "injunctive relief",
-        "obligations", "definitions", "miscellaneous", "remedies", "survival"
+    if len(words) < 30:
+        logger.info(f"[CLASSIFIER:TOO_SHORT] Document '{filename}' has only {len(words)} words.")
+        return False, "Extracted text is too short to be a valid legal contract (under 30 words).", "non_contractual"
+
+    # 4. Multi-Feature Signal Extraction
+    # Feature Category A: Title / Header / Filename Contract Indicators
+    contract_title_signals = [
+        r"\b(?:non[-\s]*disclosure|confidentiality|mutual|services|vendor|employment|lease|license|consulting|nda|mou|sla)\s+agreement\b",
+        r"\b(?:terms\s+(?:and|&)\s+conditions|terms\s+of\s+service|commercial\s+contract|legal\s+agreement)\b",
+        r"\b(?:mutual\s+non[-\s]*disclosure\s+agreement|confidentiality\s+and\s+non[-\s]*disclosure\s+agreement)\b"
     ]
+    matched_title_signals = [pat for pat in contract_title_signals if re.search(pat, norm_text)]
+    filename_contract_signal = bool(filename and re.search(r"(?i)\b(agreement|contract|nda|mou|sla|lease|license|deed|settlement|terms|confidentiality)\b", filename))
+
+    # Feature Category B: Defined Parties & Recitals
+    party_recital_signals = [
+        r"\b(?:by\s+and\s+between|entered\s+into\s+by|entered\s+into\s+on|between\s+and\s+among)\b",
+        r"\b(?:hereinafter\s+referred\s+to\s+as|hereinafter\s+called|referred\s+to\s+as\s+the)\b",
+        r"\b(?:disclosing\s+part(?:y|ies)|receiving\s+part(?:y|ies)|the\s+parties\s+hereto|parties\s+agree)\b",
+        r"\b(?:witnesseth|whereas|recitals|in\s+consideration\s+of\s+the\s+mutual\s+covenants)\b",
+        r"\b(?:in\s+witness\s+whereof|signed\s+for\s+and\s+on\s+behalf\s+of|authorized\s+signator(?:y|ies))\b"
+    ]
+    matched_party_signals = [pat for pat in party_recital_signals if re.search(pat, norm_text)]
+
+    # Feature Category C: Clause Headings & Section Structure
+    section_structure_signals = [
+        r"\b(?:section|clause|article|paragraph)\s+\d+\b",
+        r"\b(?:definitions|obligations|exceptions|permitted\s+disclosures|compelled\s+disclosure|no\s+license|no\s+liability)\b",
+        r"\b(?:remedies|injunctive\s+relief|term\s+(?:and\s+survival|and\s+termination)|survival|governing\s+law|jurisdiction|miscellaneous|severability|entire\s+agreement|indemnification)\b"
+    ]
+    matched_section_signals = [pat for pat in section_structure_signals if re.search(pat, norm_text)]
+
+    # Feature Category D: Binding Legal Obligation / Covenant Verbs
+    obligation_patterns = [
+        r"\bshall\b",
+        r"\bshall\s+not\b",
+        r"\bagrees?\s+to\b",
+        r"\bhereby\s+agrees?\b",
+        r"\bcovenants?\s+that\b",
+        r"\bundertakes?\s+to\b",
+        r"\bwill\s+maintain\b",
+        r"\bhold[s]?\s+harmless\b",
+        r"\bindemnif(?:y|ies|ication)\b"
+    ]
+    matched_obligations = []
+    for pat in obligation_patterns:
+        found = re.findall(pat, norm_text)
+        if found:
+            matched_obligations.extend(found)
+
+    # Feature Category E: Core Legal Keyword Indicators
+    core_keywords = [
+        "agreement", "contract", "parties", "confidential", "confidentiality",
+        "obligations", "obligation", "liability", "indemn", "severab",
+        "jurisdiction", "covenant", "warrant", "remedies", "breach",
+        "termination", "survival", "arbitrat", "disclose", "disclosure",
+        "governing law", "miscellaneous", "injunctive"
+    ]
+    matched_keywords = [kw for kw in core_keywords if re.search(r'\b' + re.escape(kw), norm_text)]
+
+    # 5. Diagnostic Feature Logging
+    total_signals = len(matched_title_signals) + (1 if filename_contract_signal else 0) + len(matched_party_signals) + len(matched_section_signals)
+    logger.info(
+        f"[CLASSIFIER:SIGNALS] File='{filename}' (Pages={page_count}, Words={len(words)}):\n"
+        f"  - Filename Contract Signal: {filename_contract_signal}\n"
+        f"  - Title/Header Matches ({len(matched_title_signals)}): {matched_title_signals}\n"
+        f"  - Party/Recital Matches ({len(matched_party_signals)}): {matched_party_signals}\n"
+        f"  - Section/Structure Matches ({len(matched_section_signals)}): {matched_section_signals}\n"
+        f"  - Obligation Verb Occurrences ({len(matched_obligations)}): {matched_obligations[:5]}\n"
+        f"  - Legal Keyword Matches ({len(matched_keywords)}): {matched_keywords}"
+    )
+
+    # 6. Comprehensive Multi-Criteria Classification Decision
+    # Criteria 1: Clear contract structure (Title/Filename + Party structure OR Section structure)
+    is_structural_contract = (len(matched_title_signals) > 0 or filename_contract_signal) and (len(matched_party_signals) > 0 or len(matched_section_signals) > 0 or len(matched_obligations) >= 2)
     
-    matched_indicators = [ind for ind in strong_indicators if re.search(r'\b' + ind, clean_text.lower())]
+    # Criteria 2: Strong lexical & obligation density
+    is_lexical_contract = len(matched_keywords) >= 2 or (len(matched_obligations) >= 3 and len(matched_keywords) >= 1)
     
-    if len(matched_indicators) < 2:
-        return False, "Document does not contain contractual language, obligations, or legal provisions.", "non_contractual"
-        
-    return True, "Valid contractual document.", "valid"
+    # Criteria 3: Overall composite signal threshold
+    if is_structural_contract or is_lexical_contract or total_signals >= 2:
+        return True, "Valid contractual document.", "valid"
+
+    logger.warning(f"[CLASSIFIER:REJECTED_NON_CONTRACT] Document '{filename}' failed legal criteria (total_signals={total_signals}, keywords={len(matched_keywords)}, obligations={len(matched_obligations)})")
+    return False, "Document does not contain contractual language, obligations, or legal provisions.", "non_contractual"
 
 def run_rule_based_fallback(chunks: List[Chunk]) -> List[Dict[str, Any]]:
     """A fallback rule-based analysis that strictly extracts findings grounded in actual chunk text."""
