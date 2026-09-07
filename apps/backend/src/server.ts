@@ -108,6 +108,19 @@ app.post("/api/documents/:id/chat", async (req, res) => {
   }
 });
 
+// 7. Delete document and associated data
+app.delete("/api/documents/:id", async (req, res) => {
+  try {
+    const response = await axios.delete(`${config.FASTAPI_BASE_URL}/documents/${req.params.id}`);
+    return res.json(response.data);
+  } catch (error: any) {
+    console.error("Delete document error:", error.message);
+    const status = error.response?.status || 500;
+    const detail = error.response?.data?.detail || error.message;
+    return res.status(status).json({ error: detail });
+  }
+});
+
 if (process.env.NODE_ENV !== "test") {
   app.listen(config.GATEWAY_PORT, () => {
     console.log(`gateway listening on ${config.GATEWAY_PORT}`);
