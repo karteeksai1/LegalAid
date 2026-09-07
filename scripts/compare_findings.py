@@ -547,9 +547,8 @@ def main():
                 print(f"   [{idx}] \"{fp_item.get('finding_type')}\" (Clause: {fp_item.get('clause_type')}, Sev: {fp_item.get('severity_score', '?')})")
                 print(f"       Quote: \"{fp_item.get('evidence_quote', '')[:120]}...\"")
 
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    report_file = RESULTS_DIR / f"comparison_report_{timestamp}.json"
-    latest_report_file = RESULTS_DIR / "comparison_latest.json"
+    # Save report in-place
+    report_file = RESULTS_DIR / "comparison_report.json"
 
     summary_payload = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -569,8 +568,7 @@ def main():
     }
 
     report_file.write_text(json.dumps(summary_payload, indent=2, default=str), encoding="utf-8")
-    latest_report_file.write_text(json.dumps(summary_payload, indent=2, default=str), encoding="utf-8")
-    print(f"\n💾 Full JSON report written to:")
+    print(f"\n💾 Comparison report updated in-place at:")
     print(f"   {report_file}")
     print("=" * 92 + "\n")
 

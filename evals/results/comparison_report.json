@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-07T17:12:35.046263+00:00",
+  "timestamp": "2026-09-07T17:24:33.446555+00:00",
   "overall": {
     "total_documents": 1,
     "total_predictions": 7,
@@ -30,7 +30,7 @@
       "matched_pairs": [
         {
           "predicted": {
-            "chunk_id": "92d58d68-5e9e-41dc-a49f-97c1cf8d702f",
+            "chunk_id": "f4d60969-dfce-40b6-a2c6-a4ea2456f880",
             "agent_name": "Regulatory & Compliance Counsel",
             "clause_type": "Governing Law",
             "finding_type": "Dispute Jurisdiction Scope",
@@ -83,7 +83,7 @@
         },
         {
           "predicted": {
-            "chunk_id": "4ab292dc-fe52-443d-ae3a-70b0c4cb9add",
+            "chunk_id": "a9c4b81a-5ea0-4bb4-b489-fc9ed3f8b6b7",
             "agent_name": "Risk & Liability Counsel, Opposing Counsel",
             "clause_type": "Indemnity",
             "finding_type": "Adversarial Indemnity Loophole",
@@ -136,7 +136,7 @@
         },
         {
           "predicted": {
-            "chunk_id": "89f7f944-15a4-491e-a1a9-57401bd38162",
+            "chunk_id": "b2a2d0b2-5fa0-45c5-840d-48aded90f4c9",
             "agent_name": "Opposing Counsel",
             "clause_type": "Pricing & Settlement",
             "finding_type": "Unilateral Weight & Freight Determination",
@@ -189,7 +189,7 @@
         },
         {
           "predicted": {
-            "chunk_id": "89f7f944-15a4-491e-a1a9-57401bd38162",
+            "chunk_id": "b2a2d0b2-5fa0-45c5-840d-48aded90f4c9",
             "agent_name": "Risk & Liability Counsel",
             "clause_type": "Operations & Schedule",
             "finding_type": "Undefined Transportation Schedule",
@@ -243,7 +243,7 @@
       ],
       "false_positive_findings": [
         {
-          "chunk_id": "89f7f944-15a4-491e-a1a9-57401bd38162",
+          "chunk_id": "b2a2d0b2-5fa0-45c5-840d-48aded90f4c9",
           "agent_name": "Transaction Counsel",
           "clause_type": "Term & Duration",
           "finding_type": "Indefinite Contract Term",
@@ -281,7 +281,7 @@
           "lifecycle_stage": "final"
         },
         {
-          "chunk_id": "89f7f944-15a4-491e-a1a9-57401bd38162",
+          "chunk_id": "b2a2d0b2-5fa0-45c5-840d-48aded90f4c9",
           "agent_name": "Neutral Legal Reviewer",
           "clause_type": "Contractual Scope & Enforceability",
           "finding_type": "Ambiguous Future Agreement Clause",
@@ -313,7 +313,7 @@
           "lifecycle_stage": "final"
         },
         {
-          "chunk_id": "4859fa6e-d4b9-4100-83d2-bc55c7969aef",
+          "chunk_id": "4c5b7eac-2a10-451c-a8c5-cfac97263a70",
           "agent_name": "Risk & Liability Counsel, Opposing Counsel",
           "clause_type": "Indemnity",
           "finding_type": "Adversarial Indemnity Loophole",
