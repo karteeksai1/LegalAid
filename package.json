@@ -8,6 +8,7 @@
     "dev:backend": "pnpm --filter @legal-aid/backend dev",
     "dev:ai": "./services/ai/.venv/bin/uvicorn app.main:app --app-dir services/ai --host 0.0.0.0 --port 8000 --reload",
     "check": "./services/ai/.venv/bin/python scripts/check_system.py",
+    "evals": "./services/ai/.venv/bin/python scripts/run_evals.py",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r build"

@@ -36,26 +36,16 @@ export default function Home() {
       </header>
 
       <main id="top">
-        <section className="relative min-h-190 overflow-hidden bg-[#101412] pt-18 text-[#f1eee6]">
-          <div className="absolute inset-0 paper-grid opacity-20" />
-          <div className="absolute right-0 top-0 h-full w-[58%] opacity-40 bg-[radial-gradient(circle_at_55%_42%,#3158ffaa_0%,transparent_28%),linear-gradient(135deg,transparent_0%,#d7ff5240_100%)]" />
+        <section className="relative min-h-[760px] overflow-hidden bg-[#101412] pt-[72px] text-[#f1eee6]">
+          <div className="absolute inset-0 opacity-40" style={{ backgroundImage: "url('/assets/legalaid-skyline-hero.png')", backgroundPosition: "center right", backgroundSize: "cover" }} />
           <div className="absolute inset-0 bg-[linear-gradient(90deg,#101412_0%,#101412e8_38%,#10141255_75%,#101412aa_100%)]" />
-          
-          {/* Clean Minimal Architectural Skyline Outline Graphic */}
-          <div className="pointer-events-none absolute bottom-0 right-0 z-0 hidden lg:flex items-end justify-end h-[85%] w-[48%] select-none opacity-55 overflow-hidden">
-            <img 
-              src="/city-minimal.svg" 
-              alt="Architectural City Skyline" 
-              className="h-full w-full object-contain object-bottom drop-shadow-[0_0_20px_rgba(215,255,82,0.1)]"
-            />
-          </div>
-
-          <div className="container relative z-10 flex min-h-172 items-center pb-20 pt-20">
-            <div className="max-w-190">
+          <div className="container relative flex min-h-[688px] items-center pb-20 pt-20">
+            <div className="max-w-[760px]">
               <div className="mb-8 flex items-center gap-3"><span className="h-2 w-2 signal-pulse rounded-full bg-[#d7ff52]" /><span className="eyebrow text-[#d7ff52]">Explainable review infrastructure</span></div>
-              <h1 className="font-display max-w-197.5 text-[clamp(4rem,9vw,8.6rem)] font-bold leading-[0.86] tracking-[-0.09em]">Find the clause that <span className="text-[#d7ff52]">changes the deal.</span></h1>
-              <div className="mt-10 max-w-170 border-t border-white/20 pt-7">
+              <h1 className="font-display max-w-[790px] text-[clamp(4rem,9vw,8.6rem)] font-bold leading-[0.86] tracking-[-0.09em]">Find the clause that <span className="text-[#d7ff52]">changes the deal.</span></h1>
+              <div className="mt-10 grid max-w-[680px] grid-cols-1 gap-8 border-t border-white/20 pt-7 sm:grid-cols-[1fr_250px]">
                 <p className="text-lg leading-7 text-[#c7cbc3]">LegalAid is an explainable multi-agent AI framework for adversarial legal document review and vulnerability analysis.</p>
+                <div className="font-mono text-[11px] leading-5 text-[#7f887f]"><span className="text-[#d7ff52]">01 /</span> Surface exploitable clauses<br /><span className="text-[#d7ff52]">02 /</span> Ground every finding<br /><span className="text-[#d7ff52]">03 /</span> Show your working</div>
               </div>
               <div className="mt-11 flex flex-wrap items-center gap-5"><Button onClick={() => openAuth("/signup")} className="h-14 rounded-none bg-[#d7ff52] px-7 font-mono text-xs uppercase tracking-[0.12em] text-[#101412] hover:bg-[#e4ff87]">Stress-test a document <ArrowUpRight className="ml-3 h-4 w-4" /></Button><button onClick={() => goTo("method")} className="group flex items-center gap-3 font-mono text-xs uppercase tracking-[0.12em] text-[#c7cbc3] hover:text-[#d7ff52]">See the method <ArrowDownRight className="h-4 w-4 transition-transform group-hover:translate-y-1" /></button></div>
             </div>

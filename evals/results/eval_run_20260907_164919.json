@@ -1,0 +1,111 @@
+{
+  "timestamp": "2026-09-07T16:49:19.552788+00:00",
+  "duration_seconds": 6.63,
+  "total_documents_evaluated": 1,
+  "total_findings_stored": 8,
+  "results": [
+    {
+      "filename": "sample-eval-contract.txt",
+      "document_id": "8a743ebc-9062-47c5-8dce-23f1f197d434",
+      "analysis_id": "42e16f3e-116e-46d5-b4dd-36c4779f0f26",
+      "aggregate_risk_score": 10.0,
+      "risk_level": "Critical",
+      "findings_count": 8,
+      "critical_count": 4,
+      "high_count": 2,
+      "medium_count": 2,
+      "low_count": 0,
+      "consensus_summary": "The legal document has been analyzed by a team of specialized AI agents including Risk & Liability Counsel, Opposing Counsel, Transaction Counsel, Neutral Legal Reviewer, and Regulatory & Compliance Counsel. An overall risk score of 10.0/10 has been assessed, indicating a Critical risk profile.",
+      "findings": [
+        {
+          "id": "915083d1-0fc2-439b-976e-3a7e9d6f1d8e",
+          "agent_name": "Risk & Liability Counsel",
+          "clause_type": "Indemnity",
+          "finding_type": "Unbalanced Indemnification",
+          "severity_score": 8,
+          "risk_level": "Critical",
+          "summary": "The clause contains broad indemnity obligations that could force the company to pay for third-party disputes and losses without a reciprocal cap. Recommend making this mutual.",
+          "evidence_quote": "2. INDEMNIFICATION AND EXPOSURE",
+          "verification_status": "verified"
+        },
+        {
+          "id": "5f5ef466-0b0a-4822-8241-591dea316c49",
+          "agent_name": "Opposing Counsel",
+          "clause_type": "Indemnity",
+          "finding_type": "Adversarial Indemnity Loophole",
+          "severity_score": 9,
+          "risk_level": "Critical",
+          "summary": "Opposing counsel can leverage this broad indemnity to demand defense costs and settlement contributions even before liability is adjudicated in court.",
+          "evidence_quote": "2. INDEMNIFICATION AND EXPOSURE",
+          "verification_status": "verified"
+        },
+        {
+          "id": "080bc1af-2e38-45f8-b08f-94ebff3bfbb8",
+          "agent_name": "Neutral Legal Reviewer",
+          "clause_type": "Liability",
+          "finding_type": "Unconscionable Liability Cap",
+          "severity_score": 7,
+          "risk_level": "High",
+          "summary": "The limitation of liability clause places an aggregate cap on damages. Review exclusions to ensure critical breaches remain compensable.",
+          "evidence_quote": "3. LIMITATION OF LIABILITY",
+          "verification_status": "verified"
+        },
+        {
+          "id": "cf602791-6996-4883-a6ef-6913f0444310",
+          "agent_name": "Opposing Counsel",
+          "clause_type": "Liability",
+          "finding_type": "Carve-out Exploitation Vector",
+          "severity_score": 8,
+          "risk_level": "Critical",
+          "summary": "The carve-outs allow an aggressive opposing party to re-characterize breach claims to bypass the liability cap entirely.",
+          "evidence_quote": "3. LIMITATION OF LIABILITY",
+          "verification_status": "verified"
+        },
+        {
+          "id": "5ef442e5-47ca-4030-90d3-728ba126ed06",
+          "agent_name": "Risk & Liability Counsel",
+          "clause_type": "Intellectual Property",
+          "finding_type": "IP Assignment Risk",
+          "severity_score": 7,
+          "risk_level": "High",
+          "summary": "The intellectual property language assigns ownership of created materials. Recommend clarifying background IP protections.",
+          "evidence_quote": "Vendor shall defend, indemnify, and hold harmless Customer, its parent companies, affiliates, directors, and agents from and against any and all claims, liabilities, losses, damages, costs, and rea...",
+          "verification_status": "verified"
+        },
+        {
+          "id": "613cfbfd-8368-4e1d-916b-12617407275a",
+          "agent_name": "Opposing Counsel",
+          "clause_type": "Intellectual Property",
+          "finding_type": "Aggressive Ownership Claim",
+          "severity_score": 8,
+          "risk_level": "Critical",
+          "summary": "Opposing party can assert complete copyright ownership over proprietary templates and tooling.",
+          "evidence_quote": "Vendor shall defend, indemnify, and hold harmless Customer, its parent companies, affiliates, directors, and agents from and against any and all claims, liabilities, losses, damages, costs, and rea...",
+          "verification_status": "verified"
+        },
+        {
+          "id": "a185b4b7-175d-4d98-9dbf-9d031625d1d2",
+          "agent_name": "Regulatory & Compliance Counsel",
+          "clause_type": "Confidentiality",
+          "finding_type": "Confidentiality Protection Scope",
+          "severity_score": 5,
+          "risk_level": "Medium",
+          "summary": "Confidentiality obligations govern sensitive business disclosures. Ensure clear expiration or survival terms are set.",
+          "evidence_quote": "Each party agrees to maintain the confidentiality of Proprietary Information using at least reasonable care. Vendor warrants that it complies with applicable data protection regulations including G...",
+          "verification_status": "verified"
+        },
+        {
+          "id": "0e95c1c7-d6b5-4d58-a1bf-5e1d9a9f517d",
+          "agent_name": "Regulatory & Compliance Counsel",
+          "clause_type": "Governing Law",
+          "finding_type": "Dispute Jurisdiction Scope",
+          "severity_score": 5,
+          "risk_level": "Medium",
+          "summary": "Disputes are governed by specified state or national jurisdiction. Review forum convenience and dispute procedures.",
+          "evidence_quote": "7. GOVERNING LAW AND DISPUTE RESOLUTION",
+          "verification_status": "verified"
+        }
+      ]
+    }
+  ]
+}
