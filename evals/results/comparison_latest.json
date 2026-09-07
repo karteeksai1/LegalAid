@@ -1,0 +1,332 @@
+{
+  "timestamp": "2026-09-07T17:03:48.437185+00:00",
+  "overall": {
+    "total_documents": 1,
+    "total_predictions": 7,
+    "total_ground_truth": 3,
+    "true_positives": 1,
+    "false_positives": 6,
+    "false_negatives": 2,
+    "precision": 0.1429,
+    "recall": 0.3333,
+    "f1_score": 0.2,
+    "groundedness_rate": 100.0
+  },
+  "documents": [
+    {
+      "filename": "ZtoExpressCaymanInc_20160930_F-1_EX-10.10_9752871_EX-10.10_Transportation Agreement.txt",
+      "predictions_count": 7,
+      "ground_truth_count": 3,
+      "true_positives": 1,
+      "false_positives": 6,
+      "false_negatives": 2,
+      "precision": 0.1429,
+      "recall": 0.3333,
+      "f1_score": 0.2,
+      "groundedness_rate": 100.0,
+      "gt_groundedness_rate": 100.0,
+      "avg_quote_overlap": 0.114,
+      "severity_mae": 0.0,
+      "matched_pairs": [
+        {
+          "predicted": {
+            "chunk_id": "f809f597-a280-47e0-a946-b01bfc530569",
+            "agent_name": "Risk & Liability Counsel, Opposing Counsel",
+            "clause_type": "Indemnity",
+            "finding_type": "Adversarial Indemnity Loophole",
+            "summary": "Opposing counsel can leverage this broad indemnity to demand defense costs and settlement contributions even before liability is adjudicated in court.",
+            "evidence_quote": "ies. Party A has the right to indemnify from Party B upon advance payment of damages.   6. Party B shall purchase sufficient insurance for the transportation vehicles. The coverag",
+            "severity_score": 9,
+            "confidence": 0.9,
+            "verification_status": "verified",
+            "risk_level": "Critical",
+            "consensus_reasoning": {
+              "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 8/10.",
+              "deliberation": [
+                {
+                  "agent": "Risk & Liability Counsel",
+                  "stance": "Client Exposure",
+                  "score": 8,
+                  "argument": "Indemnity lacks a reciprocal cap, creating uncapped pass-through liability for third-party claims."
+                },
+                {
+                  "agent": "Opposing Counsel",
+                  "stance": "Adversarial Attack Path",
+                  "score": 9,
+                  "argument": "Opposing party can weaponize broad loss terms to claim indirect, incidental, and legal fees without proving direct breach."
+                },
+                {
+                  "agent": "Neutral Legal Reviewer",
+                  "stance": "Judicial Enforceability",
+                  "score": 7,
+                  "argument": "Courts generally uphold commercial indemnity as written unless clearly unconscionable. High litigation burden exists."
+                }
+              ],
+              "arbitration_rule": "Consensus weighted toward Opposing Counsel adversarial exploit risk (9/10) and Neutral Legal Reviewer enforceability standard (7/10), settling at final severity of 8/10.",
+              "plain_arbitration_rule": "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
+            },
+            "lifecycle_stage": "final"
+          },
+          "ground_truth": {
+            "agent_name": "Risk & Liability Counsel",
+            "clause_type": "Indemnity / Liability",
+            "finding_type": "Uncapped Carrier Liability for Theft and Parcel Loss",
+            "summary": "Party B bears all economic loss and liquidated damages arising from theft or disposal of stolen goods by its personnel, with no monetary cap or limitation of liability.",
+            "evidence_quote": "Party B shall be responsible for all of Party A's economic loss and relevant liquidated damages arising out of any theft and disposal of stolen goods conducted by Party B's personnel.",
+            "severity_score": 9,
+            "risk_level": "Critical",
+            "confidence": 0.99
+          },
+          "quote_similarity": 0.11428571428571428,
+          "score_diff": 0
+        }
+      ],
+      "false_positive_findings": [
+        {
+          "chunk_id": "bd46e2dc-259b-42f4-85e3-416dad7d1604",
+          "agent_name": "Risk & Liability Counsel",
+          "clause_type": "Operations & Schedule",
+          "finding_type": "Undefined Transportation Schedule",
+          "summary": "Clause 4(a) 'Transportation time:' is left blank with no baseline timetable, departure windows, transit deadlines, or SLA metrics specified.",
+          "evidence_quote": "time and relevant rules   (a) Transportation time:   (b) Any changes to the line-haul route and time are subject to both Parties' negotiation and written supplemental clauses.   (c) Party B sha",
+          "severity_score": 6,
+          "confidence": 0.88,
+          "verification_status": "verified",
+          "risk_level": "Medium",
+          "consensus_reasoning": {
+            "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 6/10.",
+            "deliberation": [
+              {
+                "agent": "Transaction Counsel",
+                "stance": "Drafting Gap",
+                "score": 5,
+                "argument": "Transportation time is left blank without default transit schedules, benchmark speeds, or delay definitions."
+              },
+              {
+                "agent": "Opposing Counsel",
+                "stance": "Delay Exposure",
+                "score": 6,
+                "argument": "Shipper can assert unreasonable delivery delays or withhold payments while carrier lacks objective delivery proof."
+              },
+              {
+                "agent": "Neutral Legal Reviewer",
+                "stance": "Reasonable Time Standard",
+                "score": 4,
+                "argument": "In absence of stated transit time, courts imply a 'reasonable time' standard which invites expensive factual disputes."
+              }
+            ],
+            "arbitration_rule": "Consensus calibrated to 5/10: Transaction Counsel drafting gap and Opposing Counsel delay dispute leverage balanced by judicial reasonable-time doctrine.",
+            "plain_arbitration_rule": "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
+          },
+          "lifecycle_stage": "final"
+        },
+        {
+          "chunk_id": "bd46e2dc-259b-42f4-85e3-416dad7d1604",
+          "agent_name": "Transaction Counsel",
+          "clause_type": "Term & Duration",
+          "finding_type": "Indefinite Contract Term",
+          "summary": "The agreement specifies an indefinite term ('valid for an indefinite term') without a defined expiration date, periodic review schedule, or express termination triggers.",
+          "evidence_quote": "transportation services: this Agreement is valid for an indefinite term. Subsequent contracts might be entered in case of special business.   3. Freight and payment method:   (a) Verification of freight: Party A",
+          "severity_score": 6,
+          "confidence": 0.9,
+          "verification_status": "verified",
+          "risk_level": "Medium",
+          "consensus_reasoning": {
+            "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 6/10.",
+            "deliberation": [
+              {
+                "agent": "Risk & Liability Counsel",
+                "stance": "Perpetual Exposure",
+                "score": 6,
+                "argument": "Indefinite duration binds the carrier to fixed freight terms without periodic renegotiation or cost-escalation windows."
+              },
+              {
+                "agent": "Opposing Counsel",
+                "stance": "Termination Discretion",
+                "score": 6,
+                "argument": "Opposing party can maintain agreement when favorable and terminate abruptly when market rates decline."
+              },
+              {
+                "agent": "Neutral Legal Reviewer",
+                "stance": "At-Will Enforceability",
+                "score": 5,
+                "argument": "Indefinite commercial service contracts are generally terminable at will upon reasonable notice, but absence of fixed term creates operational uncertainty."
+              }
+            ],
+            "arbitration_rule": "Consensus calibrated to 6/10: Weighted toward carrier long-term operational and rate exposure under an indefinite commitment.",
+            "plain_arbitration_rule": "The panel agreed to prioritize the interpretation that best protects the document owner from unforeseen financial or legal liabilities."
+          },
+          "lifecycle_stage": "final"
+        },
+        {
+          "chunk_id": "bd46e2dc-259b-42f4-85e3-416dad7d1604",
+          "agent_name": "Opposing Counsel",
+          "clause_type": "Pricing & Settlement",
+          "finding_type": "Unilateral Weight & Freight Determination",
+          "summary": "The final clearance amount and billable freight are subject to actual carriage amount and EX-warehouse ('EXW') weight determined unilaterally by Party A, creating substantial settlement risk without a joint audit or verification procedure.",
+          "evidence_quote": "nce arrangement and the final clearance amount is subject to actual carriage amount and EX-warehouse (\"EXW\") weight determined by Party A. Party B shall attach Party A's parcel EXW originals or copies for Party A's verification for clearance of freight.   4. Transportation rou",
+          "severity_score": 8,
+          "confidence": 0.92,
+          "verification_status": "verified",
+          "risk_level": "Critical",
+          "consensus_reasoning": {
+            "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 8/10.",
+            "deliberation": [
+              {
+                "agent": "Opposing Counsel",
+                "stance": "Unilateral Settlement Power",
+                "score": 8,
+                "argument": "Shipper maintains exclusive authority to calculate settlement weight; carrier has no contractual audit or joint-weighing rights."
+              },
+              {
+                "agent": "Risk & Liability Counsel",
+                "stance": "Cash-Flow Risk",
+                "score": 7,
+                "argument": "Unilateral weight deductions directly reduce freight revenues without a formal dispute resolution procedure."
+              },
+              {
+                "agent": "Neutral Legal Reviewer",
+                "stance": "Good Faith Implication",
+                "score": 6,
+                "argument": "Parties must exercise contractual discretion in good faith, but lack of an independent verification mechanism creates high evidentiary burden for disputes."
+              }
+            ],
+            "arbitration_rule": "Consensus calibrated to 7/10: Strongly weighted toward Opposing Counsel unilateral settlement power and Risk & Liability Counsel payment vulnerability.",
+            "plain_arbitration_rule": "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
+          },
+          "lifecycle_stage": "final"
+        },
+        {
+          "chunk_id": "bd46e2dc-259b-42f4-85e3-416dad7d1604",
+          "agent_name": "Neutral Legal Reviewer",
+          "clause_type": "Contractual Scope & Enforceability",
+          "finding_type": "Ambiguous Future Agreement Clause",
+          "summary": "Language stating 'Subsequent contracts might be entered in case of special business' creates an ambiguous agreement to agree, leaving critical commercial terms undefined until a future dispute arises.",
+          "evidence_quote": "valid for an indefinite term. Subsequent contracts might be entered in case of special business.   3. Freight and payment method:   (a) Verification of freight: Party A pays freight based on carload rate (su",
+          "severity_score": 5,
+          "confidence": 0.85,
+          "verification_status": "verified",
+          "risk_level": "Medium",
+          "consensus_reasoning": {
+            "summary": "Legal Synthesis Engine deliberated across 2 agent perspectives to arrive at severity 5/10.",
+            "deliberation": [
+              {
+                "agent": "Transaction Counsel",
+                "stance": "Contractual Ambiguity",
+                "score": 4,
+                "argument": "The phrase 'subsequent contracts might be entered' is permissive and lacks binding procedural rules."
+              },
+              {
+                "agent": "Neutral Legal Reviewer",
+                "stance": "Agreement to Agree",
+                "score": 4,
+                "argument": "Agreements to agree are generally unenforceable until formal supplemental terms are executed in writing."
+              }
+            ],
+            "arbitration_rule": "Consensus calibrated to 4/10: Rated low/medium severity because subsequent terms are non-binding until formally negotiated.",
+            "plain_arbitration_rule": "The panel agreed to prioritize the interpretation that best protects the document owner from unforeseen financial or legal liabilities."
+          },
+          "lifecycle_stage": "final"
+        },
+        {
+          "chunk_id": "37f71630-3c3d-48b4-9b33-8d4d116a9667",
+          "agent_name": "Risk & Liability Counsel, Opposing Counsel",
+          "clause_type": "Indemnity",
+          "finding_type": "Adversarial Indemnity Loophole",
+          "summary": "Opposing counsel can leverage this broad indemnity to demand defense costs and settlement contributions even before liability is adjudicated in court.",
+          "evidence_quote": "eakage or fire, Party B shall indemnify at the standard rate of RMB200 per parcel, and indemnify the actual price for high-end insured parcel (or indemnify by the value of the par",
+          "severity_score": 9,
+          "confidence": 0.9,
+          "verification_status": "verified",
+          "risk_level": "Critical",
+          "consensus_reasoning": {
+            "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 8/10.",
+            "deliberation": [
+              {
+                "agent": "Risk & Liability Counsel",
+                "stance": "Client Exposure",
+                "score": 8,
+                "argument": "Indemnity lacks a reciprocal cap, creating uncapped pass-through liability for third-party claims."
+              },
+              {
+                "agent": "Opposing Counsel",
+                "stance": "Adversarial Attack Path",
+                "score": 9,
+                "argument": "Opposing party can weaponize broad loss terms to claim indirect, incidental, and legal fees without proving direct breach."
+              },
+              {
+                "agent": "Neutral Legal Reviewer",
+                "stance": "Judicial Enforceability",
+                "score": 7,
+                "argument": "Courts generally uphold commercial indemnity as written unless clearly unconscionable. High litigation burden exists."
+              }
+            ],
+            "arbitration_rule": "Consensus weighted toward Opposing Counsel adversarial exploit risk (9/10) and Neutral Legal Reviewer enforceability standard (7/10), settling at final severity of 8/10.",
+            "plain_arbitration_rule": "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
+          },
+          "lifecycle_stage": "final"
+        },
+        {
+          "chunk_id": "feaaf230-c6e1-443e-b191-edd01a0afe55",
+          "agent_name": "Regulatory & Compliance Counsel",
+          "clause_type": "Governing Law",
+          "finding_type": "Dispute Jurisdiction Scope",
+          "summary": "Disputes are governed by specified state or national jurisdiction. Review forum convenience and dispute procedures.",
+          "evidence_quote": "ties, shall be subject to the jurisdiction of the People's Court where this Agreement is signed.   13. The annex of this Agreement constitutes a part of this Agreement and has the sa",
+          "severity_score": 5,
+          "confidence": 0.95,
+          "verification_status": "verified",
+          "risk_level": "Medium",
+          "consensus_reasoning": {
+            "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 5/10.",
+            "deliberation": [
+              {
+                "agent": "Regulatory & Compliance Counsel",
+                "stance": "Statutory Alignment",
+                "score": 5,
+                "argument": "Foreign venue imposes high travel, local counsel retainers, and jurisdictional overhead."
+              },
+              {
+                "agent": "Opposing Counsel",
+                "stance": "Forum Advantage",
+                "score": 7,
+                "argument": "Opposing counsel gains significant procedural advantages and hometown jury leverage in chosen forum."
+              },
+              {
+                "agent": "Neutral Legal Reviewer",
+                "stance": "Forum Non Conveniens",
+                "score": 4,
+                "argument": "Choice of law clauses are routinely enforced absent proof of bad faith or extreme unfairness."
+              }
+            ],
+            "arbitration_rule": "Consensus resolved at 5/10: Regulatory & Compliance Counsel statutory baseline weighted above procedural forum advantages.",
+            "plain_arbitration_rule": "The panel agreed to prioritize the interpretation that best protects the document owner from unforeseen financial or legal liabilities."
+          },
+          "lifecycle_stage": "final"
+        }
+      ],
+      "false_negative_findings": [
+        {
+          "agent_name": "Opposing Counsel",
+          "clause_type": "Liability",
+          "finding_type": "One-Sided Liability Allocation",
+          "summary": "Party B is held solely liable for legal and economic consequences resulting from non-compliance, traffic rules breach, vehicle damage, and personnel casualties, while Party A assumes zero liability.",
+          "evidence_quote": "Party B shall bear any legal liability arising out of severe traffic accidents causing vehicle damage and personnel casualties, and Party A shall have no liability.",
+          "severity_score": 8,
+          "risk_level": "Critical",
+          "confidence": 0.95
+        },
+        {
+          "agent_name": "Transaction Counsel",
+          "clause_type": "Termination",
+          "finding_type": "Asymmetric Termination Penalty",
+          "summary": "Party B must pay one month of freight as liquidated damages for early termination without consent, whereas Party A can terminate without compensation if space is insufficient.",
+          "evidence_quote": "Party B shall pay one-month freight as liquidated damages in case of termination of the Agreement without consent.",
+          "severity_score": 7,
+          "risk_level": "High",
+          "confidence": 0.9
+        }
+      ]
+    }
+  ]
+}

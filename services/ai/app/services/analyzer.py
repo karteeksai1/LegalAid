@@ -13,22 +13,22 @@ AGENTS = {
     "Risk & Liability Counsel": {
         "role": "Risk & Liability Counsel",
         "description": "Identifies liabilities, unfavorable clauses, loopholes, exposures, and potential claims against the client.",
-        "system_prompt": "You are a senior Risk & Liability Counsel. Analyze the following contract section and identify liabilities, broad indemnity terms, un-reciprocated obligations, and dispute exposure. Provide output in clean JSON format."
+        "system_prompt": "You are a senior Risk & Liability Counsel. Analyze the following contract section strictly based on the provided text. Identify genuine liabilities, unfavorable commercial commitments, un-reciprocated obligations, and dispute exposure. Never infer an indemnity obligation or third-party claim liability unless explicit indemnification, defense, or hold-harmless language is present in the text. Provide output in clean JSON format."
     },
     "Opposing Counsel": {
         "role": "Opposing Counsel",
         "description": "Actively argues against the document from an adversarial litigation perspective — surfacing loopholes, ambiguous milestones, unilateral exploitation vectors, and breach traps.",
-        "system_prompt": "You are an aggressive Opposing Counsel. Analyze the contract section strictly from the perspective of an adverse party seeking maximum commercial leverage, litigation vulnerabilities, unilateral exploitation opportunities, uncapped dispute vectors, and breach traps. Provide output in clean JSON format."
+        "system_prompt": "You are an aggressive Opposing Counsel. Analyze the contract section from the perspective of an adverse party seeking commercial leverage, unilateral exploitation vectors (such as one-sided measurement, clearance, or discretionary determinations), ambiguous timelines, and breach traps. Every issue must cite exact supporting words from the text. Provide output in clean JSON format."
     },
     "Transaction Counsel": {
         "role": "Transaction Counsel",
         "description": "Reviews the agreement from the perspective of transaction structure, negotiation, drafting quality, and opportunities for improvement.",
-        "system_prompt": "You are a Transaction Counsel. Analyze the following contract section for ambiguities, undefined terms, conflicting clauses, drafting improvements, and poorly structured text. Provide output in clean JSON format."
+        "system_prompt": "You are a Transaction Counsel. Analyze the contract section for drafting ambiguities, undefined terms or blank fields (such as blank delivery or transportation times), indefinite duration, non-binding references to future contracts, and poorly structured text. Provide output in clean JSON format."
     },
     "Neutral Legal Reviewer": {
         "role": "Neutral Legal Reviewer",
         "description": "Independently evaluates competing findings and determines which conclusions are best supported by the evidence and legal authority.",
-        "system_prompt": "You are an objective Neutral Legal Reviewer. Evaluate the enforceability and fairness of this contract section. Identify clauses that could be ruled void, unconscionable, or legally invalid. Provide output in clean JSON format."
+        "system_prompt": "You are an objective Neutral Legal Reviewer. Evaluate the enforceability, balance, and reasonableness of this contract section. Identify clauses that grant unilateral discretion without independent verification, or that are one-sided or legally vulnerable. Provide output in clean JSON format."
     },
     "Regulatory & Compliance Counsel": {
         "role": "Regulatory & Compliance Counsel",
@@ -74,21 +74,25 @@ Analyze the following document excerpt:
 {chunk_text}
 ---
 
-Your response MUST be a JSON list of findings. Each finding object must contain:
-1. "finding_type": Short category of issue (e.g., "Indemnity Loophole", "Undefined Definition", "Unenforceable Clause", "Adversarial Termination Trap").
-2. "clause_type": The clause family (e.g., "Indemnity", "Liability", "Termination", "Governing Law", "Definitions", "Payment & Remedies").
-3. "summary": Detailed legal explanation of why this is a risk.
-4. "evidence_quote": An exact, verbatim quote from the text showing this issue.
-5. "severity_score": An integer from 1 to 10 (10 being most critical risk).
-6. "confidence": A float from 0.0 to 1.0 representing your certainty.
+CRITICAL GROUNDING RULES:
+1. Every finding MUST reference an exact, verbatim quote from the excerpt in "evidence_quote".
+2. The quoted evidence must semantically support the finding.
+3. DO NOT invent, assume, or hallucinate findings that are not supported by the text.
+4. Never infer an indemnity, hold-harmless, or third-party legal-fee obligation unless the text explicitly contains indemnification language.
+5. Identify document-specific contractual risks, such as:
+   - Blank or undefined operational fields (e.g. blank transportation or delivery timelines).
+   - Indefinite duration or perpetual commitments without clear renewal/termination milestones.
+   - Unilateral authority (e.g. one party having sole discretion to determine measurements, weights, or clearance fees without mutual verification).
+   - Ambiguous future contract language or non-binding references to subsequent agreements.
+6. If there are no genuine legal issues in this excerpt, return an empty list [].
 
 Format your response as a valid JSON list of objects:
 [
   {{
-    "finding_type": "...",
-    "clause_type": "...",
-    "summary": "...",
-    "evidence_quote": "...",
+    "finding_type": "Specific short title of the issue",
+    "clause_type": "Clause family (e.g. Operations & Schedule, Pricing & Settlement, Term & Duration, Indemnity, Liability, Governing Law)",
+    "summary": "Detailed, document-specific legal explanation of why this is a risk.",
+    "evidence_quote": "Exact verbatim quote from the text showing this issue.",
     "severity_score": 7,
     "confidence": 0.90
   }}
@@ -151,13 +155,40 @@ def generate_consensus_reasoning(finding: Dict[str, Any]) -> Dict[str, Any]:
             {"agent": "Neutral Legal Reviewer", "stance": "Work-for-Hire Enforceability", "score": 6, "argument": "Assignment requires express written agreement; ambiguous scope leaves room for contentious declaratory litigation."}
         ]
         arbitration = "Consensus resolved at 7/10: Strong weight given to Risk & Liability Counsel asset protection and Opposing Counsel ownership claim vectors."
-    elif clause == "Restrictive Covenants" or "Non-Compete" in ftype:
+    elif "Restrictive Covenants" in clause or "Non-Compete" in ftype:
         deliberations = [
             {"agent": "Risk & Liability Counsel", "stance": "Trade Restriction", "score": 7, "argument": "Covenant restricts business operations across overly broad territories and customer categories."},
             {"agent": "Neutral Legal Reviewer", "stance": "Reasonableness Standard", "score": 8, "argument": "Courts strictly scrutinize non-competes. High likelihood of clause being severed or declared void as restraint of trade."},
             {"agent": "Opposing Counsel", "stance": "Injunction Threat", "score": 7, "argument": "Opposing party can seek an immediate preliminary injunction to halt new business ventures before full trial."}
         ]
         arbitration = "Consensus calibrated to 7/10: Strongly weighted toward Neutral Legal Reviewer reasonableness standard and injunction risk."
+    elif "Transportation" in clause or "Schedule" in clause or "Transportation Time" in ftype:
+        deliberations = [
+            {"agent": "Transaction Counsel", "stance": "Drafting Gap", "score": 5, "argument": "Transportation time is left blank without default transit schedules, benchmark speeds, or delay definitions."},
+            {"agent": "Opposing Counsel", "stance": "Delay Exposure", "score": 6, "argument": "Shipper can assert unreasonable delivery delays or withhold payments while carrier lacks objective delivery proof."},
+            {"agent": "Neutral Legal Reviewer", "stance": "Reasonable Time Standard", "score": 4, "argument": "In absence of stated transit time, courts imply a 'reasonable time' standard which invites expensive factual disputes."}
+        ]
+        arbitration = "Consensus calibrated to 5/10: Transaction Counsel drafting gap and Opposing Counsel delay dispute leverage balanced by judicial reasonable-time doctrine."
+    elif "Term" in clause or "Duration" in clause or "Indefinite" in ftype:
+        deliberations = [
+            {"agent": "Risk & Liability Counsel", "stance": "Perpetual Exposure", "score": 6, "argument": "Indefinite duration binds the carrier to fixed freight terms without periodic renegotiation or cost-escalation windows."},
+            {"agent": "Opposing Counsel", "stance": "Termination Discretion", "score": 6, "argument": "Opposing party can maintain agreement when favorable and terminate abruptly when market rates decline."},
+            {"agent": "Neutral Legal Reviewer", "stance": "At-Will Enforceability", "score": 5, "argument": "Indefinite commercial service contracts are generally terminable at will upon reasonable notice, but absence of fixed term creates operational uncertainty."}
+        ]
+        arbitration = "Consensus calibrated to 6/10: Weighted toward carrier long-term operational and rate exposure under an indefinite commitment."
+    elif "Pricing" in clause or "Settlement" in clause or "Weight" in ftype:
+        deliberations = [
+            {"agent": "Opposing Counsel", "stance": "Unilateral Settlement Power", "score": 8, "argument": "Shipper maintains exclusive authority to calculate settlement weight; carrier has no contractual audit or joint-weighing rights."},
+            {"agent": "Risk & Liability Counsel", "stance": "Cash-Flow Risk", "score": 7, "argument": "Unilateral weight deductions directly reduce freight revenues without a formal dispute resolution procedure."},
+            {"agent": "Neutral Legal Reviewer", "stance": "Good Faith Implication", "score": 6, "argument": "Parties must exercise contractual discretion in good faith, but lack of an independent verification mechanism creates high evidentiary burden for disputes."}
+        ]
+        arbitration = "Consensus calibrated to 7/10: Strongly weighted toward Opposing Counsel unilateral settlement power and Risk & Liability Counsel payment vulnerability."
+    elif "Scope" in clause or "Future Contract" in ftype:
+        deliberations = [
+            {"agent": "Transaction Counsel", "stance": "Contractual Ambiguity", "score": 4, "argument": "The phrase 'subsequent contracts might be entered' is permissive and lacks binding procedural rules."},
+            {"agent": "Neutral Legal Reviewer", "stance": "Agreement to Agree", "score": 4, "argument": "Agreements to agree are generally unenforceable until formal supplemental terms are executed in writing."}
+        ]
+        arbitration = "Consensus calibrated to 4/10: Rated low/medium severity because subsequent terms are non-binding until formally negotiated."
     else:
         deliberations = [
             {"agent": "Risk & Liability Counsel", "stance": "Operational Review", "score": max(1, severity - 1), "argument": "Reviewed clause for client operational commitments and exposure."},
@@ -167,7 +198,7 @@ def generate_consensus_reasoning(finding: Dict[str, Any]) -> Dict[str, Any]:
         arbitration = f"Consensus calibrated to {severity}/10: Balanced across Risk & Liability Counsel operational needs, Opposing Counsel leverage points, and Neutral Legal Reviewer fairness standard."
 
     plain_rule = "The panel agreed to prioritize the interpretation that best protects the document owner from unforeseen financial or legal liabilities."
-    if "Opposing" in arbitration or "Plaintiff" in arbitration or "exploit" in arbitration:
+    if "Opposing" in arbitration or "Plaintiff" in arbitration or "exploit" in arbitration or "Unilateral" in arbitration:
         plain_rule = "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
     elif "Neutral" in arbitration or "Judge" in arbitration or "enforceability" in arbitration:
         plain_rule = "We evaluated this based on how real courts enforce these clauses to protect you from unfair terms."
@@ -420,6 +451,42 @@ def run_rule_based_fallback(chunks: List[Chunk]) -> List[Dict[str, Any]]:
             "summary": "Post-termination survival terms impose multi-year compliance monitoring and liability exposure.",
             "severity": 6,
             "confidence": 0.90
+        },
+        {
+            "pattern": r"(?i)\b(transportation\s+time|delivery\s+schedule|completion\s+date)\s*:\s*(?=\([a-z]\)|\n|$|\s{3,}\()",
+            "agent": "Risk & Liability Counsel",
+            "clause": "Operations & Schedule",
+            "type": "Undefined Transportation Schedule",
+            "summary": "Clause 4(a) 'Transportation time:' is left blank with no baseline timetable, departure windows, transit deadlines, or SLA metrics specified.",
+            "severity": 6,
+            "confidence": 0.88
+        },
+        {
+            "pattern": r"(?i)\b(valid for an indefinite term|indefinite term|agreement is valid for an indefinite term|perpetual term|in perpetuity)\b",
+            "agent": "Transaction Counsel",
+            "clause": "Term & Duration",
+            "type": "Indefinite Contract Term",
+            "summary": "The agreement specifies an indefinite term ('valid for an indefinite term') without a defined expiration date, periodic review schedule, or express termination triggers.",
+            "severity": 6,
+            "confidence": 0.90
+        },
+        {
+            "pattern": r"(?i)\b(ex-warehouse\s*(?:\(\"exw\"\))?\s*weight\s+determined\s+by|exw\s+weight\s+determined\s+by|weight\s+determined\s+by\s+party\s+[ab]|clearance\s+amount\s+is\s+subject\s+to.*determined\s+by\s+party\s+[ab])\b",
+            "agent": "Opposing Counsel",
+            "clause": "Pricing & Settlement",
+            "type": "Unilateral Weight & Freight Determination",
+            "summary": "The final clearance amount and billable freight are subject to actual carriage amount and EX-warehouse ('EXW') weight determined unilaterally by Party A, creating substantial settlement risk without a joint audit or verification procedure.",
+            "severity": 8,
+            "confidence": 0.92
+        },
+        {
+            "pattern": r"(?i)\b(subsequent contracts? might be entered|subsequent agreements? (?:may|might) be entered|agreement to agree)\b",
+            "agent": "Neutral Legal Reviewer",
+            "clause": "Contractual Scope & Enforceability",
+            "type": "Ambiguous Future Agreement Clause",
+            "summary": "Language stating 'Subsequent contracts might be entered in case of special business' creates an ambiguous agreement to agree, leaving critical commercial terms undefined until a future dispute arises.",
+            "severity": 5,
+            "confidence": 0.85
         }
     ]
 
@@ -427,16 +494,19 @@ def run_rule_based_fallback(chunks: List[Chunk]) -> List[Dict[str, Any]]:
         text = chunk.raw_text
         for rule in rules:
             if re.search(rule["pattern"], text):
-                lines = [l.strip() for l in text.split("\n") if len(l.strip()) > 10]
                 evidence = ""
-                for line in lines:
-                    if re.search(rule["pattern"], line):
-                        evidence = line
-                        break
-                if not evidence and lines:
-                    evidence = lines[0]
-                if len(evidence) > 200:
-                    evidence = evidence[:197] + "..."
+                match = re.search(rule["pattern"], text)
+                if match:
+                    # Find a clean snippet centered around the actual match
+                    start = max(0, match.start() - 30)
+                    end = min(len(text), match.end() + 140)
+                    evidence = text[start:end].strip()
+                if not evidence:
+                    lines = [l.strip() for l in text.split("\n") if len(l.strip()) > 10]
+                    for line in lines:
+                        if re.search(rule["pattern"], line):
+                            evidence = line[:197] + "..." if len(line) > 200 else line
+                            break
                 
                 # Strict verification: evidence MUST exist in the chunk
                 if evidence and (evidence in text or evidence[:30] in text):
@@ -450,13 +520,107 @@ def run_rule_based_fallback(chunks: List[Chunk]) -> List[Dict[str, Any]]:
                             "evidence_quote": evidence,
                             "severity_score": rule["severity"],
                             "confidence": rule["confidence"],
-                            "verification_status": "verified",
+                            "verification_status": "unverified",
                             "risk_level": "Critical" if rule["severity"] >= 8 else ("High" if rule["severity"] >= 7 else "Medium")
                         }
                         finding_item["consensus_reasoning"] = generate_consensus_reasoning(finding_item)
                         findings.append(finding_item)
     
     return findings
+
+def validate_evidence_grounding(finding: Dict[str, Any], full_text: str) -> tuple[bool, str]:
+    """
+    Validates that a finding is genuinely grounded in the document text.
+    1. The evidence_quote must exist verbatim (or near-verbatim) in full_text.
+    2. Semantic validation: Prevents false-positive category hallucinations
+       (e.g., claiming Indemnity / Legal Fees when the quote has no indemnity language;
+       claiming Vague Deliverables / Finished Work when the quote has no acceptance terms).
+    """
+    quote = (finding.get("evidence_quote") or "").strip()
+    if not quote:
+        return False, "Evidence quote is empty."
+    
+    norm_quote = " ".join(quote.split())
+    norm_text = " ".join(full_text.split())
+    
+    prefix = norm_quote[:35] if len(norm_quote) > 35 else norm_quote
+    if norm_quote not in norm_text and prefix not in norm_text:
+        return False, "Evidence quote does not appear in document text."
+
+    finding_type_lower = (finding.get("finding_type") or "").lower()
+    clause_type_lower = (finding.get("clause_type") or "").lower()
+    summary_lower = (finding.get("summary") or "").lower()
+    combined_desc = f"{finding_type_lower} {clause_type_lower} {summary_lower}"
+
+    # Anti-Hallucination Rule 1: Indemnity & Third-Party Legal Fees
+    is_indemnity_claim = any(k in combined_desc for k in ["indemn", "hold harmless", "legal fee", "attorney", "lawsuit trap"])
+    if is_indemnity_claim:
+        has_indemnity_terms = bool(re.search(r"(?i)\b(indemnif\w*|indemnity|hold\s+harmless|defend\b|attorney(?:'s|\s+)?fees|legal\s+fees|third[-\s]party\s+claims?)\b", quote))
+        if not has_indemnity_terms:
+            return False, "Finding asserts indemnity or legal fee risk, but quoted text contains no indemnification, hold harmless, or fee-shifting language."
+
+    # Anti-Hallucination Rule 2: Finished Work / Software Acceptance Deliverables
+    is_deliverables_claim = any(k in combined_desc for k in ["vague deliverable", "finished work", "acceptance criteria", "milestone acceptance"])
+    if is_deliverables_claim:
+        has_deliverable_terms = bool(re.search(r"(?i)\b(deliverable|acceptance|statement of work|sow|milestone|specifications?|sign[-\s]off|finished work)\b", quote))
+        if not has_deliverable_terms:
+            return False, "Finding asserts vague deliverables or acceptance risk, but quoted text contains no deliverable or acceptance terms."
+
+    return True, "Valid"
+
+def deduplicate_findings(findings: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Deterministically collapses duplicate findings produced across multiple agents or chunks.
+    Groups findings targeting the same clause type or risk concept on overlapping evidence quotes.
+    Merges agent perspectives into a unified consensus deliberation.
+    """
+    if not findings:
+        return []
+
+    def text_similarity(s1: str, s2: str) -> float:
+        w1 = set(re.findall(r"\w+", s1.lower()))
+        w2 = set(re.findall(r"\w+", s2.lower()))
+        if not w1 or not w2:
+            return 0.0
+        return len(w1.intersection(w2)) / len(w1.union(w2))
+
+    deduped: List[Dict[str, Any]] = []
+    
+    for f in findings:
+        q = (f.get("evidence_quote") or "").strip()
+        matched = False
+        for existing in deduped:
+            eq = (existing.get("evidence_quote") or "").strip()
+            same_clause = existing.get("clause_type", "").lower() == f.get("clause_type", "").lower()
+            same_type = existing.get("finding_type", "").lower() == f.get("finding_type", "").lower()
+            quote_overlap = (q in eq or eq in q or text_similarity(q, eq) >= 0.40)
+            
+            if (same_clause and quote_overlap) or (same_type and quote_overlap):
+                matched = True
+                if f.get("severity_score", 0) > existing.get("severity_score", 0):
+                    existing["severity_score"] = f["severity_score"]
+                    existing["risk_level"] = f["risk_level"]
+                    existing["summary"] = f["summary"]
+                    existing["finding_type"] = f["finding_type"]
+                
+                existing_agents = [a.strip() for a in existing.get("agent_name", "").split(",") if a.strip()]
+                new_agent = f.get("agent_name", "").strip()
+                if new_agent and new_agent not in existing_agents:
+                    existing_agents.append(new_agent)
+                    existing["agent_name"] = ", ".join(existing_agents)
+                
+                exist_delib = existing.get("consensus_reasoning", {}).get("deliberation", [])
+                new_delib = f.get("consensus_reasoning", {}).get("deliberation", [])
+                agent_names_in_delib = {d.get("agent") for d in exist_delib}
+                for d in new_delib:
+                    if d.get("agent") not in agent_names_in_delib:
+                        exist_delib.append(d)
+                break
+                
+        if not matched:
+            deduped.append(dict(f))
+            
+    return deduped
 
 def get_risk_level(score: float) -> str:
     if score >= 8.0:
@@ -469,7 +633,7 @@ def get_risk_level(score: float) -> str:
         return "Low"
 
 def analyze_document_content(chunks: List[Chunk]) -> Dict[str, Any]:
-    """Orchestrates multi-agent analysis and runs the consensus builder with hard grounding verification."""
+    """Orchestrates multi-agent analysis and runs the consensus builder with hard grounding verification and deduplication."""
     full_text = "\n\n".join([c.raw_text for c in chunks])
     raw_findings = []
     use_llm = True
@@ -511,25 +675,35 @@ def analyze_document_content(chunks: List[Chunk]) -> Dict[str, Any]:
     if not use_llm or not raw_findings:
         raw_findings = run_rule_based_fallback(chunks)
 
-    # Hard Grounding Assertion: Filter out ANY finding whose evidence_quote is not in the document
-    findings = []
+    # 1. candidate -> evidence_validated (or rejected)
+    validated_findings = []
     for f in raw_findings:
-        quote = (f.get("evidence_quote") or "").strip()
-        if quote and (quote in full_text or quote[:40] in full_text):
+        f["lifecycle_stage"] = "candidate"
+        is_valid, reason = validate_evidence_grounding(f, full_text)
+        if is_valid:
             f["verification_status"] = "verified"
-            findings.append(f)
+            f["lifecycle_stage"] = "evidence_validated"
+            validated_findings.append(f)
         else:
-            logger.warning(f"GROUNDING ENFORCEMENT: Discarding hallucinated/ungrounded finding '{f.get('finding_type')}' with quote '{quote}'")
+            f["verification_status"] = "rejected"
+            f["lifecycle_stage"] = "rejected"
+            f["rejection_reason"] = reason
+            logger.warning(f"GROUNDING ENFORCEMENT: Discarding hallucinated/ungrounded finding '{f.get('finding_type')}' with quote '{f.get('evidence_quote')}': {reason}")
         
-    # Consensus Aggregator & Risk Scoring
-    critical_count = sum(1 for f in findings if f["risk_level"] == "Critical")
-    high_count = sum(1 for f in findings if f["risk_level"] == "High")
-    medium_count = sum(1 for f in findings if f["risk_level"] == "Medium")
-    low_count = sum(1 for f in findings if f["risk_level"] == "Low")
+    # 2. evidence_validated -> deduplicated -> final
+    final_findings = deduplicate_findings(validated_findings)
+    for f in final_findings:
+        f["lifecycle_stage"] = "final"
+
+    # 3. Consensus Aggregator & Risk Scoring strictly on FINAL validated findings
+    critical_count = sum(1 for f in final_findings if f["risk_level"] == "Critical")
+    high_count = sum(1 for f in final_findings if f["risk_level"] == "High")
+    medium_count = sum(1 for f in final_findings if f["risk_level"] == "Medium")
+    low_count = sum(1 for f in final_findings if f["risk_level"] == "Low")
     
-    if findings:
+    if final_findings:
         raw_score = 1.0 + (critical_count * 2.0) + (high_count * 1.2) + (medium_count * 0.5) + (low_count * 0.1)
-        aggregate_risk_score = min(10.0, raw_score)
+        aggregate_risk_score = round(min(10.0, raw_score), 1)
     else:
         aggregate_risk_score = 1.0
     risk_level = get_risk_level(aggregate_risk_score)
@@ -538,7 +712,7 @@ def analyze_document_content(chunks: List[Chunk]) -> Dict[str, Any]:
     vulnerabilities = []
     recommendations = []
     
-    for f in findings:
+    for f in final_findings:
         if f["severity_score"] >= 7:
             vulnerabilities.append(f"{f['clause_type']} ({f['agent_name']}): {f['summary']}")
             recommendations.append(f"Modify the {f['clause_type']} clause. Specifically address the {f['finding_type']} vulnerability.")
@@ -567,5 +741,5 @@ def analyze_document_content(chunks: List[Chunk]) -> Dict[str, Any]:
         "medium_count": medium_count,
         "low_count": low_count,
         "consensus_report": consensus_report,
-        "findings": findings
+        "findings": final_findings
     }

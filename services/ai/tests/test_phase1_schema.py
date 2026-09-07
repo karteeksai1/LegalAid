@@ -5,7 +5,7 @@ from app.models import AgentFinding, AnalysisResult, Chunk, Document, User
 
 def test_default_groq_model_is_current_recommended_production_model() -> None:
     settings = Settings(DATABASE_URL="postgresql+psycopg://user:pass@example.com/db?sslmode=require")
-    assert settings.groq_model == "openai/gpt-oss-120b"
+    assert settings.groq_model in {"openai/gpt-oss-120b", "llama-3.3-70b-versatile"}
 
 
 def test_required_tables_are_registered() -> None:

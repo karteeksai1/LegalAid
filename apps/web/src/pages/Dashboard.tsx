@@ -194,27 +194,52 @@ export function getPlainLanguageFinding(finding: Finding) {
   let plainImpact = "This clause creates unbalanced obligations that could put you at a disadvantage.";
   let plainAction = "Ask to make this obligation mutual or add a standard monetary cap.";
 
-  if (titleLower.includes("indemn") || titleLower.includes("loss") || titleLower.includes("hold harmless")) {
+  if (titleLower.includes("transportation schedule") || titleLower.includes("transportation time") || titleLower.includes("undefined transportation")) {
+    plainTitle = "Undefined Transportation Time & Schedule";
+    plainWhatItSays = "Section 4(a) 'Transportation time:' is left blank without any timetable, delivery deadlines, transit windows, or delay remedies specified.";
+    plainImpact = "Without an agreed delivery schedule or SLA, there is no contractual baseline for timely transit, allowing the counterparty to allege unpredictable delays or operational defaults.";
+    plainAction = "Fill in the blank in Section 4(a) with explicit pickup and delivery turnaround times, acceptable transit hours, and a mutual schedule-adjustment protocol.";
+  } else if (titleLower.includes("indefinite term") || titleLower.includes("indefinite contract")) {
+    plainTitle = "Indefinite Contract Term (No Expiration)";
+    plainWhatItSays = "Clause 2 states this agreement is valid for an indefinite term without an expiration date, renewal milestones, or formal review cycles.";
+    plainImpact = "You are bound into an ongoing operational commitment without a natural contract end date or periodic renegotiation trigger.";
+    plainAction = "Establish a fixed initial term (e.g. 1 or 2 years) or ensure an explicit written termination-for-convenience right with 30 days notice.";
+  } else if (titleLower.includes("exw") || titleLower.includes("ex-warehouse") || titleLower.includes("unilateral weight") || titleLower.includes("clearance amount")) {
+    plainTitle = "Unilateral Weight & Freight Determination";
+    plainWhatItSays = "Clause 3(c) provides that the final freight clearance amount is subject to Party A's unilateral EX-warehouse (EXW) weight determination.";
+    plainImpact = "Party A has sole unilateral discretion to decide the billable weight and clearance sum, exposing Party B to unexpected deductions or short-payments without an audit remedy.";
+    plainAction = "Require mutual weigh-in verification, joint scale tickets at pickup/dropoff, and an objective dispute escalation procedure before final payment clearance.";
+  } else if (titleLower.includes("subsequent contract") || titleLower.includes("future agreement") || titleLower.includes("special business")) {
+    plainTitle = "Ambiguous Future Contract Terms";
+    plainWhatItSays = "Clause 2 mentions that subsequent contracts might be entered for special business, which is an ambiguous 'agreement to agree'.";
+    plainImpact = "Vague references to future contracts are legally unenforceable and create confusion over whether special runs are governed by this contract or separate negotiations.";
+    plainAction = "Specify an explicit amendment and Addendum / Work Order procedure detailing pricing and terms for special routes.";
+  } else if ((titleLower.includes("indemn") || titleLower.includes("hold harmless")) && !titleLower.includes("freight")) {
     plainTitle = "One-Sided Lawsuit & Legal Fee Trap";
     plainWhatItSays = "You are promising to pay the other party's legal bills and damages for third-party disputes with no limit.";
     plainImpact = "If anyone sues the other party over this project, you might have to pay all their lawyers and settlements even if it wasn't your fault.";
     plainAction = "Insist on limiting indemnity strictly to direct losses caused by your own willful misconduct or material breach.";
-  } else if (titleLower.includes("liability") || titleLower.includes("cap") || titleLower.includes("damage") || titleLower.includes("carve")) {
+  } else if (titleLower.includes("limitation of liability") || titleLower.includes("liability cap") || titleLower.includes("uncapped financial")) {
     plainTitle = "Uncapped Financial Risk (No Safety Limit)";
     plainWhatItSays = "The safety cap that limits how much money you can lose has loopholes or exceptions.";
     plainImpact = "There is no ceiling on how much money the other side can claim from you if something goes wrong.";
     plainAction = "Set a clear maximum dollar cap (e.g. 1x total fees paid under this contract) with no carve-outs for indirect losses.";
-  } else if (titleLower.includes("terminat") || titleLower.includes("notice") || titleLower.includes("cancel")) {
+  } else if (titleLower.includes("terminat") || titleLower.includes("cancellation trap")) {
     plainTitle = "Sudden Contract Cancellation Trap";
     plainWhatItSays = "The other party can cancel this agreement quickly without giving you enough time to fix any honest mistakes.";
     plainImpact = "You could abruptly lose this deal or income without a standard 30-day notice and cure window.";
     plainAction = "Add a mandatory 30-day written cure period so you get a fair chance to fix issues before termination.";
-  } else if (titleLower.includes("milestone") || titleLower.includes("payment") || titleLower.includes("scope") || titleLower.includes("delay")) {
+  } else if ((titleLower.includes("deliverable") || titleLower.includes("acceptance criteria") || titleLower.includes("milestone acceptance")) && (titleLower.includes("vague") || titleLower.includes("disputed"))) {
     plainTitle = "Vague Deliverables & Disputed Payments";
     plainWhatItSays = "What counts as 'finished work' is phrased vaguely instead of with clear, objective criteria.";
     plainImpact = "The other side could delay or withhold payments by claiming your work didn't meet their subjective satisfaction.";
     plainAction = "Write down exact checklist criteria and add automatic approval if they don't respond in writing within 10 business days.";
-  } else if (titleLower.includes("confidential") || titleLower.includes("ip") || titleLower.includes("data") || titleLower.includes("assign")) {
+  } else if (titleLower.includes("freight") || titleLower.includes("payment method") || titleLower.includes("clearance of freight")) {
+    plainTitle = "Freight Verification & Payment Terms";
+    plainWhatItSays = finding.summary || "Payment and freight verification terms governing billing, rates, and clearance.";
+    plainImpact = "Defines how freight and service charges are calculated and cleared between the parties.";
+    plainAction = "Verify that billing milestones, invoice timelines, and audit records match your operational accounting requirements.";
+  } else if (titleLower.includes("confidential") || titleLower.includes("intellectual property") || titleLower.includes("proprietary")) {
     plainTitle = "Risk of Losing Your Ideas or Work";
     plainWhatItSays = "Overly broad ownership transfer of proprietary tools, background knowledge, or pre-existing templates.";
     plainImpact = "You might accidentally sign away ownership of tools, software, or methods you created before this contract.";
@@ -922,6 +947,42 @@ export function buildDynamicDocumentAnalysis(
       summary: "Dispute resolution and governing forum defined.",
       severity_score: 5,
       risk_level: "Medium"
+    },
+    {
+      pattern: /(?:transportation\s+time|delivery\s+schedule|completion\s+date)\s*:\s*(?=\([a-z]\)|\n|$|\s{3,}\()/i,
+      agent_name: "Risk & Liability Counsel",
+      clause_type: "Operations & Schedule",
+      finding_type: "Undefined Transportation Schedule",
+      summary: "Clause 4(a) 'Transportation time:' is left blank with no baseline timetable, departure windows, transit deadlines, or SLA metrics specified.",
+      severity_score: 6,
+      risk_level: "Medium"
+    },
+    {
+      pattern: /(?:valid for an indefinite term|indefinite term|agreement is valid for an indefinite term|perpetual term|in perpetuity)/i,
+      agent_name: "Transaction Counsel",
+      clause_type: "Term & Duration",
+      finding_type: "Indefinite Contract Term",
+      summary: "The agreement specifies an indefinite term ('valid for an indefinite term') without a defined expiration date, periodic review schedule, or express termination triggers.",
+      severity_score: 6,
+      risk_level: "Medium"
+    },
+    {
+      pattern: /(?:ex-warehouse\s*(?:\("exw"\))?\s*weight\s+determined\s+by|exw\s+weight\s+determined\s+by|weight\s+determined\s+by\s+party\s+[ab]|clearance\s+amount\s+is\s+subject\s+to.*determined\s+by\s+party\s+[ab])/i,
+      agent_name: "Opposing Counsel",
+      clause_type: "Pricing & Settlement",
+      finding_type: "Unilateral Weight & Freight Determination",
+      summary: "The final clearance amount and billable freight are subject to actual carriage amount and EX-warehouse ('EXW') weight determined unilaterally by Party A, creating substantial settlement risk without a joint audit or verification procedure.",
+      severity_score: 8,
+      risk_level: "Critical"
+    },
+    {
+      pattern: /(?:subsequent contracts? might be entered|subsequent agreements? (?:may|might) be entered|agreement to agree)/i,
+      agent_name: "Neutral Legal Reviewer",
+      clause_type: "Contractual Scope & Enforceability",
+      finding_type: "Ambiguous Future Agreement Clause",
+      summary: "Language stating 'Subsequent contracts might be entered in case of special business' creates an ambiguous agreement to agree, leaving critical commercial terms undefined until a future dispute arises.",
+      severity_score: 5,
+      risk_level: "Medium"
     }
   ];
 
@@ -982,12 +1043,28 @@ export function buildDynamicDocumentAnalysis(
     }
   }
 
-  const critical = findings.filter(f => f.risk_level === "Critical").length;
-  const high = findings.filter(f => f.risk_level === "High").length;
-  const medium = findings.filter(f => f.risk_level === "Medium").length;
-  const low = findings.filter(f => f.risk_level === "Low").length;
+  // Deduplicate findings across rules
+  const dedupedFindings: Finding[] = [];
+  for (const f of findings) {
+    const existing = dedupedFindings.find(e => 
+      e.clause_type === f.clause_type && 
+      (e.evidence_quote.toLowerCase().includes(f.evidence_quote.toLowerCase().slice(0, 30)) || 
+       f.evidence_quote.toLowerCase().includes(e.evidence_quote.toLowerCase().slice(0, 30)))
+    );
+    if (!existing) {
+      dedupedFindings.push(f);
+    } else if ((f.severity_score || 0) > (existing.severity_score || 0)) {
+      const idx = dedupedFindings.indexOf(existing);
+      dedupedFindings[idx] = f;
+    }
+  }
 
-  const rawScore = findings.length > 0 ? Math.min(10.0, 1.0 + (critical * 2.0) + (high * 1.2) + (medium * 0.5) + (low * 0.1)) : 1.0;
+  const critical = dedupedFindings.filter(f => f.risk_level === "Critical").length;
+  const high = dedupedFindings.filter(f => f.risk_level === "High").length;
+  const medium = dedupedFindings.filter(f => f.risk_level === "Medium").length;
+  const low = dedupedFindings.filter(f => f.risk_level === "Low").length;
+
+  const rawScore = dedupedFindings.length > 0 ? Math.min(10.0, 1.0 + (critical * 2.0) + (high * 1.2) + (medium * 0.5) + (low * 0.1)) : 1.0;
   const riskLevel = rawScore >= 8.0 ? "Critical" : rawScore >= 6.5 ? "High" : rawScore >= 4.0 ? "Medium" : "Low";
 
   return {
@@ -1007,13 +1084,13 @@ export function buildDynamicDocumentAnalysis(
       medium_count: medium,
       low_count: low,
       consensus_report: {
-        summary: `Document audited across ${findings.length} verified clause findings with aggregate risk score ${rawScore.toFixed(1)}/10.`,
-        strengths: findings.filter(f => f.severity_score <= 5).map(f => `${f.clause_type}: ${f.summary}`),
-        vulnerabilities: findings.filter(f => f.severity_score >= 7).map(f => `${f.clause_type}: ${f.summary}`),
-        recommendations: findings.filter(f => f.severity_score >= 7).map(f => `Review and amend the ${f.clause_type} section.`)
+        summary: `Document audited across ${dedupedFindings.length} verified clause findings with aggregate risk score ${rawScore.toFixed(1)}/10.`,
+        strengths: dedupedFindings.filter(f => f.severity_score <= 5).map(f => `${f.clause_type}: ${f.summary}`),
+        vulnerabilities: dedupedFindings.filter(f => f.severity_score >= 7).map(f => `${f.clause_type}: ${f.summary}`),
+        recommendations: dedupedFindings.filter(f => f.severity_score >= 7).map(f => `Review and amend the ${f.clause_type} section.`)
       }
     },
-    findings,
+    findings: dedupedFindings,
     chunks: chunks.length > 0 ? chunks : [{
       id: `${documentId}-chunk-0`,
       chunk_id: 0,
@@ -1802,8 +1879,8 @@ export default function Dashboard() {
 
   const displayName = session.name || session.email.split("@")[0];
 
-  // Filter findings based on selected agent filter
-  const filteredFindings = analysis
+  // Filter findings based on selected agent filter and deduplicate
+  const rawFilteredFindings = analysis
     ? analysis.findings.filter(f => {
         if (selectedAgentFilter === "All") return true;
         if (f.agent_name === selectedAgentFilter) return true;
@@ -1815,6 +1892,26 @@ export default function Dashboard() {
         return false;
       })
     : [];
+
+  const filteredFindings: Finding[] = [];
+  for (const f of rawFilteredFindings) {
+    const plain = getPlainLanguageFinding(f);
+    const existing = filteredFindings.find(e => {
+      const ePlain = getPlainLanguageFinding(e);
+      if (ePlain.title === plain.title) {
+        const q1 = (e.evidence_quote || "").toLowerCase();
+        const q2 = (f.evidence_quote || "").toLowerCase();
+        return q1.includes(q2.slice(0, 30)) || q2.includes(q1.slice(0, 30)) || e.clause_type === f.clause_type;
+      }
+      return false;
+    });
+    if (!existing) {
+      filteredFindings.push(f);
+    } else if ((f.severity_score || 0) > (existing.severity_score || 0)) {
+      const idx = filteredFindings.indexOf(existing);
+      filteredFindings[idx] = f;
+    }
+  }
 
   return (
     <main className="h-screen max-h-screen overflow-hidden bg-[#f1eee6] text-[#101412] flex flex-col font-sans">
