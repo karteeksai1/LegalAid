@@ -375,6 +375,8 @@ def main():
     parser = argparse.ArgumentParser(description="LegalAid Benchmark Evaluation & Groundedness Comparison")
     parser.add_argument("target", nargs="?", default=None, help="Optional specific file or folder inside test_data to evaluate.")
     parser.add_argument("--eval-results", dest="eval_results", default=None, help="Path to past eval JSON run results.")
+    parser.add_argument("--truth-file", dest="truth_file", default=None, help="Explicit path to a JSON/TXT file containing ground truth findings.")
+    parser.add_argument("--inspect", action="store_true", help="Print detailed side-by-side match comparisons for each finding.")
     args = parser.parse_args()
 
     print("=" * 92)
@@ -392,8 +394,33 @@ def main():
         sys.exit(1)
 
     print(f"📂 Test Data Directory : {target_path}")
-    print(f"📂 Findings Directory  : {FINDINGS_DIR}")
-    gt_map = load_ground_truth(test_files)
+    if args.truth_file:
+        custom_truth_path = Path(args.truth_file).resolve()
+        print(f"📂 Custom Truth File   : {custom_truth_path}")
+        # Temporarily read directly from custom truth file
+        doc_text_map = {f.name: extract_text_from_file(f) for f in test_files}
+        gt_map = {f.name: [] for f in test_files}
+        raw_data = parse_json_safely(custom_truth_path.read_text(encoding="utf-8", errors="replace"))
+        items = raw_data if isinstance(raw_data, list) else (raw_data.get("findings", []) if isinstance(raw_data, dict) else [])
+        for item in items:
+            q = item.get("evidence_quote", "")
+            s = item.get("summary", "")
+            routed = False
+            for fname, dtext in doc_text_map.items():
+                stem = fname.split("_")[0]
+                if (len(stem) > 4 and stem.lower() in s.lower()) or stem.lower() in str(item).lower():
+                    gt_map[fname].append(item)
+                    routed = True
+                    break
+                if q and q[:40].lower() in dtext.lower():
+                    gt_map[fname].append(item)
+                    routed = True
+                    break
+            if not routed and len(test_files) == 1:
+                gt_map[test_files[0].name].append(item)
+    else:
+        print(f"📂 Findings Directory  : {FINDINGS_DIR}")
+        gt_map = load_ground_truth(test_files)
 
     precomputed_map: Dict[str, List[Dict[str, Any]]] = {}
     if args.eval_results:
@@ -463,6 +490,42 @@ def main():
     print(f"   • Recall                 : {overall_rec:.4f} ({overall_rec*100:.1f}%)")
     print(f"   • F1 Score               : {overall_f1:.4f}")
     print(f"   • Document Groundedness  : {overall_groundedness:.1f}% (verbatim quote authenticity)")
+
+    # Detailed Inspection Mode
+    if args.inspect or len(test_files) == 1:
+        for r in results:
+            if r["ground_truth_count"] == 0:
+                continue
+            print("\n" + "─" * 92)
+            print(f"🔍 Detailed Finding Inspection for: {r['filename']}")
+            print("─" * 92)
+            
+            print(f"\n✅ MATCHED FINDINGS (True Positives: {len(r['matched_pairs'])}):")
+            if not r["matched_pairs"]:
+                print("   (None)")
+            for idx, pair in enumerate(r["matched_pairs"], 1):
+                p = pair["predicted"]
+                g = pair["ground_truth"]
+                print(f"   [{idx}] CLAUSE: {p.get('clause_type')} ↔ {g.get('clause_type')}")
+                print(f"       • GPT Truth   : \"{g.get('finding_type')}\" (Severity: {g.get('severity_score', '?')}/10)")
+                print(f"         Quote       : \"{g.get('evidence_quote', '')[:100]}...\"")
+                print(f"       • System Pred : \"{p.get('finding_type')}\" (Severity: {p.get('severity_score', '?')}/10)")
+                print(f"         Quote       : \"{p.get('evidence_quote', '')[:100]}...\"")
+                print(f"       • Match Alignment: Token Overlap = {pair['quote_similarity']:.2f}, Severity Diff = {pair['score_diff']}")
+
+            print(f"\n❌ MISSED TRUTH FINDINGS (False Negatives: {len(r['false_negative_findings'])}):")
+            if not r["false_negative_findings"]:
+                print("   (None)")
+            for idx, fn_item in enumerate(r["false_negative_findings"], 1):
+                print(f"   [{idx}] \"{fn_item.get('finding_type')}\" (Clause: {fn_item.get('clause_type')}, Sev: {fn_item.get('severity_score', '?')})")
+                print(f"       Quote: \"{fn_item.get('evidence_quote', '')[:120]}...\"")
+
+            print(f"\n⚠️ EXTRA SYSTEM FINDINGS (False Positives: {len(r['false_positive_findings'])}):")
+            if not r["false_positive_findings"]:
+                print("   (None)")
+            for idx, fp_item in enumerate(r["false_positive_findings"], 1):
+                print(f"   [{idx}] \"{fp_item.get('finding_type')}\" (Clause: {fp_item.get('clause_type')}, Sev: {fp_item.get('severity_score', '?')})")
+                print(f"       Quote: \"{fp_item.get('evidence_quote', '')[:120]}...\"")
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     report_file = RESULTS_DIR / f"comparison_report_{timestamp}.json"
