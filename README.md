@@ -19,6 +19,104 @@ LegalAid takes a legal document and runs it through a structured review pipeline
 
 The AI layer is intentionally guardrailed. Agents must cite retrieved text, keep document content out of system prompts, return structured JSON, and use `VERIFICATION_UNAVAILABLE` when evidence cannot be verified.
 
+## System Architecture
+
+```mermaid
+flowchart TB
+    subgraph UI["Client / Presentation Layer (React + Vite)"]
+        User["User / Legal Reviewer"]
+        subgraph Views["Dashboard & Views"]
+            SimpleView["Simple Mode (Plain English Advisor)"]
+            StdView["Standard Mode (5-Agent Legal Review)"]
+            ChatUI["Interactive Q&A Chat (Synonym-aware)"]
+            FindingsUI["Clause Heatmap & Evidence Drawer"]
+        end
+    end
+
+    subgraph Gateway["API Gateway & Orchestration (Express.js / Node.js)"]
+        Auth["Auth & Session Management"]
+        UploadHandler["Multipart Upload & Validation"]
+        JobRouter["Task Orchestrator & Proxy"]
+    end
+
+    subgraph AIService["AI Microservice (FastAPI + Python 3.11)"]
+        subgraph Ingestion["Ingestion & Document Guardrails"]
+            Parser["Text Extractor (PyMuPDF / OCR)"]
+            DocClassifier["Pre-Flight Contract Classifier<br/>(Validates Legal vs Non-Legal / Templates)"]
+            Chunker["Legal Semantic Chunker<br/>(Clauses, Parties, Pages)"]
+        end
+
+        subgraph Guardrails["Security & Intent Gateway"]
+            SecFilter["Security Filter<br/>(Injection & Citation Fabrication Guardrails)"]
+            IntentRouter["Intent Classifier & Synonym Expander<br/>(Layperson queries & Outcome predictions)"]
+        end
+
+        subgraph Agents["Multi-Agent Specialist Review Panel"]
+            RLC["Risk & Liability Counsel<br/>(Liabilities & Unfavorable Terms)"]
+            OC["Opposing Counsel<br/>(Adversarial Stress-Testing)"]
+            TC["Transaction Counsel<br/>(Drafting Quality & Vagueness)"]
+            NLR["Neutral Legal Reviewer<br/>(Enforceability & Precedent)"]
+            RCC["Regulatory & Compliance Counsel<br/>(Statutory Rules & Compliance)"]
+            LECR["Legal Evidence & Citation Reviewer<br/>(Source Text Verification)"]
+        end
+
+        subgraph Synthesis["Consensus & Synthesis Engine"]
+            Arbiter["Legal Synthesis Engine<br/>(Deliberation Arbitration & Scoring)"]
+            RAGEngine["RAG Q&A Engine<br/>(Groq LLM / Rule Fallback)"]
+        end
+    end
+
+    subgraph Data["Persistence & Vector Layer"]
+        Postgres[("Neon PostgreSQL<br/>Users, Docs, Chunks, Findings, Chats")]
+        Pinecone[("Pinecone Vector DB<br/>Dense Semantic Embeddings")]
+    end
+
+    User -->|Upload Document / Ask Questions| Views
+    Views --> Auth
+    Auth --> UploadHandler
+    UploadHandler --> JobRouter
+
+    JobRouter --> Parser
+    Parser --> DocClassifier
+    DocClassifier -->|Valid Contract| Chunker
+    DocClassifier -.->|Rejected / Non-Legal| Views
+    Chunker --> Postgres
+    Chunker --> Pinecone
+
+    Chunker --> Agents
+    Agents --> Arbiter
+    Arbiter --> Postgres
+    Arbiter --> Views
+
+    ChatUI --> SecFilter
+    SecFilter --> IntentRouter
+    IntentRouter --> RAGEngine
+    RAGEngine --> Pinecone
+    RAGEngine --> Postgres
+    RAGEngine --> ChatUI
+```
+
+### Architectural Highlights
+
+1. **Dual-Mode Presentation Layer**:
+   - **Simple Mode**: Renders legal risk through non-lawyer plain English explanations, actionable recommendations, and plain arbitration summaries.
+   - **Standard Mode**: Full legal practitioner audit trail, displaying clause severity scores (1–10), multi-agent consensus deliberations, adversarial attack vectors, and verbatim evidence snippets.
+   - **Interactive Q&A Engine**: Real-time RAG-powered chat supporting everyday layperson vocabulary (synonym expansion for terms like *"cancel on me"*, *"drop me"*, *"mess up"*), tailored court litigation prediction refusals, and anti-hallucination guardrails.
+
+2. **API Gateway & Orchestration (Express.js)**:
+   - Manages JWT authentication, persistent document lifecycles, and resilient client fallbacks.
+   - Streams requests to the AI microservice while maintaining a local cache and optimistic state sync.
+
+3. **AI Microservice & Multi-Agent Engine (FastAPI)**:
+   - **Pre-Flight Contract Classifier**: Distinguishes binding legal contracts from non-legal documents (e.g. personal IDs, receipts) and safely accepts contract templates with blank fields (e.g. NDAs).
+   - **Specialist Multi-Agent Review Panel**: Six distinct agent personas analyze the document in parallel across adversarial, transaction structure, regulatory, liability, and citation-checking dimensions.
+   - **Legal Synthesis Engine**: Merges competing findings into an evidence-backed final consensus report with deterministic 0–100 risk scoring.
+   - **Strict Security Guardrails**: Proactively detects and intercepts prompt injection attempts and demands for fabricated case law citations before queries reach the LLM.
+
+4. **Persistence & Vector Layer**:
+   - **Neon PostgreSQL**: Stores user credentials, document metadata, extracted chunks, agent findings, and full conversation trajectories.
+   - **Pinecone Vector Database**: Indexes chunk embeddings with deterministic metadata for high-precision semantic retrieval.
+
 ## Current Status
 
 Phase 1 scaffold is in place:
