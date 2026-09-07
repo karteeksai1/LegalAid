@@ -56,30 +56,6 @@ Legal Synthesis Engine (Cross-agent arbitration, conflict resolution & 0-100 sco
 Interactive React Dashboard (Dual Simple/Standard Modes + Grounded Q&A Chat)
 ```
 
-```mermaid
-flowchart LR
-    subgraph S1["1. User & Web UI"]
-        A["<b>React Dashboard</b><br/>• Simple & Standard Views<br/>• Interactive Q&A Chat<br/>• Clause Risk Heatmap"]
-    end
-
-    subgraph S2["2. Ingestion & Guardrails"]
-        B["<b>FastAPI Core</b><br/>• Text & OCR Extraction<br/>• Contract Classifier<br/>• Prompt & Security Filters"]
-    end
-
-    subgraph S3["3. Multi-Agent Review"]
-        C["<b>Specialist Legal Panel</b><br/>• Risk & Liability Counsel<br/>• Opposing Counsel (Adversarial)<br/>• Transaction & Regulatory<br/>• Neutral Legal Reviewer"]
-    end
-
-    subgraph S4["4. Synthesis & Storage"]
-        D["<b>Legal Synthesis Engine</b><br/>• 0–100 Consensus Score<br/>• Source-Grounded Citations<br/>• Neon DB & Pinecone Vectors"]
-    end
-
-    S1 -->|Upload Contract / Query| S2
-    S2 -->|Structured Chunks| S3
-    S3 -->|Agent Findings| S4
-    S4 -.->|Audited Report & Answers| S1
-```
-
 ## What Makes This Different From Existing Tools
 
 | Capability | LegalAid | ChatGPT / Claude | Ironclad / DocuSign | Robin AI / Spellbook |
