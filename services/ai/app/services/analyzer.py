@@ -10,35 +10,35 @@ logger = logging.getLogger(__name__)
 
 # Specialized Agent Personas
 AGENTS = {
-    "Defense Counsel": {
-        "role": "Defense Counsel",
-        "description": "Reviews liability, risk allocation, indemnification, dispute exposure, and adversarial vulnerabilities.",
-        "system_prompt": "You are a senior Defense Counsel. Analyze the following contract section and identify liabilities, broad indemnity terms, un-reciprocated obligations, and dispute exposure. Provide output in clean JSON format."
+    "Risk & Liability Counsel": {
+        "role": "Risk & Liability Counsel",
+        "description": "Identifies liabilities, unfavorable clauses, loopholes, exposures, and potential claims against the client.",
+        "system_prompt": "You are a senior Risk & Liability Counsel. Analyze the following contract section and identify liabilities, broad indemnity terms, un-reciprocated obligations, and dispute exposure. Provide output in clean JSON format."
     },
-    "Plaintiff Counsel": {
-        "role": "Plaintiff Counsel",
+    "Opposing Counsel": {
+        "role": "Opposing Counsel",
         "description": "Actively argues against the document from an adversarial litigation perspective — surfacing loopholes, ambiguous milestones, unilateral exploitation vectors, and breach traps.",
-        "system_prompt": "You are an aggressive Plaintiff's/Opposing Counsel. Analyze the contract section strictly from the perspective of an adverse party seeking maximum commercial leverage, litigation vulnerabilities, unilateral exploitation opportunities, uncapped dispute vectors, and breach traps. Provide output in clean JSON format."
+        "system_prompt": "You are an aggressive Opposing Counsel. Analyze the contract section strictly from the perspective of an adverse party seeking maximum commercial leverage, litigation vulnerabilities, unilateral exploitation opportunities, uncapped dispute vectors, and breach traps. Provide output in clean JSON format."
     },
-    "Drafting Counsel": {
-        "role": "Drafting Counsel",
-        "description": "Evaluates document formatting, consistency, ambiguity in terminology, definition scopes, and grammar.",
-        "system_prompt": "You are a Drafting Counsel. Analyze the following contract section for ambiguities, undefined terms, conflicting clauses, and poorly structured text. Provide output in clean JSON format."
+    "Transaction Counsel": {
+        "role": "Transaction Counsel",
+        "description": "Reviews the agreement from the perspective of transaction structure, negotiation, drafting quality, and opportunities for improvement.",
+        "system_prompt": "You are a Transaction Counsel. Analyze the following contract section for ambiguities, undefined terms, conflicting clauses, drafting improvements, and poorly structured text. Provide output in clean JSON format."
     },
-    "Judge": {
-        "role": "Judge",
-        "description": "Assess enforceability, fairness, unconscionability, structural validity, and overall document legitimacy.",
-        "system_prompt": "You are an objective Judge. Evaluate the enforceability and fairness of this contract section. Identify clauses that could be ruled void, unconscionable, or legally invalid. Provide output in clean JSON format."
+    "Neutral Legal Reviewer": {
+        "role": "Neutral Legal Reviewer",
+        "description": "Independently evaluates competing findings and determines which conclusions are best supported by the evidence and legal authority.",
+        "system_prompt": "You are an objective Neutral Legal Reviewer. Evaluate the enforceability and fairness of this contract section. Identify clauses that could be ruled void, unconscionable, or legally invalid. Provide output in clean JSON format."
     },
-    "Compliance Officer": {
-        "role": "Compliance Officer",
-        "description": "Checks regulatory compliance, statutory alignments, confidentiality terms, and operational risks.",
-        "system_prompt": "You are a Regulatory Compliance Officer. Analyze this contract section for compliance with standard privacy, regulatory (e.g., GDPR, SOC2), confidentiality, and statutory guidelines. Provide output in clean JSON format."
+    "Regulatory & Compliance Counsel": {
+        "role": "Regulatory & Compliance Counsel",
+        "description": "Checks regulatory requirements, statutory obligations, approvals, filing requirements, and compliance risks.",
+        "system_prompt": "You are a Regulatory & Compliance Counsel. Analyze this contract section for compliance with standard privacy, regulatory (e.g., GDPR, SOC2), confidentiality, and statutory guidelines. Provide output in clean JSON format."
     },
-    "Citation & Evidence Agent": {
-        "role": "Citation & Evidence Agent",
-        "description": "Verifies facts, grounds findings in actual document quotes, and rates citation confidence.",
-        "system_prompt": "You are a Legal Citation and Grounding Auditor. Verify if other findings are backed by the text. Highlight specific paragraphs or sentences as evidence. Provide output in clean JSON format."
+    "Legal Evidence & Citation Reviewer": {
+        "role": "Legal Evidence & Citation Reviewer",
+        "description": "Verifies important conclusions against the source agreement and applicable legal authorities, ensuring claims are properly supported.",
+        "system_prompt": "You are a Legal Evidence & Citation Reviewer. Verify if other findings are backed by the source text and legal authorities. Highlight specific paragraphs or sentences as evidence. Provide output in clean JSON format."
     }
 }
 
@@ -118,62 +118,62 @@ def generate_consensus_reasoning(finding: Dict[str, Any]) -> Dict[str, Any]:
 
     if clause == "Indemnity" or "Indemn" in ftype:
         deliberations = [
-            {"agent": "Defense Counsel", "stance": "Client Exposure", "score": 8, "argument": "Indemnity lacks a reciprocal cap, creating uncapped pass-through liability for third-party claims."},
-            {"agent": "Plaintiff Counsel", "stance": "Adversarial Attack Path", "score": 9, "argument": "Opposing party can weaponize broad loss terms to claim indirect, incidental, and legal fees without proving direct breach."},
-            {"agent": "Judge", "stance": "Judicial Enforceability", "score": 7, "argument": "Courts generally uphold commercial indemnity as written unless clearly unconscionable. High litigation burden exists."}
+            {"agent": "Risk & Liability Counsel", "stance": "Client Exposure", "score": 8, "argument": "Indemnity lacks a reciprocal cap, creating uncapped pass-through liability for third-party claims."},
+            {"agent": "Opposing Counsel", "stance": "Adversarial Attack Path", "score": 9, "argument": "Opposing party can weaponize broad loss terms to claim indirect, incidental, and legal fees without proving direct breach."},
+            {"agent": "Neutral Legal Reviewer", "stance": "Judicial Enforceability", "score": 7, "argument": "Courts generally uphold commercial indemnity as written unless clearly unconscionable. High litigation burden exists."}
         ]
-        arbitration = "Consensus weighted toward Plaintiff adversarial exploit risk (9/10) and Judge enforceability standard (7/10), settling at final severity of 8/10."
+        arbitration = "Consensus weighted toward Opposing Counsel adversarial exploit risk (9/10) and Neutral Legal Reviewer enforceability standard (7/10), settling at final severity of 8/10."
     elif clause == "Liability" or "Liab" in ftype:
         deliberations = [
-            {"agent": "Defense Counsel", "stance": "Risk Mitigation", "score": 6, "argument": "Aggregate liability cap exists but exclusions weaken protection."},
-            {"agent": "Plaintiff Counsel", "stance": "Carve-out Exploitation", "score": 8, "argument": "Carve-outs for 'material breach' and 'confidentiality' can be leveraged to bypass the damages ceiling entirely."},
-            {"agent": "Judge", "stance": "Equitable Balance", "score": 7, "argument": "Unilateral exclusions that swallow the entire liability limitation create severe judicial scrutiny for unconscionability."}
+            {"agent": "Risk & Liability Counsel", "stance": "Risk Mitigation", "score": 6, "argument": "Aggregate liability cap exists but exclusions weaken protection."},
+            {"agent": "Opposing Counsel", "stance": "Carve-out Exploitation", "score": 8, "argument": "Carve-outs for 'material breach' and 'confidentiality' can be leveraged to bypass the damages ceiling entirely."},
+            {"agent": "Neutral Legal Reviewer", "stance": "Equitable Balance", "score": 7, "argument": "Unilateral exclusions that swallow the entire liability limitation create severe judicial scrutiny for unconscionability."}
         ]
-        arbitration = "Consensus calibrated to 7/10: Plaintiff carve-out risk balanced against Judge assessment of judicial scrutiny."
+        arbitration = "Consensus calibrated to 7/10: Opposing Counsel carve-out risk balanced against Neutral Legal Reviewer assessment of judicial scrutiny."
     elif clause == "Termination" or "Terminat" in ftype:
         deliberations = [
-            {"agent": "Drafting Counsel", "stance": "Clarity & Notice", "score": 5, "argument": "Notice period defined, but transition mechanics and post-termination survival terms are missing."},
-            {"agent": "Plaintiff Counsel", "stance": "Commercial Leverage", "score": 8, "argument": "Opposing party can terminate for convenience immediately after receiving core deliverables without paying transition costs."},
-            {"agent": "Judge", "stance": "Contractual Freedom", "score": 6, "argument": "Termination for convenience is enforceable; main risk is operational discontinuity rather than legal invalidity."}
+            {"agent": "Transaction Counsel", "stance": "Clarity & Notice", "score": 5, "argument": "Notice period defined, but transition mechanics and post-termination survival terms are missing."},
+            {"agent": "Opposing Counsel", "stance": "Commercial Leverage", "score": 8, "argument": "Opposing party can terminate for convenience immediately after receiving core deliverables without paying transition costs."},
+            {"agent": "Neutral Legal Reviewer", "stance": "Contractual Freedom", "score": 6, "argument": "Termination for convenience is enforceable; main risk is operational discontinuity rather than legal invalidity."}
         ]
-        arbitration = "Consensus calibrated to 6/10: Weighted toward commercial continuity risk identified by Plaintiff Counsel and Drafting ambiguity."
+        arbitration = "Consensus calibrated to 6/10: Weighted toward commercial continuity risk identified by Opposing Counsel and Transaction Counsel drafting ambiguity."
     elif clause == "Governing Law" or "Jurisdiction" in ftype:
         deliberations = [
-            {"agent": "Compliance Officer", "stance": "Statutory Alignment", "score": 5, "argument": "Foreign venue imposes high travel, local counsel retainers, and jurisdictional overhead."},
-            {"agent": "Plaintiff Counsel", "stance": "Forum Advantage", "score": 7, "argument": "Opposing counsel gains significant procedural advantages and hometown jury leverage in chosen forum."},
-            {"agent": "Judge", "stance": "Forum Non Conveniens", "score": 4, "argument": "Choice of law clauses are routinely enforced absent proof of bad faith or extreme unfairness."}
+            {"agent": "Regulatory & Compliance Counsel", "stance": "Statutory Alignment", "score": 5, "argument": "Foreign venue imposes high travel, local counsel retainers, and jurisdictional overhead."},
+            {"agent": "Opposing Counsel", "stance": "Forum Advantage", "score": 7, "argument": "Opposing counsel gains significant procedural advantages and hometown jury leverage in chosen forum."},
+            {"agent": "Neutral Legal Reviewer", "stance": "Forum Non Conveniens", "score": 4, "argument": "Choice of law clauses are routinely enforced absent proof of bad faith or extreme unfairness."}
         ]
-        arbitration = "Consensus resolved at 5/10: Compliance statutory baseline weighted above procedural forum advantages."
+        arbitration = "Consensus resolved at 5/10: Regulatory & Compliance Counsel statutory baseline weighted above procedural forum advantages."
     elif clause == "Intellectual Property" or "IP" in ftype:
         deliberations = [
-            {"agent": "Defense Counsel", "stance": "Asset Protection", "score": 7, "argument": "Broad assignment transfers background technology without explicit reservation of preexisting IP."},
-            {"agent": "Plaintiff Counsel", "stance": "Ownership Claim", "score": 8, "argument": "Opposing party can assert complete copyright ownership over tools, libraries, and derivative works."},
-            {"agent": "Judge", "stance": "Work-for-Hire Enforceability", "score": 6, "argument": "Assignment requires express written agreement; ambiguous scope leaves room for contentious declaratory litigation."}
+            {"agent": "Risk & Liability Counsel", "stance": "Asset Protection", "score": 7, "argument": "Broad assignment transfers background technology without explicit reservation of preexisting IP."},
+            {"agent": "Opposing Counsel", "stance": "Ownership Claim", "score": 8, "argument": "Opposing party can assert complete copyright ownership over tools, libraries, and derivative works."},
+            {"agent": "Neutral Legal Reviewer", "stance": "Work-for-Hire Enforceability", "score": 6, "argument": "Assignment requires express written agreement; ambiguous scope leaves room for contentious declaratory litigation."}
         ]
-        arbitration = "Consensus resolved at 7/10: Strong weight given to Defense asset protection and Plaintiff ownership claim vectors."
+        arbitration = "Consensus resolved at 7/10: Strong weight given to Risk & Liability Counsel asset protection and Opposing Counsel ownership claim vectors."
     elif clause == "Restrictive Covenants" or "Non-Compete" in ftype:
         deliberations = [
-            {"agent": "Defense Counsel", "stance": "Trade Restriction", "score": 7, "argument": "Covenant restricts business operations across overly broad territories and customer categories."},
-            {"agent": "Judge", "stance": "Reasonableness Standard", "score": 8, "argument": "Courts strictly scrutinize non-competes. High likelihood of clause being severed or declared void as restraint of trade."},
-            {"agent": "Plaintiff Counsel", "stance": "Injunction Threat", "score": 7, "argument": "Opposing party can seek an immediate preliminary injunction to halt new business ventures before full trial."}
+            {"agent": "Risk & Liability Counsel", "stance": "Trade Restriction", "score": 7, "argument": "Covenant restricts business operations across overly broad territories and customer categories."},
+            {"agent": "Neutral Legal Reviewer", "stance": "Reasonableness Standard", "score": 8, "argument": "Courts strictly scrutinize non-competes. High likelihood of clause being severed or declared void as restraint of trade."},
+            {"agent": "Opposing Counsel", "stance": "Injunction Threat", "score": 7, "argument": "Opposing party can seek an immediate preliminary injunction to halt new business ventures before full trial."}
         ]
-        arbitration = "Consensus calibrated to 7/10: Strongly weighted toward Judge reasonableness standard and injunction risk."
+        arbitration = "Consensus calibrated to 7/10: Strongly weighted toward Neutral Legal Reviewer reasonableness standard and injunction risk."
     else:
         deliberations = [
-            {"agent": "Defense Counsel", "stance": "Operational Review", "score": max(1, severity - 1), "argument": "Reviewed clause for client operational commitments and exposure."},
-            {"agent": "Plaintiff Counsel", "stance": "Adversarial Probe", "score": min(10, severity + 1), "argument": "Probed clause for litigation ambiguities and breach enforcement leverage."},
-            {"agent": "Judge", "stance": "Judicial Overview", "score": severity, "argument": "Evaluated clause balance against commercial standard practices."}
+            {"agent": "Risk & Liability Counsel", "stance": "Operational Review", "score": max(1, severity - 1), "argument": "Reviewed clause for client operational commitments and exposure."},
+            {"agent": "Opposing Counsel", "stance": "Adversarial Probe", "score": min(10, severity + 1), "argument": "Probed clause for litigation ambiguities and breach enforcement leverage."},
+            {"agent": "Neutral Legal Reviewer", "stance": "Judicial Overview", "score": severity, "argument": "Evaluated clause balance against commercial standard practices."}
         ]
-        arbitration = f"Consensus calibrated to {severity}/10: Balanced across Defense operational needs, Plaintiff leverage points, and Judge fairness standard."
+        arbitration = f"Consensus calibrated to {severity}/10: Balanced across Risk & Liability Counsel operational needs, Opposing Counsel leverage points, and Neutral Legal Reviewer fairness standard."
 
     plain_rule = "The panel agreed to prioritize the interpretation that best protects the document owner from unforeseen financial or legal liabilities."
-    if "Plaintiff" in arbitration or "exploit" in arbitration:
+    if "Opposing" in arbitration or "Plaintiff" in arbitration or "exploit" in arbitration:
         plain_rule = "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
-    elif "Judge" in arbitration or "enforceability" in arbitration:
+    elif "Neutral" in arbitration or "Judge" in arbitration or "enforceability" in arbitration:
         plain_rule = "We evaluated this based on how real courts enforce these clauses to protect you from unfair terms."
 
     return {
-        "summary": f"Consensus Engine deliberated across {len(deliberations)} agent perspectives to arrive at severity {severity}/10.",
+        "summary": f"Legal Synthesis Engine deliberated across {len(deliberations)} agent perspectives to arrive at severity {severity}/10.",
         "deliberation": deliberations,
         "arbitration_rule": arbitration,
         "plain_arbitration_rule": plain_rule
@@ -306,7 +306,7 @@ def run_rule_based_fallback(chunks: List[Chunk]) -> List[Dict[str, Any]]:
     rules = [
         {
             "pattern": r"(?i)\b(indemnify|indemnification|hold harmless)\b",
-            "agent": "Defense Counsel",
+            "agent": "Risk & Liability Counsel",
             "clause": "Indemnity",
             "type": "Unbalanced Indemnification",
             "summary": "The clause contains broad indemnity obligations that could force the company to pay for third-party disputes and losses without a reciprocal cap. Recommend making this mutual.",
@@ -315,7 +315,7 @@ def run_rule_based_fallback(chunks: List[Chunk]) -> List[Dict[str, Any]]:
         },
         {
             "pattern": r"(?i)\b(indemnify|indemnification|hold harmless)\b",
-            "agent": "Plaintiff Counsel",
+            "agent": "Opposing Counsel",
             "clause": "Indemnity",
             "type": "Adversarial Indemnity Loophole",
             "summary": "Opposing counsel can leverage this broad indemnity to demand defense costs and settlement contributions even before liability is adjudicated in court.",
@@ -324,7 +324,7 @@ def run_rule_based_fallback(chunks: List[Chunk]) -> List[Dict[str, Any]]:
         },
         {
             "pattern": r"(?i)\b(limitation of liability|liability cap|in no event shall .* liability exceed)\b",
-            "agent": "Judge",
+            "agent": "Neutral Legal Reviewer",
             "clause": "Liability",
             "type": "Unconscionable Liability Cap",
             "summary": "The limitation of liability clause places an aggregate cap on damages. Review exclusions to ensure critical breaches remain compensable.",
@@ -333,7 +333,7 @@ def run_rule_based_fallback(chunks: List[Chunk]) -> List[Dict[str, Any]]:
         },
         {
             "pattern": r"(?i)\b(limitation of liability|liability cap|in no event shall .* liability exceed)\b",
-            "agent": "Plaintiff Counsel",
+            "agent": "Opposing Counsel",
             "clause": "Liability",
             "type": "Carve-out Exploitation Vector",
             "summary": "The carve-outs allow an aggressive opposing party to re-characterize breach claims to bypass the liability cap entirely.",
@@ -342,7 +342,7 @@ def run_rule_based_fallback(chunks: List[Chunk]) -> List[Dict[str, Any]]:
         },
         {
             "pattern": r"(?i)\b(terminate for convenience|terminate this agreement upon|written notice of termination)\b",
-            "agent": "Drafting Counsel",
+            "agent": "Transaction Counsel",
             "clause": "Termination",
             "type": "Unilateral Termination Right",
             "summary": "The contract grants termination rights on short notice. Recommend ensuring adequate transition periods.",
@@ -351,7 +351,7 @@ def run_rule_based_fallback(chunks: List[Chunk]) -> List[Dict[str, Any]]:
         },
         {
             "pattern": r"(?i)\b(terminate for convenience|terminate this agreement upon|written notice of termination)\b",
-            "agent": "Plaintiff Counsel",
+            "agent": "Opposing Counsel",
             "clause": "Termination",
             "type": "Adversarial Termination Trap",
             "summary": "Opposing party can extract concessions under threat of abrupt termination without cause once initial setup costs have been absorbed.",
@@ -360,7 +360,7 @@ def run_rule_based_fallback(chunks: List[Chunk]) -> List[Dict[str, Any]]:
         },
         {
             "pattern": r"(?i)\b(governing law|jurisdiction|arbitration venue|dispute resolution)\b",
-            "agent": "Compliance Officer",
+            "agent": "Regulatory & Compliance Counsel",
             "clause": "Governing Law",
             "type": "Dispute Jurisdiction Scope",
             "summary": "Disputes are governed by specified state or national jurisdiction. Review forum convenience and dispute procedures.",
@@ -369,7 +369,7 @@ def run_rule_based_fallback(chunks: List[Chunk]) -> List[Dict[str, Any]]:
         },
         {
             "pattern": r"(?i)\b(intellectual property|ip right|ownership|copyright|patent)\b",
-            "agent": "Defense Counsel",
+            "agent": "Risk & Liability Counsel",
             "clause": "Intellectual Property",
             "type": "IP Assignment Risk",
             "summary": "The intellectual property language assigns ownership of created materials. Recommend clarifying background IP protections.",
@@ -378,7 +378,7 @@ def run_rule_based_fallback(chunks: List[Chunk]) -> List[Dict[str, Any]]:
         },
         {
             "pattern": r"(?i)\b(intellectual property|ip right|ownership|copyright|patent)\b",
-            "agent": "Plaintiff Counsel",
+            "agent": "Opposing Counsel",
             "clause": "Intellectual Property",
             "type": "Aggressive Ownership Claim",
             "summary": "Opposing party can assert complete copyright ownership over proprietary templates and tooling.",
@@ -387,7 +387,7 @@ def run_rule_based_fallback(chunks: List[Chunk]) -> List[Dict[str, Any]]:
         },
         {
             "pattern": r"(?i)\b(non-compete|non compete|restrictive covenant)\b",
-            "agent": "Judge",
+            "agent": "Neutral Legal Reviewer",
             "clause": "Restrictive Covenants",
             "type": "Overbroad Restrictive Covenant",
             "summary": "The non-compete clause applies across broad territories. Suggest narrowing the scope and time constraint.",
@@ -396,7 +396,7 @@ def run_rule_based_fallback(chunks: List[Chunk]) -> List[Dict[str, Any]]:
         },
         {
             "pattern": r"(?i)\b(confidential information|receiving party shall protect|non-disclosure|proprietary information)\b",
-            "agent": "Compliance Officer",
+            "agent": "Regulatory & Compliance Counsel",
             "clause": "Confidentiality",
             "type": "Confidentiality Protection Scope",
             "summary": "Confidentiality obligations govern sensitive business disclosures. Ensure clear expiration or survival terms are set.",
@@ -405,7 +405,7 @@ def run_rule_based_fallback(chunks: List[Chunk]) -> List[Dict[str, Any]]:
         },
         {
             "pattern": r"(?i)\b(injunctive relief|equitable relief|irreparable harm|without bond)\b",
-            "agent": "Plaintiff Counsel",
+            "agent": "Opposing Counsel",
             "clause": "Remedies",
             "type": "Injunctive Relief Exposure",
             "summary": "Allows opposing party to seek emergency court injunctions without posting bond in case of alleged breach.",
@@ -414,7 +414,7 @@ def run_rule_based_fallback(chunks: List[Chunk]) -> List[Dict[str, Any]]:
         },
         {
             "pattern": r"(?i)\b(survival|shall survive|period of (\d+|twenty|ten|five) years)\b",
-            "agent": "Compliance Officer",
+            "agent": "Regulatory & Compliance Counsel",
             "clause": "Survival",
             "type": "Extended Survival Obligation",
             "summary": "Post-termination survival terms impose multi-year compliance monitoring and liability exposure.",
@@ -482,7 +482,7 @@ def analyze_document_content(chunks: List[Chunk]) -> Dict[str, Any]:
 
     if use_llm:
         for agent_name, agent_info in AGENTS.items():
-            if agent_name == "Citation & Evidence Agent":
+            if agent_name == "Legal Evidence & Citation Reviewer":
                 continue
             try:
                 for chunk in chunks[:4]:
@@ -553,7 +553,7 @@ def analyze_document_content(chunks: List[Chunk]) -> Dict[str, Any]:
         recommendations.append("Review boilerplate terms before final execution.")
 
     consensus_report = {
-        "summary": f"The legal document has been analyzed by a team of specialized AI agents including Defense, Plaintiff/Opposing, Drafting, Judge, and Compliance. An overall risk score of {aggregate_risk_score}/10 has been assessed, indicating a {risk_level} risk profile.",
+        "summary": f"The legal document has been analyzed by a team of specialized AI agents including Risk & Liability Counsel, Opposing Counsel, Transaction Counsel, Neutral Legal Reviewer, and Regulatory & Compliance Counsel. An overall risk score of {aggregate_risk_score}/10 has been assessed, indicating a {risk_level} risk profile.",
         "strengths": strengths[:4],
         "vulnerabilities": vulnerabilities[:4],
         "recommendations": recommendations[:4]

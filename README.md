@@ -252,11 +252,12 @@ Chunk metadata is designed to match the Pinecone retrieval requirements:
 
 The planned multi-agent system includes:
 
-- Defense Counsel Agent: finds loopholes, ambiguities, and adversarial attack surfaces.
-- Drafting Counsel Agent: evaluates enforceability, coverage, and drafting improvements.
-- Judge Agent: assesses balance, fairness, and procedural validity.
-- Compliance Agent: checks regulatory and disclosure obligations.
-- Citation & Evidence Agent: validates cross-references, citations, and source support.
+- Risk & Liability Counsel Agent: identifies liabilities, unfavorable clauses, loopholes, exposures, and potential claims against the client.
+- Opposing Counsel Agent: actively probes the contract from an adverse party perspective to surface exploit vectors, leverage points, and dispute traps.
+- Transaction Counsel Agent: reviews the agreement from the perspective of transaction structure, negotiation, drafting quality, and opportunities for improvement.
+- Neutral Legal Reviewer Agent: independently evaluates competing findings and determines which conclusions are best supported by the evidence and legal authority.
+- Regulatory & Compliance Counsel Agent: checks regulatory requirements, statutory obligations, approvals, filing requirements, and compliance risks.
+- Legal Evidence & Citation Reviewer Agent: verifies important conclusions against the source agreement and applicable legal authorities, ensuring claims are properly supported.
 
 All agent outputs should be structured, schema-validated, and grounded in retrieved document chunks.
 
@@ -272,8 +273,8 @@ The product helps lawyers, founders, compliance teams, and contract reviewers up
 Core workflow:
 1. User uploads a PDF or legal document.
 2. The system extracts text with OCR, chunks clauses, and indexes evidence.
-3. Five AI agents review the document from different perspectives: Defense Counsel, Drafting Counsel, Judge, Compliance, and Citation Evidence.
-4. The dashboard shows clause-level findings, exact evidence quotes, verification status, confidence, severity, and consensus risk scores.
+3. AI agents review the document from specialized perspectives: Risk & Liability Counsel, Opposing Counsel, Transaction Counsel, Neutral Legal Reviewer, and Regulatory & Compliance Counsel.
+4. The dashboard shows clause-level findings, exact evidence quotes, verification status, confidence, severity, and consensus risk scores synthesized by the Legal Synthesis Engine.
 5. The user can filter findings by clause type, risk level, party scope, agent, and verification status.
 6. The user can open a report view and export a structured vulnerability analysis summary.
 
@@ -305,7 +306,7 @@ Primary users should immediately understand that this is a legal AI risk-review 
 - Phase 1: Project setup and Neon DB schemas
 - Phase 2: Document ingestion, OCR, chunking, and Pinecone indexing
 - Phase 3: Groq LLM multi-agent system and anti-hallucination guardrails
-- Phase 4: Consensus engine and legal risk scoring
+- Phase 4: Legal Synthesis Engine and legal risk scoring
 - Phase 5: Express API gateway and orchestration
 - Phase 6: End-to-end integration testing
 

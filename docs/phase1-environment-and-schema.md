@@ -95,7 +95,7 @@ AI and retrieval values reserved for later phases:
 - `id`: UUID primary key.
 - `analysis_result_id`: Foreign key to `analysis_results.id`.
 - `chunk_id`: Nullable foreign key to `chunks.id`.
-- `agent_name`: Defense Counsel, Drafting Counsel, Judge, Compliance, or Citation Evidence.
+- `agent_name`: Risk & Liability Counsel, Opposing Counsel, Transaction Counsel, Neutral Legal Reviewer, Regulatory & Compliance Counsel, or Legal Evidence & Citation Reviewer.
 - `clause_type`: Clause category assessed by the agent.
 - `finding_type`: Vulnerability, compliance issue, drafting issue, citation issue, or validation result.
 - `summary`: Grounded structured finding summary.

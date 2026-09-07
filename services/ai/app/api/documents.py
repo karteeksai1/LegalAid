@@ -1,5 +1,6 @@
 import hashlib
 import io
+import re
 import uuid
 import logging
 from typing import List, Dict, Any
@@ -642,6 +643,7 @@ def classify_user_intent(question: str) -> tuple:
     legal_keywords = [
         "indemn", "liab", "terminat", "notice", "cure", "confidential", "ip ", "intellectual property",
         "payment", "milestone", "breach", "govern", "jurisdiction", "court", "risk", "finding",
+        "opposing", "neutral", "transaction", "regulatory", "liability counsel",
         "plaintiff", "defense", "judge", "drafting", "compliance", "loophole", "clause", "covenant",
         "warranty", "damages", "carve-out", "severab", "force majeure", "overview", "about",
         "definition", "defined", "scope", "flag", "flagged", "issue", "vulnerability", "vulnerabilities",

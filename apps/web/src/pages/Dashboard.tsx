@@ -236,9 +236,9 @@ export function getPlainLanguageFinding(finding: Finding) {
 
 export function getPlainArbitrationRule(rule: string) {
   const rLower = (rule || "").toLowerCase();
-  if (rLower.includes("plaintiff") || rLower.includes("continuity") || rLower.includes("injunction")) {
+  if (rLower.includes("opposing") || rLower.includes("plaintiff") || rLower.includes("continuity") || rLower.includes("injunction")) {
     return "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour.";
-  } else if (rLower.includes("defense") || rLower.includes("commercial")) {
+  } else if (rLower.includes("risk & liability") || rLower.includes("defense") || rLower.includes("commercial")) {
     return "We balanced this finding to reflect realistic business standards while protecting your financial downside.";
   }
   return "Our AI panel agreed on the interpretation that best protects the document owner from unexpected liabilities.";
@@ -333,6 +333,7 @@ export function classifyUserIntent(question: string): IntentResult {
   const legalKeywords = [
     "indemn", "liab", "terminat", "notice", "cure", "confidential", "ip ", "intellectual property",
     "payment", "milestone", "breach", "govern", "jurisdiction", "court", "risk", "finding",
+    "opposing", "neutral", "transaction", "regulatory", "liability counsel",
     "plaintiff", "defense", "judge", "drafting", "compliance", "loophole", "clause", "covenant",
     "warranty", "damages", "carve-out", "severab", "force majeure", "overview", "about",
     "definition", "defined", "scope", "flag", "flagged", "issue", "vulnerability", "vulnerabilities",
@@ -766,7 +767,7 @@ export function buildDynamicDocumentAnalysis(
   const rules = [
     {
       pattern: /(?:indemnify|indemnification|hold harmless)/i,
-      agent_name: "Defense Counsel",
+      agent_name: "Risk & Liability Counsel",
       clause_type: "Indemnity",
       finding_type: "Overbroad Indemnity Exposure",
       summary: "Broad indemnification obligation identified without reciprocal cap in source text.",
@@ -775,7 +776,7 @@ export function buildDynamicDocumentAnalysis(
     },
     {
       pattern: /(?:indemnify|indemnification|hold harmless)/i,
-      agent_name: "Plaintiff Counsel",
+      agent_name: "Opposing Counsel",
       clause_type: "Indemnity",
       finding_type: "Adversarial Indemnity Loophole",
       summary: "Opposing counsel can leverage broad indemnity terms for preliminary dispute funding.",
@@ -784,7 +785,7 @@ export function buildDynamicDocumentAnalysis(
     },
     {
       pattern: /(?:limitation of liability|liability cap|in no event shall .* liability exceed)/i,
-      agent_name: "Judge",
+      agent_name: "Neutral Legal Reviewer",
       clause_type: "Limitation of Liability",
       finding_type: "Liability Cap Scope",
       summary: "Damages are subject to aggregate liability limitations. Scrutinize exclusions.",
@@ -793,7 +794,7 @@ export function buildDynamicDocumentAnalysis(
     },
     {
       pattern: /(?:terminate for convenience|terminate this agreement upon|written notice of termination)/i,
-      agent_name: "Drafting Counsel",
+      agent_name: "Transaction Counsel",
       clause_type: "Termination",
       finding_type: "Termination Notice Mechanism",
       summary: "Contract cancellation mechanism defined. Verify transition terms.",
@@ -802,7 +803,7 @@ export function buildDynamicDocumentAnalysis(
     },
     {
       pattern: /(?:confidential information|receiving party shall protect|non-disclosure|proprietary information)/i,
-      agent_name: "Compliance Officer",
+      agent_name: "Regulatory & Compliance Counsel",
       clause_type: "Confidentiality",
       finding_type: "Confidentiality Protection Scope",
       summary: "Non-disclosure obligations govern sensitive business disclosures.",
@@ -811,7 +812,7 @@ export function buildDynamicDocumentAnalysis(
     },
     {
       pattern: /(?:injunctive relief|equitable relief|irreparable harm|without bond)/i,
-      agent_name: "Plaintiff Counsel",
+      agent_name: "Opposing Counsel",
       clause_type: "Remedies",
       finding_type: "Immediate Injunctive Relief Threat",
       summary: "Permits opposing party to seek emergency court injunctions without bond.",
@@ -820,7 +821,7 @@ export function buildDynamicDocumentAnalysis(
     },
     {
       pattern: /(?:survival|shall survive|period of (\d+|twenty|ten|five) years)/i,
-      agent_name: "Compliance Officer",
+      agent_name: "Regulatory & Compliance Counsel",
       clause_type: "Survival",
       finding_type: "Extended Survival Term",
       summary: "Confidentiality or restrictive terms survive termination for an extended period.",
@@ -829,7 +830,7 @@ export function buildDynamicDocumentAnalysis(
     },
     {
       pattern: /(?:intellectual property|ip right|ownership|copyright|patent)/i,
-      agent_name: "Defense Counsel",
+      agent_name: "Risk & Liability Counsel",
       clause_type: "Intellectual Property",
       finding_type: "IP Assignment Risk",
       summary: "Ownership assignment terms present. Clarify background know-how carve-outs.",
@@ -838,7 +839,7 @@ export function buildDynamicDocumentAnalysis(
     },
     {
       pattern: /(?:governing law|jurisdiction|arbitration venue|dispute resolution)/i,
-      agent_name: "Compliance Officer",
+      agent_name: "Regulatory & Compliance Counsel",
       clause_type: "Governing Law",
       finding_type: "Dispute Jurisdiction Scope",
       summary: "Dispute resolution and governing forum defined.",
@@ -891,10 +892,10 @@ export function buildDynamicDocumentAnalysis(
           risk_level: rule.risk_level,
           chunk_text: evidence,
           consensus_reasoning: {
-            summary: `Consensus Engine audited ${rule.clause_type} and verified grounding in source text.`,
+            summary: `Legal Synthesis Engine audited ${rule.clause_type} and verified grounding in source text.`,
             deliberation: [
               { agent: rule.agent_name, stance: "Primary Finding", score: rule.severity_score, argument: rule.summary },
-              { agent: "Judge", stance: "Enforceability", score: Math.max(1, rule.severity_score - 1), argument: "Evaluated clause structure against commercial norms." }
+              { agent: "Neutral Legal Reviewer", stance: "Enforceability", score: Math.max(1, rule.severity_score - 1), argument: "Evaluated clause structure against commercial norms." }
             ],
             arbitration_rule: `Consensus calibrated to ${rule.severity_score}/10 based on verified clause wording.`
           }
@@ -1111,7 +1112,7 @@ export default function Dashboard() {
         {
           id: "welcome-" + selectedDocId,
           role: "assistant",
-          content: `Welcome to Interactive Q&A for this document. I have loaded all clauses analyzed by Defense, Plaintiff, Judge, Drafting, and Compliance agents. Ask me any specific question about risks, loopholes, or recommended revisions.`,
+          content: `Welcome to Interactive Q&A for this document. I have loaded all clauses analyzed by Risk & Liability Counsel, Opposing Counsel, Neutral Legal Reviewer, Transaction Counsel, and Regulatory & Compliance Counsel agents. Ask me any specific question about risks, loopholes, or recommended revisions.`,
           agent_perspective: "Lead Legal Counsel",
           citations: [],
           timestamp: new Date().toISOString()
@@ -1261,7 +1262,7 @@ export default function Dashboard() {
         replyPerspective = viewMode === "simple" ? "Plain English Advisor" : "Lead Legal Counsel";
         replyContent = viewMode === "simple"
           ? `Hello! I am your Plain-English Legal Assistant for **${analysis?.document.filename || "this document"}**.\n\nAsk me anything in everyday language, such as:\n- *"What is this document about?"*\n- *"What are the biggest traps in this contract?"*\n- *"Can they cancel on me without warning?"*\n- *"How do I fix the liability and payment terms?"*`
-          : `Hello! I am your AI Legal Counsel for **${analysis?.document.filename || "this document"}**.\n\nYou can ask me any question about this document, such as:\n- *"What is this document about?"*\n- *"What are the main risks from Plaintiff's perspective?"*\n- *"Summarize the liability and indemnity clauses"*\n- *"Are there any missing transition or termination terms?"*`;
+          : `Hello! I am your AI Legal Counsel for **${analysis?.document.filename || "this document"}**.\n\nYou can ask me any question about this document, such as:\n- *"What is this document about?"*\n- *"What are the main risks from Opposing Counsel's perspective?"*\n- *"Summarize the liability and indemnity clauses"*\n- *"Are there any missing transition or termination terms?"*`;
         citations = [];
       } else if (/\b(what is (this|the) doc(ument)?( about)?|what is this|overview|summary|summarize|what type of (agreement|contract|document)|who are the parties|who is involved|parties to (this|the))\b/i.test(qLower)) {
         // Direct Informational Query: 1-3 direct sentences, NO risk score / safety assessment scaffolding
@@ -1281,9 +1282,9 @@ export default function Dashboard() {
         citations = []; // Informational summaries do not require a separate excerpt block
       } else if (/\b(plaintiff|opposing|attack|exploit|loophole|biggest risk|main risk|flagged|why is this risky|vulnerabilit)\b/i.test(qLower)) {
         // Risk / Finding-related Query: Detailed adversarial / plain finding review
-        replyPerspective = viewMode === "simple" ? "Opposing Party View" : "Plaintiff Counsel";
-        const plaintiffFindings = analysis?.findings.filter((f) => f.agent_name === "Plaintiff Counsel") || [];
-        const topFinding = plaintiffFindings[0] || analysis?.findings[0];
+        replyPerspective = viewMode === "simple" ? "Opposing Party View" : "Opposing Counsel";
+        const opposingFindings = analysis?.findings.filter((f) => f.agent_name === "Opposing Counsel" || f.agent_name === "Plaintiff Counsel") || [];
+        const topFinding = opposingFindings[0] || analysis?.findings[0];
         if (topFinding) {
           const plain = getPlainLanguageFinding(topFinding);
           if (topFinding.evidence_quote) {
@@ -1707,7 +1708,16 @@ export default function Dashboard() {
 
   // Filter findings based on selected agent filter
   const filteredFindings = analysis
-    ? analysis.findings.filter(f => selectedAgentFilter === "All" || f.agent_name === selectedAgentFilter)
+    ? analysis.findings.filter(f => {
+        if (selectedAgentFilter === "All") return true;
+        if (f.agent_name === selectedAgentFilter) return true;
+        if (selectedAgentFilter === "Risk & Liability Counsel" && f.agent_name === "Defense Counsel") return true;
+        if (selectedAgentFilter === "Opposing Counsel" && f.agent_name === "Plaintiff Counsel") return true;
+        if (selectedAgentFilter === "Transaction Counsel" && f.agent_name === "Drafting Counsel") return true;
+        if (selectedAgentFilter === "Neutral Legal Reviewer" && f.agent_name === "Judge") return true;
+        if (selectedAgentFilter === "Regulatory & Compliance Counsel" && (f.agent_name === "Compliance Officer" || f.agent_name === "Compliance")) return true;
+        return false;
+      })
     : [];
 
   return (
@@ -1846,11 +1856,11 @@ export default function Dashboard() {
               </p>
               <div className="mt-8 grid grid-cols-2 gap-4 w-full">
                 <div className="border border-[#d6d2c8] bg-white p-4 text-left font-mono">
-                  <span className="text-[10px] uppercase text-[#3158ff]">Consensus Engine</span>
-                  <p className="text-xs text-[#626860] mt-2">Correlates, prioritizes, and scoring evaluations from five agent personas.</p>
+                  <span className="text-[10px] uppercase text-[#3158ff]">Legal Synthesis Engine</span>
+                  <p className="text-xs text-[#626860] mt-2">Integrates, correlates, and scores evaluations across all reviewing agent personas.</p>
                 </div>
                 <div className="border border-[#d6d2c8] bg-white p-4 text-left font-mono">
-                  <span className="text-[10px] uppercase text-[#3158ff]">Citation Audit</span>
+                  <span className="text-[10px] uppercase text-[#3158ff]">Legal Evidence & Citation Review</span>
                   <p className="text-xs text-[#626860] mt-2">Every surfaced vulnerability is mapped to exact verified quotes in the source text.</p>
                 </div>
               </div>
@@ -1982,7 +1992,7 @@ export default function Dashboard() {
                             AI Counsel Deliberation Channel
                           </h3>
                           <p className="text-[10px] font-mono text-[#626860]">
-                            RAG Grounded • 5 Counsel Personas Active (Defense, Plaintiff, Judge, Drafting, Compliance)
+                            RAG Grounded • 5 Counsel Personas Active (Risk & Liability, Opposing, Neutral, Transaction, Regulatory)
                           </p>
                         </div>
                       </div>
@@ -2009,13 +2019,15 @@ export default function Dashboard() {
                           {msg.role === "assistant" && (
                             <div className="flex items-center gap-2 mb-1.5">
                               <span className={`text-[11px] font-mono uppercase tracking-wider px-2.5 py-0.5 font-bold ${
-                                msg.agent_perspective === 'Plaintiff Counsel'
+                                msg.agent_perspective === 'Opposing Counsel' || msg.agent_perspective === 'Plaintiff Counsel'
                                   ? "bg-amber-100 text-amber-900 border border-amber-300"
-                                  : msg.agent_perspective === 'Judge'
+                                  : msg.agent_perspective === 'Neutral Legal Reviewer' || msg.agent_perspective === 'Judge'
                                     ? "bg-purple-100 text-purple-800 border border-purple-200"
-                                    : msg.agent_perspective === 'Compliance Officer'
+                                    : msg.agent_perspective === 'Regulatory & Compliance Counsel' || msg.agent_perspective === 'Compliance Officer'
                                       ? "bg-green-100 text-green-800 border border-green-200"
-                                      : "bg-blue-100 text-blue-800 border border-blue-200"
+                                      : msg.agent_perspective === 'Transaction Counsel' || msg.agent_perspective === 'Drafting Counsel'
+                                        ? "bg-sky-100 text-sky-800 border border-sky-200"
+                                        : "bg-blue-100 text-blue-800 border border-blue-200"
                               }`}>
                                 {msg.agent_perspective || "AI Counsel"}
                               </span>
@@ -2237,19 +2249,19 @@ export default function Dashboard() {
                       {(viewMode === "simple"
                         ? [
                             { id: "All", label: "All Issues" },
-                            { id: "Plaintiff Counsel", label: "Adversarial Risks" },
-                            { id: "Defense Counsel", label: "Liability Traps" },
-                            { id: "Judge", label: "Court Enforceability" },
-                            { id: "Drafting Counsel", label: "Vague Language" },
-                            { id: "Compliance Officer", label: "Compliance" }
+                            { id: "Opposing Counsel", label: "Adversarial Risks" },
+                            { id: "Risk & Liability Counsel", label: "Liability Traps" },
+                            { id: "Neutral Legal Reviewer", label: "Court Enforceability" },
+                            { id: "Transaction Counsel", label: "Vague Language" },
+                            { id: "Regulatory & Compliance Counsel", label: "Compliance" }
                           ]
                         : [
                             { id: "All", label: "All" },
-                            { id: "Defense Counsel", label: "Defense" },
-                            { id: "Plaintiff Counsel", label: "Plaintiff" },
-                            { id: "Drafting Counsel", label: "Drafting" },
-                            { id: "Judge", label: "Judge" },
-                            { id: "Compliance Officer", label: "Compliance" }
+                            { id: "Risk & Liability Counsel", label: "Risk & Liability" },
+                            { id: "Opposing Counsel", label: "Opposing" },
+                            { id: "Transaction Counsel", label: "Transaction" },
+                            { id: "Neutral Legal Reviewer", label: "Neutral" },
+                            { id: "Regulatory & Compliance Counsel", label: "Regulatory" }
                           ]
                       ).map((filter) => (
                         <button
@@ -2304,13 +2316,15 @@ export default function Dashboard() {
                                   ) : (
                                     <>
                                       <span className={`text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 font-bold ${
-                                        finding.agent_name === 'Defense Counsel' 
+                                        finding.agent_name === 'Risk & Liability Counsel' || finding.agent_name === 'Defense Counsel'
                                           ? "bg-red-100 text-red-800 border border-red-200" 
-                                          : finding.agent_name === 'Plaintiff Counsel'
+                                          : finding.agent_name === 'Opposing Counsel' || finding.agent_name === 'Plaintiff Counsel'
                                             ? "bg-amber-100 text-amber-900 border border-amber-300 font-bold"
-                                            : finding.agent_name === 'Drafting Counsel'
-                                              ? "bg-blue-100 text-blue-800 border border-blue-200"
-                                              : "bg-purple-100 text-purple-800 border border-purple-200"
+                                            : finding.agent_name === 'Transaction Counsel' || finding.agent_name === 'Drafting Counsel'
+                                              ? "bg-sky-100 text-sky-800 border border-sky-200"
+                                              : finding.agent_name === 'Regulatory & Compliance Counsel' || finding.agent_name === 'Compliance Officer'
+                                                ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                                                : "bg-purple-100 text-purple-800 border border-purple-200"
                                       }`}>
                                         {finding.agent_name}
                                       </span>
@@ -2382,14 +2396,14 @@ export default function Dashboard() {
                               </div>
                             </div>
 
-                            {/* Consensus Deliberation Preview Indicator */}
+                            {/* Legal Synthesis Deliberation Preview Indicator */}
                             {finding.consensus_reasoning && (
                               <div className={`pt-2 border-t text-[10px] font-mono flex items-center justify-between ${
                                 isSelected ? "border-white/10 text-[#d7ff52]" : "border-slate-100 text-[#3158ff]"
                               }`}>
                                 <span className="flex items-center gap-1 font-semibold">
                                   <Sparkles className="h-3 w-3" /> 
-                                  {viewMode === "simple" ? "Plain Consensus Breakdown" : `Consensus Deliberation (${finding.consensus_reasoning.deliberation.length} Agents)`}
+                                  {viewMode === "simple" ? "Plain Consensus Breakdown" : `Legal Synthesis Deliberation (${finding.consensus_reasoning.deliberation.length} Agents)`}
                                 </span>
                                 <span className="text-[9px] uppercase tracking-wider opacity-75">
                                   {viewMode === "simple" ? "Read full advice →" : "Inspect reasoning →"}
@@ -2499,9 +2513,15 @@ export default function Dashboard() {
                             </h3>
                             <div className="flex items-center gap-2 mt-2">
                               <span className={`text-[10px] font-mono px-2 py-0.5 font-bold ${
-                                selectedFinding.agent_name === 'Plaintiff Counsel'
+                                selectedFinding.agent_name === 'Opposing Counsel' || selectedFinding.agent_name === 'Plaintiff Counsel'
                                   ? "bg-amber-100 text-amber-900 border border-amber-300"
-                                  : "bg-red-100 text-red-800"
+                                  : selectedFinding.agent_name === 'Risk & Liability Counsel' || selectedFinding.agent_name === 'Defense Counsel'
+                                    ? "bg-red-100 text-red-800 border border-red-200"
+                                    : selectedFinding.agent_name === 'Transaction Counsel' || selectedFinding.agent_name === 'Drafting Counsel'
+                                      ? "bg-sky-100 text-sky-800 border border-sky-200"
+                                      : selectedFinding.agent_name === 'Regulatory & Compliance Counsel' || selectedFinding.agent_name === 'Compliance Officer'
+                                        ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                                        : "bg-purple-100 text-purple-800 border border-purple-200"
                               }`}>
                                 {selectedFinding.agent_name}
                               </span>
@@ -2518,15 +2538,15 @@ export default function Dashboard() {
                             </p>
                           </div>
 
-                          {/* Consensus Deliberation & Reasoning Section */}
+                          {/* Legal Synthesis Deliberation & Reasoning Section */}
                           {selectedFinding.consensus_reasoning && (
                             <div className="space-y-3 border-t border-[#d6d2c8] pt-4">
                               <div className="flex items-center justify-between">
                                 <span className="text-[10px] font-mono uppercase tracking-wider text-[#3158ff] font-bold flex items-center gap-1">
-                                  <Shield className="h-3 w-3" /> Consensus Deliberation
+                                  <Shield className="h-3 w-3" /> Legal Synthesis Deliberation
                                 </span>
                                 <span className="text-[9px] font-mono bg-blue-50 text-[#3158ff] px-1.5 py-0.5 font-semibold">
-                                  Arbitrated
+                                  Synthesized
                                 </span>
                               </div>
                               
