@@ -44,10 +44,30 @@ AGENTS = {
 
 def clean_json_response(text: str) -> List[Dict[str, Any]]:
     """Clean markdown backticks or prefixes from LLM response and parse JSON."""
+    if not text or not str(text).strip():
+        return []
     try:
-        match = re.search(r'```(?:json)?\s*(.*?)\s*```', text, re.DOTALL)
-        json_str = match.group(1) if match else text
-        data = json.loads(json_str.strip())
+        cleaned = str(text).strip()
+        # Extract between ``` if present
+        match = re.search(r'```(?:json)?\s*(.*?)(?:```|$)', cleaned, re.DOTALL)
+        if match:
+            cleaned = match.group(1).strip()
+        # Find start of JSON array or object
+        start_bracket = cleaned.find('[')
+        start_brace = cleaned.find('{')
+        if start_bracket != -1 and (start_brace == -1 or start_bracket < start_brace):
+            end_bracket = cleaned.rfind(']')
+            if end_bracket != -1:
+                cleaned = cleaned[start_bracket:end_bracket+1]
+        elif start_brace != -1:
+            end_brace = cleaned.rfind('}')
+            if end_brace != -1:
+                cleaned = cleaned[start_brace:end_brace+1]
+        else:
+            return []
+        # Remove trailing commas before close brackets/braces
+        cleaned = re.sub(r',\s*([\]}])', r'\1', cleaned)
+        data = json.loads(cleaned, strict=False)
         if isinstance(data, dict):
             for key in ["findings", "results", "analysis"]:
                 if key in data and isinstance(data[key], list):
@@ -55,7 +75,7 @@ def clean_json_response(text: str) -> List[Dict[str, Any]]:
             return [data]
         return data if isinstance(data, list) else []
     except Exception as e:
-        logger.error(f"Failed to parse LLM JSON: {e}. Raw response: {text}")
+        logger.warning(f"Failed to parse LLM JSON: {e}")
         return []
 
 def run_llm_analysis(agent_name: str, system_prompt: str, chunk_text: str) -> List[Dict[str, Any]]:
@@ -99,7 +119,7 @@ Format your response as a valid JSON list of objects:
 ]
 """
     
-    model_candidates = [settings.groq_model, "openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b"]
+    model_candidates = [settings.groq_model, "qwen/qwen3.8-27b", "openai/gpt-oss-20b", "openai/gpt-oss-120b"]
     # Deduplicate while preserving order
     seen = set()
     models_to_try = [m for m in model_candidates if m and not (m in seen or seen.add(m))]
@@ -114,13 +134,15 @@ Format your response as a valid JSON list of objects:
                     {"role": "user", "content": prompt}
                 ],
                 model=model_name,
-                temperature=0.1
+                temperature=0.1,
+                max_completion_tokens=1024
             )
             break
         except Exception as err:
             last_err = err
-            if "model_not_found" in str(err) or "does not exist" in str(err):
-                logger.info(f"Model {model_name} not available, trying next candidate...")
+            err_str = str(err).lower()
+            if "model_not_found" in err_str or "does not exist" in err_str or "rate limit" in err_str or "rate_limit" in err_str or "429" in err_str:
+                logger.info(f"Model {model_name} unavailable or rate-limited, trying next candidate...")
                 continue
             raise err
 
@@ -664,16 +686,27 @@ def analyze_document_content(chunks: List[Chunk]) -> Dict[str, Any]:
         use_llm = False
 
     if use_llm:
-        for agent_name, agent_info in AGENTS.items():
-            if agent_name == "Legal Evidence & Citation Reviewer":
+        target_agent_names = ["Risk & Liability Counsel", "Opposing Counsel", "Transaction Counsel"]
+        
+        # If document is compact (<=25,000 chars, typical contract), analyze whole text once per persona
+        # This provides full cross-clause context and replaces 20 slow sequential calls with 3 fast calls
+        if len(full_text) <= 25000:
+            analysis_targets = [(chunks[0] if chunks else None, full_text)]
+        else:
+            analysis_targets = [(c, c.raw_text) for c in chunks[:3]]
+
+        for agent_name in target_agent_names:
+            agent_info = AGENTS.get(agent_name)
+            if not agent_info:
                 continue
             try:
-                for chunk in chunks[:4]:
-                    agent_results = run_llm_analysis(agent_name, agent_info["system_prompt"], chunk.raw_text)
+                for chunk_ref, chunk_txt in analysis_targets:
+                    agent_results = run_llm_analysis(agent_name, agent_info["system_prompt"], chunk_txt)
                     for res in agent_results:
                         severity = int(res.get("severity_score", 5))
+                        chunk_id = getattr(chunk_ref, "id", None)
                         f_item = {
-                            "chunk_id": chunk.id,
+                            "chunk_id": chunk_id,
                             "agent_name": agent_name,
                             "clause_type": res.get("clause_type", "Unspecified"),
                             "finding_type": res.get("finding_type", "General Issue"),
@@ -687,9 +720,8 @@ def analyze_document_content(chunks: List[Chunk]) -> Dict[str, Any]:
                         f_item["consensus_reasoning"] = generate_consensus_reasoning(f_item)
                         raw_findings.append(f_item)
             except Exception as e:
-                logger.warning(f"Agent {agent_name} failed with error: {e}. Falling back to rule engine.")
-                use_llm = False
-                break
+                logger.warning(f"Agent {agent_name} failed with error: {e}.")
+
 
     if not use_llm or not raw_findings:
         raw_findings = run_rule_based_fallback(chunks)
