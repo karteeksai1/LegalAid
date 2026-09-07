@@ -24,10 +24,10 @@ export default function Auth({ mode }: { mode: AuthMode }) {
   };
 
   return (
-    <main className="min-h-screen bg-[#101412] text-[#f1eee6]">
-      <div className="relative min-h-screen overflow-hidden lg:grid lg:grid-cols-[minmax(420px,0.82fr)_1.18fr]">
+    <main className="h-screen w-full overflow-hidden bg-[#101412] text-[#f1eee6]">
+      <div className="relative h-full w-full overflow-hidden lg:grid lg:grid-cols-[minmax(420px,0.82fr)_1.18fr]">
         <div className="absolute inset-0 opacity-25 lg:hidden paper-grid" />
-        <section className="relative z-10 flex min-h-screen flex-col justify-between border-r border-white/10 bg-[#101412]/95 px-6 py-5 sm:px-10 lg:px-16 overflow-y-auto">
+        <section className="relative z-10 flex h-full flex-col justify-between border-r border-white/10 bg-[#101412]/95 px-6 py-5 sm:px-10 lg:px-16 overflow-y-auto">
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center gap-3" aria-label="Back to LegalAid home">
               <span className="grid h-9 w-9 place-items-center bg-[#d7ff52]"><img src="/legalaid-mark.jpg" alt="" className="h-7 w-7 object-contain" /></span>
@@ -98,7 +98,7 @@ export default function Auth({ mode }: { mode: AuthMode }) {
           </div>
         </section>
 
-        <section className="relative hidden min-h-screen overflow-hidden lg:block">
+        <section className="relative hidden h-full overflow-hidden lg:block">
           <div className="absolute inset-0 bg-[#101412]" />
           <div className="absolute inset-0 paper-grid opacity-30" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_65%_28%,#3158ff44_0%,transparent_28%),linear-gradient(90deg,#101412ee_0%,transparent_30%,#10141233_100%)]" />
@@ -110,8 +110,8 @@ export default function Auth({ mode }: { mode: AuthMode }) {
             </p>
           </div>
 
-          {/* Lady Justice Transparent Outlined Figure */}
-          <div className="pointer-events-none absolute -bottom-6 -right-4 z-0 flex items-end justify-end h-[90%] w-auto select-none opacity-40 mix-blend-screen transition-opacity duration-700 hover:opacity-60">
+          {/* Lady Justice Transparent Outlined Figure - strictly locked to bottom right */}
+          <div className="pointer-events-none absolute bottom-0 right-0 z-0 flex items-end justify-end h-[88%] max-h-[850px] w-auto select-none opacity-40 mix-blend-screen transition-opacity duration-700 hover:opacity-60">
             <img 
               src="/lady-justice.png" 
               alt="Lady Justice" 
