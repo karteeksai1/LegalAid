@@ -11,6 +11,7 @@ import json
 import logging
 import re
 import sys
+import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -28,7 +29,7 @@ load_dotenv(ROOT_DIR / ".env")
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s: %(message)s")
 logger = logging.getLogger("compare_findings")
 
-from app.services.analyzer import analyze_document_content
+from app.services.analyzer import analyze_document_content, run_rule_based_fallback
 
 EVALS_DIR = ROOT_DIR / "evals"
 TEST_DATA_DIR = EVALS_DIR / "test_data"
@@ -36,6 +37,7 @@ FINDINGS_DIR = EVALS_DIR / "findings"
 RESULTS_DIR = EVALS_DIR / "results"
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 FINDINGS_DIR.mkdir(parents=True, exist_ok=True)
+CACHE_PATH = RESULTS_DIR / "predictions_cache.json"
 
 
 class SimpleChunk:
@@ -336,7 +338,8 @@ def match_findings(
 def evaluate_document(
     file_path: Path,
     ground_truth: List[Dict[str, Any]],
-    precomputed_findings: Optional[List[Dict[str, Any]]] = None
+    precomputed_findings: Optional[List[Dict[str, Any]]] = None,
+    rules_only: bool = False
 ) -> Dict[str, Any]:
     """Runs evaluation for a single document against its ground truth."""
     doc_text = extract_text_from_file(file_path)
@@ -346,8 +349,11 @@ def evaluate_document(
         predictions = precomputed_findings
     else:
         chunks = chunk_text(doc_text)
-        analysis = analyze_document_content(chunks)
-        predictions = analysis.get("findings", [])
+        if rules_only:
+            predictions = run_rule_based_fallback(chunks)
+        else:
+            analysis = analyze_document_content(chunks)
+            predictions = analysis.get("findings", [])
 
     # Check Groundedness
     pred_grounded_count = sum(1 for p in predictions if verify_groundedness(p.get("evidence_quote", ""), doc_text))
@@ -387,7 +393,8 @@ def evaluate_document(
         "severity_mae": round(severity_mae, 2),
         "matched_pairs": tp_pairs,
         "false_positive_findings": fp,
-        "false_negative_findings": fn
+        "false_negative_findings": fn,
+        "_raw_predictions": predictions
     }
 
 
@@ -397,6 +404,8 @@ def main():
     parser.add_argument("--eval-results", dest="eval_results", default=None, help="Path to past eval JSON run results.")
     parser.add_argument("--truth-file", dest="truth_file", default=None, help="Explicit path to a JSON/TXT file containing ground truth findings.")
     parser.add_argument("--inspect", action="store_true", help="Print detailed side-by-side match comparisons for each finding.")
+    parser.add_argument("--rules-only", action="store_true", help="Run offline evaluation using deterministic rule engine without calling Groq.")
+    parser.add_argument("--no-cache", action="store_true", help="Bypass local prediction cache and re-run live inference.")
     args = parser.parse_args()
 
     print("=" * 92)
@@ -453,14 +462,39 @@ def main():
                 if fname:
                     precomputed_map[fname] = item.get("findings", [])
 
+    predictions_cache: Dict[str, List[Dict[str, Any]]] = {}
+    if not args.no_cache and not args.rules_only and CACHE_PATH.exists():
+        try:
+            predictions_cache = json.loads(CACHE_PATH.read_text(encoding="utf-8"))
+        except Exception:
+            predictions_cache = {}
+
     results = []
     print(f"📄 Processing {len(test_files)} document(s)...\n")
 
-    for tf in test_files:
+    for idx, tf in enumerate(test_files):
         gt_findings = gt_map.get(tf.name, [])
         pred_findings = precomputed_map.get(tf.name)
-        res = evaluate_document(tf, gt_findings, pred_findings)
+        
+        # Check cache if not already precomputed
+        if pred_findings is None and tf.name in predictions_cache and not args.no_cache and not args.rules_only:
+            pred_findings = predictions_cache[tf.name]
+            print(f"⚡ Using cached predictions for: {tf.name[:36]}...")
+
+        res = evaluate_document(tf, gt_findings, pred_findings, rules_only=args.rules_only)
         results.append(res)
+
+        # Save to local cache
+        if not args.rules_only and tf.name not in predictions_cache and "_raw_predictions" in res:
+            predictions_cache[tf.name] = res["_raw_predictions"]
+            try:
+                CACHE_PATH.write_text(json.dumps(predictions_cache, indent=2, default=str), encoding="utf-8")
+            except Exception as e:
+                logger.warning(f"Failed to cache predictions: {e}")
+
+        # Pacing: when running multiple live LLM queries, pause 2s to protect Groq 8,000 TPM limit
+        if not args.rules_only and pred_findings is None and len(test_files) > 1 and idx < len(test_files) - 1:
+            time.sleep(2)
 
     # Print Formatted Results Table with full descriptive headers
     col_doc = "CONTRACT / DOCUMENT"

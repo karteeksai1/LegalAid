@@ -135,7 +135,7 @@ Format your response as a valid JSON list of objects:
                 ],
                 model=model_name,
                 temperature=0.1,
-                max_completion_tokens=1024
+                max_completion_tokens=2048
             )
             break
         except Exception as err:
@@ -686,41 +686,42 @@ def analyze_document_content(chunks: List[Chunk]) -> Dict[str, Any]:
         use_llm = False
 
     if use_llm:
-        target_agent_names = ["Risk & Liability Counsel", "Opposing Counsel", "Transaction Counsel"]
-        
-        # If document is compact (<=25,000 chars, typical contract), analyze whole text once per persona
-        # This provides full cross-clause context and replaces 20 slow sequential calls with 3 fast calls
-        if len(full_text) <= 25000:
-            analysis_targets = [(chunks[0] if chunks else None, full_text)]
-        else:
-            analysis_targets = [(c, c.raw_text) for c in chunks[:3]]
+        # Unified Multi-Perspective Legal Analysis: Exactly 1 LLM call per contract
+        # Evaluates Risk, Adversarial, and Transactional viewpoints in a single pass.
+        # Eliminates redundant calls and prevents Groq 8,000 TPM rate limiting.
+        panel_prompt = (
+            "You are a Senior Multi-Perspective Legal Review Panel combining Risk Counsel, Adversarial Opposing Counsel, and Transaction Counsel. "
+            "Examine this contract thoroughly and identify genuine legal vulnerabilities, unfavorable terms, and drafting risks across: "
+            "1) Operational schedules (blank or missing delivery timelines), "
+            "2) Pricing and settlement (unilateral discretion over weights, rates, or clearance), "
+            "3) Term & Termination (indefinite validity, non-binding future contracts, early termination penalties), "
+            "4) Indemnity & Liability (uncapped carrier liability, one-sided fault allocation), and "
+            "5) Dispute Resolution & Venue (inconvenient forum, unilateral interpretation). "
+            "Return output as a valid JSON list of finding objects."
+        )
+        try:
+            analysis_text = full_text if len(full_text) <= 25000 else "\n\n".join([c.raw_text for c in chunks[:3]])
+            agent_results = run_llm_analysis("Legal Synthesis Panel", panel_prompt, analysis_text)
+            for res in agent_results:
+                severity = int(res.get("severity_score", 5))
+                chunk_id = getattr(chunks[0] if chunks else None, "id", None)
+                f_item = {
+                    "chunk_id": chunk_id,
+                    "agent_name": res.get("agent_name", "Legal Synthesis Panel"),
+                    "clause_type": res.get("clause_type", "Unspecified"),
+                    "finding_type": res.get("finding_type", "General Issue"),
+                    "summary": res.get("summary", ""),
+                    "evidence_quote": res.get("evidence_quote", ""),
+                    "severity_score": severity,
+                    "confidence": float(res.get("confidence", 0.85)),
+                    "verification_status": "unverified",
+                    "risk_level": "Critical" if severity >= 8 else ("High" if severity >= 7 else ("Medium" if severity >= 4 else "Low"))
+                }
+                f_item["consensus_reasoning"] = generate_consensus_reasoning(f_item)
+                raw_findings.append(f_item)
+        except Exception as e:
+            logger.warning(f"Unified legal analysis call failed: {e}. Falling back to rule engine.")
 
-        for agent_name in target_agent_names:
-            agent_info = AGENTS.get(agent_name)
-            if not agent_info:
-                continue
-            try:
-                for chunk_ref, chunk_txt in analysis_targets:
-                    agent_results = run_llm_analysis(agent_name, agent_info["system_prompt"], chunk_txt)
-                    for res in agent_results:
-                        severity = int(res.get("severity_score", 5))
-                        chunk_id = getattr(chunk_ref, "id", None)
-                        f_item = {
-                            "chunk_id": chunk_id,
-                            "agent_name": agent_name,
-                            "clause_type": res.get("clause_type", "Unspecified"),
-                            "finding_type": res.get("finding_type", "General Issue"),
-                            "summary": res.get("summary", ""),
-                            "evidence_quote": res.get("evidence_quote", ""),
-                            "severity_score": severity,
-                            "confidence": float(res.get("confidence", 0.8)),
-                            "verification_status": "unverified",
-                            "risk_level": "Critical" if severity >= 8 else ("High" if severity >= 7 else ("Medium" if severity >= 4 else "Low"))
-                        }
-                        f_item["consensus_reasoning"] = generate_consensus_reasoning(f_item)
-                        raw_findings.append(f_item)
-            except Exception as e:
-                logger.warning(f"Agent {agent_name} failed with error: {e}.")
 
 
     if not use_llm or not raw_findings:
