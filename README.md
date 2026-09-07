@@ -21,6 +21,41 @@ The AI layer is intentionally guardrailed. Agents must cite retrieved text, keep
 
 ## System Architecture
 
+```text
+Document Upload (PDF / Scan / Agreement)
+│
+▼
+Express Gateway (JWT Auth, Multipart Upload & File Validation)
+│
+▼
+FastAPI Document Ingestion Core
+├── PyMuPDF / Tesseract OCR Text Extraction
+└── Pre-Flight Contract Classifier (Contract vs Non-Contract / Template)
+│
+▼
+Semantic Legal Chunking (Clause classification, Parties, Page index)
+│
+▼
+RAG Ingestion (Pinecone Hybrid Vectors + Neon PostgreSQL Chunk Records)
+│
+▼
+Parallel Multi-Agent Review Panel (Groq LLM)
+├── Risk & Liability Counsel (Liabilities, loopholes & exposure)
+├── Opposing Counsel (Adversarial stress-test & exploit vectors)   ── parallel
+├── Transaction Counsel (Drafting clarity, negotiation levers)
+├── Neutral Legal Reviewer (Court enforceability & case law)
+└── Regulatory & Compliance Counsel (Statutory obligations & filings)
+│
+▼
+Legal Evidence & Citation Reviewer (Source text grounding & anti-hallucination check)
+│
+▼
+Legal Synthesis Engine (Cross-agent arbitration, conflict resolution & 0-100 score)
+│
+▼
+Interactive React Dashboard (Dual Simple/Standard Modes + Grounded Q&A Chat)
+```
+
 ```mermaid
 flowchart LR
     subgraph S1["1. User & Web UI"]
@@ -45,66 +80,36 @@ flowchart LR
     S4 -.->|Audited Report & Answers| S1
 ```
 
-### Presentation Summary (4-Stage Pipeline)
+## What Makes This Different From Existing Tools
 
-1. **Client & Presentation (React + Vite)**:
-   - **Dual Review Modes**: Plain-English view for clients; full 5-agent legal audit trail for attorneys.
-   - **Interactive Q&A**: RAG-powered chat with everyday layperson synonyms and source-grounded excerpts.
-2. **Ingestion & Security Gate (FastAPI + OCR)**:
-   - Extracts text via PyMuPDF/OCR, validates authentic contracts vs non-legal files (IDs/receipts), and neutralizes prompt injections before reaching LLMs.
-3. **Multi-Agent Specialist Panel (Groq LLM)**:
-   - Five specialized legal agents stress-test the agreement concurrently across liability, adversarial risk, deal quality, regulatory compliance, and court enforceability.
-4. **Legal Synthesis & Vector Persistence (Neon DB + Pinecone)**:
-   - Synthesizes conflicting counsel perspectives into an evidence-backed report with a 0–100 aggregate risk score, anchored to verifiable document citations.
+| Capability | LegalAid | ChatGPT / Claude | Ironclad / DocuSign | Robin AI / Spellbook |
+| :--- | :---: | :---: | :---: | :---: |
+| **Multi-agent adversarial review** | ✅ | ❌ | ❌ | Partial |
+| **Source-grounded verbatim citations** | ✅ | Partial | Partial | ✅ |
+| **Pre-flight contract classifier** | ✅ | ❌ | ✅ | Partial |
+| **Dual-mode presentation (Simple / Standard)** | ✅ | ❌ | ❌ | ❌ |
+| **Cross-agent consensus arbitration** | ✅ | ❌ | ❌ | Partial |
+| **Conversational synonym RAG Q&A** | ✅ | ❌ | ❌ | Partial |
+| **Anti-hallucination & anti-injection guardrails** | ✅ | Partial | ❌ | Partial |
+| **Deterministic 0–100 risk scoring** | ✅ | ❌ | ✅ (rule-only) | Partial |
+| **Per-user document persistence & lifecycle** | ✅ | ❌ | ✅ | ✅ |
+| **Open microservice architecture (self-hostable)** | ✅ | ❌ | ❌ | ❌ |
 
-## Current Status
+## Stack
 
-Phase 1 scaffold is in place:
-
-- Monorepo layout
-- React/Vite web app shell
-- Express/TypeScript backend shell
-- FastAPI AI service shell
-- SQLAlchemy schema models for Neon PostgreSQL
-- Shared TypeScript package
-- Environment template
-- Phase 1 schema documentation
-- Groq model config defaulting to `openai/gpt-oss-120b`
-
-Later phases will add document ingestion, OCR, Pinecone indexing, Groq multi-agent execution, consensus scoring, upload orchestration, and integration tests.
-
-## Monorepo Structure
-
-```text
-LegalAid/
-  apps/
-    web/                 React + Vite user interface
-    backend/             Express.js API backend and orchestration layer
-  services/
-    ai/                  FastAPI AI microservice
-  packages/
-    shared/              Shared TypeScript constants and schemas
-  infra/
-    docker/              Future local Docker/dev infrastructure
-    neon/                Future database migration and provisioning notes
-  docs/
-    phase1-environment-and-schema.md
-  .env.example
-  package.json
-  pnpm-workspace.yaml
-  tsconfig.base.json
-```
-
-## Tech Stack
-
-- Web: React, Vite, TypeScript, lucide-react
-- Backend: Express.js, TypeScript, Zod
-- AI microservice: FastAPI, Python 3.11+, SQLAlchemy, Pydantic Settings
-- LLM provider: Groq API
-- Default Groq model: `openai/gpt-oss-120b`
-- Database: Neon PostgreSQL
-- Vector database: Pinecone
-- OCR pipeline: Tesseract, pytesseract, pdf2image
+| Layer | Technology |
+| :--- | :--- |
+| **Frontend** | React 18, Vite, Tailwind CSS, Lucide Icons, TypeScript |
+| **Gateway / Auth** | Express.js, Node.js, JWT, Multer (multipart handling) |
+| **AI Microservice** | FastAPI, Python 3.11+, Pydantic Settings, Uvicorn |
+| **LLM Inference** | Groq API (`openai/gpt-oss-120b` / Llama-3 family, ultra-low latency) |
+| **Document Extraction** | PyMuPDF (fitz), Tesseract OCR, pdf2image, Poppler |
+| **Vector Store** | Pinecone (dense semantic embeddings, per-document namespaces) |
+| **Multi-Agent Orchestration** | 5 Specialist Counsel Agents + Legal Evidence Reviewer |
+| **Synthesis & Arbitration** | Legal Synthesis Engine (deterministic consensus & 0–100 risk scoring) |
+| **Database** | Neon PostgreSQL (SQLAlchemy 2.0, psycopg3 driver) |
+| **Security Guardrails** | Strict Injection Blocker, Citation Hallucination Filter, Intent Gate |
+| **Deployment** | Vercel (Frontend), Render / Railway / Docker (Backend & AI Microservice) |
 
 ## Prerequisites
 
