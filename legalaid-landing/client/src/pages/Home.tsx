@@ -41,7 +41,7 @@ export default function Home() {
 
       <main id="top">
         <section className="relative min-h-[760px] overflow-hidden bg-[#101412] pt-[72px] text-[#f1eee6]">
-          <div className="absolute inset-0 opacity-40" style={{ backgroundImage: "url('/manus-storage/legalaid-hero_4665a34b.png')", backgroundPosition: "center right", backgroundSize: "cover" }} />
+          <div className="absolute inset-0 opacity-40" style={{ backgroundImage: "url('/assets/legalaid-skyline-hero.png')", backgroundPosition: "center right", backgroundSize: "cover" }} />
           <div className="absolute inset-0 bg-[linear-gradient(90deg,#101412_0%,#101412e8_38%,#10141255_75%,#101412aa_100%)]" />
           <div className="container relative flex min-h-[688px] items-center pb-20 pt-20">
             <div className="max-w-[760px]">
