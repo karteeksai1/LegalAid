@@ -99,7 +99,7 @@ Format your response as a valid JSON list of objects:
 ]
 """
     
-    model_candidates = [settings.groq_model, "llama-3.1-8b-instant", "llama-3.1-70b-versatile", "llama3-70b-8192", "llama3-8b-8192"]
+    model_candidates = [settings.groq_model, "openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b"]
     # Deduplicate while preserving order
     seen = set()
     models_to_try = [m for m in model_candidates if m and not (m in seen or seen.add(m))]
