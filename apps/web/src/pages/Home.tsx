@@ -36,14 +36,14 @@ export default function Home() {
       </header>
 
       <main id="top">
-        <section className="relative min-h-[760px] overflow-hidden bg-[#101412] pt-[72px] text-[#f1eee6]">
+        <section className="relative min-h-190 overflow-hidden bg-[#101412] pt-18 text-[#f1eee6]">
           <div className="absolute inset-0 opacity-40" style={{ backgroundImage: "url('/assets/legalaid-skyline-hero.png')", backgroundPosition: "center right", backgroundSize: "cover" }} />
           <div className="absolute inset-0 bg-[linear-gradient(90deg,#101412_0%,#101412e8_38%,#10141255_75%,#101412aa_100%)]" />
-          <div className="container relative flex min-h-[688px] items-center pb-20 pt-20">
-            <div className="max-w-[760px]">
+          <div className="container relative flex min-h-172 items-center pb-20 pt-20">
+            <div className="max-w-190">
               <div className="mb-8 flex items-center gap-3"><span className="h-2 w-2 signal-pulse rounded-full bg-[#d7ff52]" /><span className="eyebrow text-[#d7ff52]">Explainable review infrastructure</span></div>
-              <h1 className="font-display max-w-[790px] text-[clamp(4rem,9vw,8.6rem)] font-bold leading-[0.86] tracking-[-0.09em]">Find the clause that <span className="text-[#d7ff52]">changes the deal.</span></h1>
-              <div className="mt-10 grid max-w-[680px] grid-cols-1 gap-8 border-t border-white/20 pt-7 sm:grid-cols-[1fr_250px]">
+              <h1 className="font-display max-w-197.5 text-[clamp(4rem,9vw,8.6rem)] font-bold leading-[0.86] tracking-[-0.09em]">Find the clause that <span className="text-[#d7ff52]">changes the deal.</span></h1>
+              <div className="mt-10 grid max-w-170 grid-cols-1 gap-8 border-t border-white/20 pt-7 sm:grid-cols-[1fr_250px]">
                 <p className="text-lg leading-7 text-[#c7cbc3]">LegalAid is an explainable multi-agent AI framework for adversarial legal document review and vulnerability analysis.</p>
                 <div className="font-mono text-[11px] leading-5 text-[#7f887f]"><span className="text-[#d7ff52]">01 /</span> Surface exploitable clauses<br /><span className="text-[#d7ff52]">02 /</span> Ground every finding<br /><span className="text-[#d7ff52]">03 /</span> Show your working</div>
               </div>

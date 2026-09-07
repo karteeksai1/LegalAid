@@ -52,7 +52,7 @@ export default function Auth({ mode }: { mode: AuthMode }) {
                   <span className="eyebrow mb-1.5 block text-[#8f978e]">Full name</span>
                   <span className="relative block">
                     <UserRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#626b61]" />
-                    <input required name="name" type="text" autoComplete="name" placeholder="Your name" className="h-11 sm:h-12 w-full rounded-none border border-white/15 bg-white/[0.04] pl-11 pr-4 text-sm text-[#f1eee6] outline-none transition-colors placeholder:text-[#626b61] focus:border-[#d7ff52]" />
+                    <input required name="name" type="text" autoComplete="name" placeholder="Your name" className="h-11 sm:h-12 w-full rounded-none border border-white/15 bg-white/4 pl-11 pr-4 text-sm text-[#f1eee6] outline-none transition-colors placeholder:text-[#626b61] focus:border-[#d7ff52]" />
                   </span>
                 </label>
               )}
@@ -60,14 +60,14 @@ export default function Auth({ mode }: { mode: AuthMode }) {
                 <span className="eyebrow mb-1.5 block text-[#8f978e]">Email address</span>
                 <span className="relative block">
                   <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#626b61]" />
-                  <input required name="email" type="email" autoComplete="email" placeholder="you@company.com" className="h-11 sm:h-12 w-full rounded-none border border-white/15 bg-white/[0.04] pl-11 pr-4 text-sm text-[#f1eee6] outline-none transition-colors placeholder:text-[#626b61] focus:border-[#d7ff52]" />
+                  <input required name="email" type="email" autoComplete="email" placeholder="you@company.com" className="h-11 sm:h-12 w-full rounded-none border border-white/15 bg-white/4 pl-11 pr-4 text-sm text-[#f1eee6] outline-none transition-colors placeholder:text-[#626b61] focus:border-[#d7ff52]" />
                 </span>
               </label>
               <label className="block">
                 <span className="eyebrow mb-1.5 block text-[#8f978e]">Password</span>
                 <span className="relative block">
                   <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#626b61]" />
-                  <input required name="password" type={showPassword ? "text" : "password"} autoComplete={isSignup ? "new-password" : "current-password"} placeholder="••••••••••••" minLength={8} className="h-11 sm:h-12 w-full rounded-none border border-white/15 bg-white/[0.04] pl-11 pr-12 text-sm tracking-[0.14em] text-[#f1eee6] outline-none transition-colors placeholder:text-[#626b61] focus:border-[#d7ff52]" />
+                  <input required name="password" type={showPassword ? "text" : "password"} autoComplete={isSignup ? "new-password" : "current-password"} placeholder="••••••••••••" minLength={8} className="h-11 sm:h-12 w-full rounded-none border border-white/15 bg-white/4 pl-11 pr-12 text-sm tracking-[0.14em] text-[#f1eee6] outline-none transition-colors placeholder:text-[#626b61] focus:border-[#d7ff52]" />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#626b61] hover:text-[#d7ff52]" aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
                 </span>
               </label>
@@ -79,7 +79,7 @@ export default function Auth({ mode }: { mode: AuthMode }) {
               )}
               {!isSignup && (
                 <div className="flex justify-end pt-0.5">
-                  <button type="button" onClick={() => toast("Password reset flow coming next.")} className="font-mono text-[10px] uppercase tracking-[0.1em] text-[#d7ff52] hover:underline">Forgot password?</button>
+                  <button type="button" onClick={() => toast("Password reset flow coming next.")} className="font-mono text-[10px] uppercase tracking-widest text-[#d7ff52] hover:underline">Forgot password?</button>
                 </div>
               )}
               <Button type="submit" className="h-11 sm:h-12 w-full rounded-none bg-[#d7ff52] font-mono text-xs uppercase tracking-[0.12em] text-[#101412] hover:bg-[#e4ff87]">
@@ -111,7 +111,7 @@ export default function Auth({ mode }: { mode: AuthMode }) {
           </div>
 
           {/* Lady Justice Transparent Outlined Figure - strictly locked to bottom right */}
-          <div className="pointer-events-none absolute bottom-0 right-0 z-0 flex items-end justify-end h-[88%] max-h-[850px] w-auto select-none opacity-40 mix-blend-screen transition-opacity duration-700 hover:opacity-60">
+          <div className="pointer-events-none absolute bottom-0 right-0 z-0 flex items-end justify-end h-[88%] max-h-212.5 w-auto select-none opacity-40 mix-blend-screen transition-opacity duration-700 hover:opacity-60">
             <img 
               src="/lady-justice.png" 
               alt="Lady Justice" 

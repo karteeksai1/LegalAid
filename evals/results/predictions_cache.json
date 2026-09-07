@@ -260,5 +260,199 @@
       },
       "lifecycle_stage": "final"
     }
+  ],
+  "XLITECHNOLOGIES,INC_12_02_2015-EX-10.02-STRATEGIC ALLIANCE AGREEMENT.txt": [
+    {
+      "chunk_id": "66f36caa-76ff-4a18-a7f4-68d60a2c0e6b",
+      "agent_name": "Risk & Liability Counsel, Opposing Counsel",
+      "clause_type": "Indemnity",
+      "finding_type": "Adversarial Indemnity Loophole",
+      "summary": "Opposing counsel can leverage this broad indemnity to demand defense costs and settlement contributions even before liability is adjudicated in court.",
+      "evidence_quote": "ent, CLIENT agrees to defend, indemnify and hold harmless BOSCH and its parents, subsidiary and affiliated entities, successors, assigns and licensees, and their respective office",
+      "severity_score": 9,
+      "confidence": 0.9,
+      "verification_status": "verified",
+      "risk_level": "Critical",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 8/10.",
+        "deliberation": [
+          {
+            "agent": "Risk & Liability Counsel",
+            "stance": "Client Exposure",
+            "score": 8,
+            "argument": "Indemnity lacks a reciprocal cap, creating uncapped pass-through liability for third-party claims."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Adversarial Attack Path",
+            "score": 9,
+            "argument": "Opposing party can weaponize broad loss terms to claim indirect, incidental, and legal fees without proving direct breach."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Judicial Enforceability",
+            "score": 7,
+            "argument": "Courts generally uphold commercial indemnity as written unless clearly unconscionable. High litigation burden exists."
+          }
+        ],
+        "arbitration_rule": "Consensus weighted toward Opposing Counsel adversarial exploit risk (9/10) and Neutral Legal Reviewer enforceability standard (7/10), settling at final severity of 8/10.",
+        "plain_arbitration_rule": "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
+      },
+      "lifecycle_stage": "final"
+    },
+    {
+      "chunk_id": "66f36caa-76ff-4a18-a7f4-68d60a2c0e6b",
+      "agent_name": "Regulatory & Compliance Counsel",
+      "clause_type": "Confidentiality",
+      "finding_type": "Confidentiality Protection Scope",
+      "summary": "Confidentiality obligations govern sensitive business disclosures. Ensure clear expiration or survival terms are set.",
+      "evidence_quote": "closure to any third party of Proprietary Information associated with the Product and agrees (1) not to disclose any Proprietary Information to any third party, and (2) not to allow any third p",
+      "severity_score": 5,
+      "confidence": 0.92,
+      "verification_status": "verified",
+      "risk_level": "Medium",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 5/10.",
+        "deliberation": [
+          {
+            "agent": "Risk & Liability Counsel",
+            "stance": "Operational Review",
+            "score": 4,
+            "argument": "Reviewed clause for client operational commitments and exposure."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Adversarial Probe",
+            "score": 6,
+            "argument": "Probed clause for litigation ambiguities and breach enforcement leverage."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Judicial Overview",
+            "score": 5,
+            "argument": "Evaluated clause balance against commercial standard practices."
+          }
+        ],
+        "arbitration_rule": "Consensus calibrated to 5/10: Balanced across Risk & Liability Counsel operational needs, Opposing Counsel leverage points, and Neutral Legal Reviewer fairness standard.",
+        "plain_arbitration_rule": "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
+      },
+      "lifecycle_stage": "final"
+    }
+  ],
+  "XLITECHNOLOGIES,INC_12_11_2015-EX-10.1-Sponsorship Agreement.txt": [
+    {
+      "chunk_id": "81771079-8c3b-4a14-85b2-0ce11ee24ae1",
+      "agent_name": "Regulatory & Compliance Counsel",
+      "clause_type": "Survival",
+      "finding_type": "Extended Survival Obligation",
+      "summary": "Post-termination survival terms impose multi-year compliance monitoring and liability exposure.",
+      "evidence_quote": "ch to cure the default.   2.3 Survival. Sections 4.1, 5.1, 5.2 and 6 shall survive termination of this Agreement.   3. Agreement Fee   3.1 In consideration of the rights herein g",
+      "severity_score": 6,
+      "confidence": 0.9,
+      "verification_status": "verified",
+      "risk_level": "Medium",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 6/10.",
+        "deliberation": [
+          {
+            "agent": "Risk & Liability Counsel",
+            "stance": "Operational Review",
+            "score": 5,
+            "argument": "Reviewed clause for client operational commitments and exposure."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Adversarial Probe",
+            "score": 7,
+            "argument": "Probed clause for litigation ambiguities and breach enforcement leverage."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Judicial Overview",
+            "score": 6,
+            "argument": "Evaluated clause balance against commercial standard practices."
+          }
+        ],
+        "arbitration_rule": "Consensus calibrated to 6/10: Balanced across Risk & Liability Counsel operational needs, Opposing Counsel leverage points, and Neutral Legal Reviewer fairness standard.",
+        "plain_arbitration_rule": "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
+      },
+      "lifecycle_stage": "final"
+    },
+    {
+      "chunk_id": "6660808f-1466-47ea-8f3f-01ee39e53a58",
+      "agent_name": "Risk & Liability Counsel, Opposing Counsel",
+      "clause_type": "Indemnity",
+      "finding_type": "Adversarial Indemnity Loophole",
+      "summary": "Opposing counsel can leverage this broad indemnity to demand defense costs and settlement contributions even before liability is adjudicated in court.",
+      "evidence_quote": "5. Indemnification   5.1 WCC shall indemnify, defend and hold harmless XLI, and its respective affiliates, officers, directors, employees, agents and represen",
+      "severity_score": 9,
+      "confidence": 0.9,
+      "verification_status": "verified",
+      "risk_level": "Critical",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 8/10.",
+        "deliberation": [
+          {
+            "agent": "Risk & Liability Counsel",
+            "stance": "Client Exposure",
+            "score": 8,
+            "argument": "Indemnity lacks a reciprocal cap, creating uncapped pass-through liability for third-party claims."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Adversarial Attack Path",
+            "score": 9,
+            "argument": "Opposing party can weaponize broad loss terms to claim indirect, incidental, and legal fees without proving direct breach."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Judicial Enforceability",
+            "score": 7,
+            "argument": "Courts generally uphold commercial indemnity as written unless clearly unconscionable. High litigation burden exists."
+          }
+        ],
+        "arbitration_rule": "Consensus weighted toward Opposing Counsel adversarial exploit risk (9/10) and Neutral Legal Reviewer enforceability standard (7/10), settling at final severity of 8/10.",
+        "plain_arbitration_rule": "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
+      },
+      "lifecycle_stage": "final"
+    },
+    {
+      "chunk_id": "5a369244-a58c-4200-8408-e8f5b6ada27c",
+      "agent_name": "Regulatory & Compliance Counsel",
+      "clause_type": "Confidentiality",
+      "finding_type": "Confidentiality Protection Scope",
+      "summary": "Confidentiality obligations govern sensitive business disclosures. Ensure clear expiration or survival terms are set.",
+      "evidence_quote": "sonably requested in writing. Confidential information shall not include information which: (i) was known to a party without confidentiality restrictions prior to receipt hereunder, (ii) was or",
+      "severity_score": 5,
+      "confidence": 0.92,
+      "verification_status": "verified",
+      "risk_level": "Medium",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 5/10.",
+        "deliberation": [
+          {
+            "agent": "Risk & Liability Counsel",
+            "stance": "Operational Review",
+            "score": 4,
+            "argument": "Reviewed clause for client operational commitments and exposure."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Adversarial Probe",
+            "score": 6,
+            "argument": "Probed clause for litigation ambiguities and breach enforcement leverage."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Judicial Overview",
+            "score": 5,
+            "argument": "Evaluated clause balance against commercial standard practices."
+          }
+        ],
+        "arbitration_rule": "Consensus calibrated to 5/10: Balanced across Risk & Liability Counsel operational needs, Opposing Counsel leverage points, and Neutral Legal Reviewer fairness standard.",
+        "plain_arbitration_rule": "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
+      },
+      "lifecycle_stage": "final"
+    }
   ]
 }
