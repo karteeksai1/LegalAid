@@ -267,65 +267,36 @@ Chunk metadata is designed to match the Pinecone retrieval requirements:
 - `raw_text`
 - `token_count`
 
-## AI Agent Design
+## Multi-Agent Review Panel & Legal Synthesis
 
-The planned multi-agent system includes:
+LegalAid deploys 6 specialized agent personas that review contracts from distinct legal and strategic angles:
 
-- Risk & Liability Counsel Agent: identifies liabilities, unfavorable clauses, loopholes, exposures, and potential claims against the client.
-- Opposing Counsel Agent: actively probes the contract from an adverse party perspective to surface exploit vectors, leverage points, and dispute traps.
-- Transaction Counsel Agent: reviews the agreement from the perspective of transaction structure, negotiation, drafting quality, and opportunities for improvement.
-- Neutral Legal Reviewer Agent: independently evaluates competing findings and determines which conclusions are best supported by the evidence and legal authority.
-- Regulatory & Compliance Counsel Agent: checks regulatory requirements, statutory obligations, approvals, filing requirements, and compliance risks.
-- Legal Evidence & Citation Reviewer Agent: verifies important conclusions against the source agreement and applicable legal authorities, ensuring claims are properly supported.
+1. **Risk & Liability Counsel**: Identifies direct financial liabilities, unfavorable indemnities, liability uncapping, and potential claims against the client.
+2. **Opposing Counsel**: Actively stress-tests the agreement from an adversary's perspective to surface exploitable ambiguities, leverage points, and dispute traps.
+3. **Transaction Counsel**: Reviews transaction structure, negotiation positioning, drafting quality, and clarity of deal covenants.
+4. **Neutral Legal Reviewer**: Independently evaluates competing findings, determines court enforceability, and provides objective assessments.
+5. **Regulatory & Compliance Counsel**: Verifies statutory compliance, approvals, filing requirements, and jurisdiction-specific regulatory exposures.
+6. **Legal Evidence & Citation Reviewer**: Audits claims against verbatim document excerpts and legal authority to prevent hallucination.
 
-All agent outputs should be structured, schema-validated, and grounded in retrieved document chunks.
+### Legal Synthesis Engine
+The **Legal Synthesis Engine** reconciles conflicting perspectives across the agent panel:
+- Weighs competing arguments using domain-specific legal arbitration rules.
+- Computes a deterministic 0–100 aggregate contract risk score.
+- Generates dual-track reports: an executive **Plain English** summary for clients and an exhaustive **Standard Audit Trail** for legal counsel.
 
-## Figma Prompt
+---
 
-Use this prompt in Figma, FigJam, or an AI design assistant:
+## Interactive Q&A & Guardrails
 
-```text
-Design a serious, professional SaaS web application called LegalAid Review. It is an explainable multi-agent AI platform for adversarial legal document review and vulnerability analysis.
+- **Conversational Layperson Mapping**: Powered by an intelligent synonym engine (`SYNONYM_MAP`), users can ask questions in everyday informal phrasing (e.g. *"Can they cancel on me without warning?"*, *"Can they just drop me?"*, *"Do I have to pay if they mess up?"*, *"Can they steal my code?"*), which automatically resolve to underlying legal clauses (Termination, Notice, Indemnity, IP).
+- **Friendly & Varied Off-Topic Refusals**: Off-topic queries receive warm, conversational redirections toward contract terms rather than repetitive robotic scripts.
+- **Litigation Prediction Differentiation**: Questions asking to predict court outcomes (e.g. *"Can I win this thing?"*) receive tailored guidance clarifying that LegalAid evaluates contract provisions rather than predicting litigation outcomes.
+- **Strict Security Guardrails**: Built-in regex and semantic interceptors block prompt injection attempts, system prompt leaks, and demands for fabricated court citations.
 
-The product helps lawyers, founders, compliance teams, and contract reviewers upload legal documents, run AI-powered stress tests, and see source-grounded risks before signing or sending a contract.
+---
 
-Core workflow:
-1. User uploads a PDF or legal document.
-2. The system extracts text with OCR, chunks clauses, and indexes evidence.
-3. AI agents review the document from specialized perspectives: Risk & Liability Counsel, Opposing Counsel, Transaction Counsel, Neutral Legal Reviewer, and Regulatory & Compliance Counsel.
-4. The dashboard shows clause-level findings, exact evidence quotes, verification status, confidence, severity, and consensus risk scores synthesized by the Legal Synthesis Engine.
-5. The user can filter findings by clause type, risk level, party scope, agent, and verification status.
-6. The user can open a report view and export a structured vulnerability analysis summary.
+## Document Validation & Lifecycle
 
-Design requirements:
-- Build the actual app interface, not a marketing landing page.
-- Visual tone should be legal, trustworthy, analytical, and modern.
-- Avoid playful or overly decorative styling.
-- Use a dense but readable SaaS layout with clear navigation and strong information hierarchy.
-- First screen should feel like a working legal review dashboard.
-- Include left navigation, top document/job status bar, upload action, risk summary, clause heatmap, findings table, agent consensus panel, and source evidence drawer.
-- Use restrained colors with high contrast. Suggested palette: white, off-white, ink, muted steel, legal green, amber, and red for severity.
-- Use compact cards only for repeated dashboard items; avoid nested cards.
-- Show exact evidence snippets and verification badges prominently.
-- Include states for processing, completed review, critical findings, and verification unavailable.
-- Include responsive desktop and tablet layouts.
-
-Key screens to generate:
-1. Document upload and queue screen.
-2. Active analysis progress screen with five agent statuses.
-3. Review dashboard with aggregate risk score and clause heatmap.
-4. Finding detail view with evidence quote, source chunk, page number, confidence, severity, and recommended revision.
-5. Exportable report preview.
-
-Primary users should immediately understand that this is a legal AI risk-review tool, not a generic chat app.
-```
-
-## Roadmap
-
-- Phase 1: Project setup and Neon DB schemas
-- Phase 2: Document ingestion, OCR, chunking, and Pinecone indexing
-- Phase 3: Groq LLM multi-agent system and anti-hallucination guardrails
-- Phase 4: Legal Synthesis Engine and legal risk scoring
-- Phase 5: Express API gateway and orchestration
-- Phase 6: End-to-end integration testing
+- **Pre-Flight Contract Classifier**: Validates whether uploaded files are genuine contracts with binding obligations (versus non-legal documents like personal IDs or receipts) and seamlessly handles unfilled contract templates (e.g. standard NDAs with blank signature fields).
+- **Persistent Multi-Session Lifecycle**: Documents, analysis findings, and chat histories persist across user logout/login sessions in Neon PostgreSQL, with hard cascading database deletes when documents are removed.
 
