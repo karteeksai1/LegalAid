@@ -462,10 +462,22 @@ def main():
         res = evaluate_document(tf, gt_findings, pred_findings)
         results.append(res)
 
-    # Print Formatted Results Table
-    print("┌" + "─" * 90 + "┐")
-    print(f"│ {'CONTRACT / DOCUMENT':<34} │ {'PRED':<5} │ {'GT':<4} │ {'PREC':<6} │ {'REC':<6} │ {'F1':<6} │ {'GROUNDED':<9} │")
-    print("├" + "─" * 90 + "┤")
+    # Print Formatted Results Table with full descriptive headers
+    col_doc = "CONTRACT / DOCUMENT"
+    col_pred = "PREDICTED"
+    col_gt = "GROUND TRUTH"
+    col_prec = "PRECISION"
+    col_rec = "RECALL"
+    col_f1 = "F1-SCORE"
+    col_ground = "GROUNDED %"
+
+    header_line = f"│ {col_doc:<34} │ {col_pred:<9} │ {col_gt:<12} │ {col_prec:<9} │ {col_rec:<8} │ {col_f1:<8} │ {col_ground:<10} │"
+    border_len = len(header_line) - 2
+    border = "─" * border_len
+
+    print("┌" + border + "┐")
+    print(header_line)
+    print("├" + border + "┤")
 
     total_pred = 0
     total_gt = 0
@@ -488,17 +500,22 @@ def main():
         f1_str = f"{r['f1_score']:.2f}" if r["ground_truth_count"] > 0 else "N/A"
         grounded_str = f"{r['groundedness_rate']:.1f}%"
 
-        print(f"│ {name_abbr:<34} │ {r['predictions_count']:<5} │ {r['ground_truth_count']:<4} │ {prec_str:<6} │ {rec_str:<6} │ {f1_str:<6} │ {grounded_str:<9} │")
+        print(f"│ {name_abbr:<34} │ {r['predictions_count']:<9} │ {r['ground_truth_count']:<12} │ {prec_str:<9} │ {rec_str:<8} │ {f1_str:<8} │ {grounded_str:<10} │")
 
-    print("├" + "─" * 90 + "┤")
+    print("├" + border + "┤")
 
     overall_prec = total_tp / (total_tp + total_fp) if (total_tp + total_fp) > 0 else 0.0
     overall_rec = total_tp / (total_tp + total_fn) if (total_tp + total_fn) > 0 else 0.0
     overall_f1 = (2 * overall_prec * overall_rec / (overall_prec + overall_rec)) if (overall_prec + overall_rec) > 0 else 0.0
     overall_groundedness = (total_grounded_pred / total_pred * 100) if total_pred > 0 else 100.0
 
-    print(f"│ {'OVERALL BENCHMARK':<34} │ {total_pred:<5} │ {total_gt:<4} │ {overall_prec:.2f}   │ {overall_rec:.2f}   │ {overall_f1:.2f}   │ {overall_groundedness:.1f}%    │")
-    print("└" + "─" * 90 + "┘\n")
+    ovr_prec_str = f"{overall_prec:.2f}"
+    ovr_rec_str = f"{overall_rec:.2f}"
+    ovr_f1_str = f"{overall_f1:.2f}"
+    ovr_ground_str = f"{overall_groundedness:.1f}%"
+
+    print(f"│ {'OVERALL BENCHMARK':<34} │ {total_pred:<9} │ {total_gt:<12} │ {ovr_prec_str:<9} │ {ovr_rec_str:<8} │ {ovr_f1_str:<8} │ {ovr_ground_str:<10} │")
+    print("└" + border + "┘\n")
 
     print("📈 Benchmark Metrics Summary:")
     print(f"   • Total System Findings  : {total_pred}")
