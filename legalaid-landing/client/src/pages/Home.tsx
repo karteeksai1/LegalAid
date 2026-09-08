@@ -41,8 +41,8 @@ export default function Home() {
 
       <main id="top">
         <section className="relative min-h-190 overflow-hidden bg-[#101412] pt-18 text-[#f1eee6]">
-          <div className="absolute inset-0 opacity-40" style={{ backgroundImage: "url('/assets/legalaid-skyline-hero.png')", backgroundPosition: "center right", backgroundSize: "cover" }} />
-          <div className="absolute inset-0 bg-[linear-gradient(90deg,#101412_0%,#101412e8_38%,#10141255_75%,#101412aa_100%)]" />
+          <div className="absolute inset-0 opacity-80" style={{ backgroundImage: "url('/assets/legalaid-skyline-hero.png')", backgroundPosition: "center right", backgroundSize: "cover" }} />
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,#101412_0%,#101412fa_36%,#10141288_62%,#10141218_85%,#10141228_100%)]" />
           <div className="container relative flex min-h-172 items-center pb-20 pt-20">
             <div className="max-w-190">
               <div className="mb-8 flex items-center gap-3"><span className="h-2 w-2 signal-pulse rounded-full bg-[#d7ff52]" /><span className="eyebrow text-[#d7ff52]">Explainable review infrastructure</span></div>
