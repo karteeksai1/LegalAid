@@ -454,5 +454,1189 @@
       },
       "lifecycle_stage": "final"
     }
+  ],
+  "XYBERNAUTCORP_07_12_2002-EX-4-SPONSORSHIP AGREEMENT.txt": [
+    {
+      "chunk_id": "034d9d0d-7e57-4564-837b-4009771e8002",
+      "agent_name": "Risk & Liability Counsel, Opposing Counsel",
+      "clause_type": "Indemnity",
+      "finding_type": "Adversarial Indemnity Loophole",
+      "summary": "Opposing counsel can leverage this broad indemnity to demand defense costs and settlement contributions even before liability is adjudicated in court.",
+      "evidence_quote": "tration statement  and shall  indemnify the Company and hold it harmless with respect to any material misstatement or material omission with respect to such information\n\n(f) All R",
+      "severity_score": 9,
+      "confidence": 0.9,
+      "verification_status": "verified",
+      "risk_level": "Critical",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 8/10.",
+        "deliberation": [
+          {
+            "agent": "Risk & Liability Counsel",
+            "stance": "Client Exposure",
+            "score": 8,
+            "argument": "Indemnity lacks a reciprocal cap, creating uncapped pass-through liability for third-party claims."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Adversarial Attack Path",
+            "score": 9,
+            "argument": "Opposing party can weaponize broad loss terms to claim indirect, incidental, and legal fees without proving direct breach."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Judicial Enforceability",
+            "score": 7,
+            "argument": "Courts generally uphold commercial indemnity as written unless clearly unconscionable. High litigation burden exists."
+          }
+        ],
+        "arbitration_rule": "Consensus weighted toward Opposing Counsel adversarial exploit risk (9/10) and Neutral Legal Reviewer enforceability standard (7/10), settling at final severity of 8/10.",
+        "plain_arbitration_rule": "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
+      },
+      "lifecycle_stage": "final"
+    },
+    {
+      "chunk_id": "1b54f4d5-ef62-4ce4-a25b-d928382deb89",
+      "agent_name": "Regulatory & Compliance Counsel",
+      "clause_type": "Governing Law",
+      "finding_type": "Dispute Jurisdiction Scope",
+      "summary": "Disputes are governed by specified state or national jurisdiction. Review forum convenience and dispute procedures.",
+      "evidence_quote": "tanding under the laws of the jurisdiction of the state of its incorporation,  with full power to carry on its business as presently  conducted  and as  contemplated  by this Agreeme",
+      "severity_score": 5,
+      "confidence": 0.95,
+      "verification_status": "verified",
+      "risk_level": "Medium",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 5/10.",
+        "deliberation": [
+          {
+            "agent": "Regulatory & Compliance Counsel",
+            "stance": "Statutory Alignment",
+            "score": 5,
+            "argument": "Foreign venue imposes high travel, local counsel retainers, and jurisdictional overhead."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Forum Advantage",
+            "score": 7,
+            "argument": "Opposing counsel gains significant procedural advantages and hometown jury leverage in chosen forum."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Forum Non Conveniens",
+            "score": 4,
+            "argument": "Choice of law clauses are routinely enforced absent proof of bad faith or extreme unfairness."
+          }
+        ],
+        "arbitration_rule": "Consensus resolved at 5/10: Regulatory & Compliance Counsel statutory baseline weighted above procedural forum advantages.",
+        "plain_arbitration_rule": "The panel agreed to prioritize the interpretation that best protects the document owner from unforeseen financial or legal liabilities."
+      },
+      "lifecycle_stage": "final"
+    },
+    {
+      "chunk_id": "c56e0cfc-3039-4971-ad14-d697d2b5f347",
+      "agent_name": "Risk & Liability Counsel, Opposing Counsel",
+      "clause_type": "Intellectual Property",
+      "finding_type": "Aggressive Ownership Claim",
+      "summary": "Opposing party can assert complete copyright ownership over proprietary templates and tooling.",
+      "evidence_quote": "rade and industrial secrets,  intellectual property rights,  financial  information,  the names and the nature of, business",
+      "severity_score": 8,
+      "confidence": 0.85,
+      "verification_status": "verified",
+      "risk_level": "Critical",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 7/10.",
+        "deliberation": [
+          {
+            "agent": "Risk & Liability Counsel",
+            "stance": "Asset Protection",
+            "score": 7,
+            "argument": "Broad assignment transfers background technology without explicit reservation of preexisting IP."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Ownership Claim",
+            "score": 8,
+            "argument": "Opposing party can assert complete copyright ownership over tools, libraries, and derivative works."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Work-for-Hire Enforceability",
+            "score": 6,
+            "argument": "Assignment requires express written agreement; ambiguous scope leaves room for contentious declaratory litigation."
+          }
+        ],
+        "arbitration_rule": "Consensus resolved at 7/10: Strong weight given to Risk & Liability Counsel asset protection and Opposing Counsel ownership claim vectors.",
+        "plain_arbitration_rule": "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
+      },
+      "lifecycle_stage": "final"
+    },
+    {
+      "chunk_id": "9401a102-3fc7-459d-bd06-ffd230f05e93",
+      "agent_name": "Regulatory & Compliance Counsel",
+      "clause_type": "Confidentiality",
+      "finding_type": "Confidentiality Protection Scope",
+      "summary": "Confidentiality obligations govern sensitive business disclosures. Ensure clear expiration or survival terms are set.",
+      "evidence_quote": "y,  or take or use any of the Confidential Information for its own purposes,  except as may be required in connection with the  performance of its  obligations  under this Agreement or the enfor",
+      "severity_score": 5,
+      "confidence": 0.92,
+      "verification_status": "verified",
+      "risk_level": "Medium",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 5/10.",
+        "deliberation": [
+          {
+            "agent": "Risk & Liability Counsel",
+            "stance": "Operational Review",
+            "score": 4,
+            "argument": "Reviewed clause for client operational commitments and exposure."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Adversarial Probe",
+            "score": 6,
+            "argument": "Probed clause for litigation ambiguities and breach enforcement leverage."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Judicial Overview",
+            "score": 5,
+            "argument": "Evaluated clause balance against commercial standard practices."
+          }
+        ],
+        "arbitration_rule": "Consensus calibrated to 5/10: Balanced across Risk & Liability Counsel operational needs, Opposing Counsel leverage points, and Neutral Legal Reviewer fairness standard.",
+        "plain_arbitration_rule": "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
+      },
+      "lifecycle_stage": "final"
+    },
+    {
+      "chunk_id": "01983c4a-bc63-47e1-ae21-50f125d9507e",
+      "agent_name": "Regulatory & Compliance Counsel",
+      "clause_type": "Confidentiality",
+      "finding_type": "Confidentiality Protection Scope",
+      "summary": "Confidentiality obligations govern sensitive business disclosures. Ensure clear expiration or survival terms are set.",
+      "evidence_quote": "lose only that portion of the Confidential Information that such person is  advised  by legal  counsel  in  writing  is  legally  required  to be disclosed.",
+      "severity_score": 5,
+      "confidence": 0.92,
+      "verification_status": "verified",
+      "risk_level": "Medium",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 5/10.",
+        "deliberation": [
+          {
+            "agent": "Risk & Liability Counsel",
+            "stance": "Operational Review",
+            "score": 4,
+            "argument": "Reviewed clause for client operational commitments and exposure."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Adversarial Probe",
+            "score": 6,
+            "argument": "Probed clause for litigation ambiguities and breach enforcement leverage."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Judicial Overview",
+            "score": 5,
+            "argument": "Evaluated clause balance against commercial standard practices."
+          }
+        ],
+        "arbitration_rule": "Consensus calibrated to 5/10: Balanced across Risk & Liability Counsel operational needs, Opposing Counsel leverage points, and Neutral Legal Reviewer fairness standard.",
+        "plain_arbitration_rule": "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
+      },
+      "lifecycle_stage": "final"
+    },
+    {
+      "chunk_id": "e7cccdb9-4187-4daa-85e4-2ac5049614e1",
+      "agent_name": "Risk & Liability Counsel, Opposing Counsel",
+      "clause_type": "Indemnity",
+      "finding_type": "Adversarial Indemnity Loophole",
+      "summary": "Opposing counsel can leverage this broad indemnity to demand defense costs and settlement contributions even before liability is adjudicated in court.",
+      "evidence_quote": "uted blank stock powers.\n\n11. Indemnification.\n\n(a) AJR shall  indemnify  each XC  Indemnified  Party and hold each XC Indemnified  Party harmless from and against any and all Losses  i",
+      "severity_score": 9,
+      "confidence": 0.9,
+      "verification_status": "verified",
+      "risk_level": "Critical",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 8/10.",
+        "deliberation": [
+          {
+            "agent": "Risk & Liability Counsel",
+            "stance": "Client Exposure",
+            "score": 8,
+            "argument": "Indemnity lacks a reciprocal cap, creating uncapped pass-through liability for third-party claims."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Adversarial Attack Path",
+            "score": 9,
+            "argument": "Opposing party can weaponize broad loss terms to claim indirect, incidental, and legal fees without proving direct breach."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Judicial Enforceability",
+            "score": 7,
+            "argument": "Courts generally uphold commercial indemnity as written unless clearly unconscionable. High litigation burden exists."
+          }
+        ],
+        "arbitration_rule": "Consensus weighted toward Opposing Counsel adversarial exploit risk (9/10) and Neutral Legal Reviewer enforceability standard (7/10), settling at final severity of 8/10.",
+        "plain_arbitration_rule": "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
+      },
+      "lifecycle_stage": "final"
+    },
+    {
+      "chunk_id": "0ea87e5f-bc0b-4833-883b-8f4d1cc475a2",
+      "agent_name": "Risk & Liability Counsel, Opposing Counsel",
+      "clause_type": "Indemnity",
+      "finding_type": "Adversarial Indemnity Loophole",
+      "summary": "Opposing counsel can leverage this broad indemnity to demand defense costs and settlement contributions even before liability is adjudicated in court.",
+      "evidence_quote": "mitted hereby.\n\n(b) XC shall  indemnify AJR and its  directors,  officers,  employees, agents and attorneys and their  respective  successors and assigns (each an \"AJR Indemnified",
+      "severity_score": 9,
+      "confidence": 0.9,
+      "verification_status": "verified",
+      "risk_level": "Critical",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 8/10.",
+        "deliberation": [
+          {
+            "agent": "Risk & Liability Counsel",
+            "stance": "Client Exposure",
+            "score": 8,
+            "argument": "Indemnity lacks a reciprocal cap, creating uncapped pass-through liability for third-party claims."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Adversarial Attack Path",
+            "score": 9,
+            "argument": "Opposing party can weaponize broad loss terms to claim indirect, incidental, and legal fees without proving direct breach."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Judicial Enforceability",
+            "score": 7,
+            "argument": "Courts generally uphold commercial indemnity as written unless clearly unconscionable. High litigation burden exists."
+          }
+        ],
+        "arbitration_rule": "Consensus weighted toward Opposing Counsel adversarial exploit risk (9/10) and Neutral Legal Reviewer enforceability standard (7/10), settling at final severity of 8/10.",
+        "plain_arbitration_rule": "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
+      },
+      "lifecycle_stage": "final"
+    },
+    {
+      "chunk_id": "2765b09c-a5da-42c3-b4cc-24f2dafa102d",
+      "agent_name": "Risk & Liability Counsel, Opposing Counsel",
+      "clause_type": "Indemnity",
+      "finding_type": "Adversarial Indemnity Loophole",
+      "summary": "Opposing counsel can leverage this broad indemnity to demand defense costs and settlement contributions even before liability is adjudicated in court.",
+      "evidence_quote": "(c) Either party seeking  indemnification  under this  Agreement  (the \"Indemnified  Party\")  shall  give  notice  to the  party  required  to  provide indemnification   hereunder",
+      "severity_score": 9,
+      "confidence": 0.9,
+      "verification_status": "verified",
+      "risk_level": "Critical",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 8/10.",
+        "deliberation": [
+          {
+            "agent": "Risk & Liability Counsel",
+            "stance": "Client Exposure",
+            "score": 8,
+            "argument": "Indemnity lacks a reciprocal cap, creating uncapped pass-through liability for third-party claims."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Adversarial Attack Path",
+            "score": 9,
+            "argument": "Opposing party can weaponize broad loss terms to claim indirect, incidental, and legal fees without proving direct breach."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Judicial Enforceability",
+            "score": 7,
+            "argument": "Courts generally uphold commercial indemnity as written unless clearly unconscionable. High litigation burden exists."
+          }
+        ],
+        "arbitration_rule": "Consensus weighted toward Opposing Counsel adversarial exploit risk (9/10) and Neutral Legal Reviewer enforceability standard (7/10), settling at final severity of 8/10.",
+        "plain_arbitration_rule": "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
+      },
+      "lifecycle_stage": "final"
+    },
+    {
+      "chunk_id": "7a6133f5-4313-4bd9-a8cd-667f0674bf98",
+      "agent_name": "Risk & Liability Counsel, Opposing Counsel",
+      "clause_type": "Indemnity",
+      "finding_type": "Adversarial Indemnity Loophole",
+      "summary": "Opposing counsel can leverage this broad indemnity to demand defense costs and settlement contributions even before liability is adjudicated in court.",
+      "evidence_quote": "e  of the claim  subject  to  indemnification  within ten (10) business days after  receiving  written notice of the claim from the Indemnified Party  pursuant  to Section  12(c)  hereo",
+      "severity_score": 9,
+      "confidence": 0.9,
+      "verification_status": "verified",
+      "risk_level": "Critical",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 8/10.",
+        "deliberation": [
+          {
+            "agent": "Risk & Liability Counsel",
+            "stance": "Client Exposure",
+            "score": 8,
+            "argument": "Indemnity lacks a reciprocal cap, creating uncapped pass-through liability for third-party claims."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Adversarial Attack Path",
+            "score": 9,
+            "argument": "Opposing party can weaponize broad loss terms to claim indirect, incidental, and legal fees without proving direct breach."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Judicial Enforceability",
+            "score": 7,
+            "argument": "Courts generally uphold commercial indemnity as written unless clearly unconscionable. High litigation burden exists."
+          }
+        ],
+        "arbitration_rule": "Consensus weighted toward Opposing Counsel adversarial exploit risk (9/10) and Neutral Legal Reviewer enforceability standard (7/10), settling at final severity of 8/10.",
+        "plain_arbitration_rule": "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
+      },
+      "lifecycle_stage": "final"
+    },
+    {
+      "chunk_id": "9ac91ba6-eea8-4a6a-9e29-a5f93d00d8d6",
+      "agent_name": "Risk & Liability Counsel, Opposing Counsel",
+      "clause_type": "Indemnity",
+      "finding_type": "Adversarial Indemnity Loophole",
+      "summary": "Opposing counsel can leverage this broad indemnity to demand defense costs and settlement contributions even before liability is adjudicated in court.",
+      "evidence_quote": "claims  shall  survive.  The  indemnification obligations  described  in Section  11(a),  including  all  limitations  on such obligations, shall be the exclusive remedy of the XC Indem",
+      "severity_score": 9,
+      "confidence": 0.9,
+      "verification_status": "verified",
+      "risk_level": "Critical",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 8/10.",
+        "deliberation": [
+          {
+            "agent": "Risk & Liability Counsel",
+            "stance": "Client Exposure",
+            "score": 8,
+            "argument": "Indemnity lacks a reciprocal cap, creating uncapped pass-through liability for third-party claims."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Adversarial Attack Path",
+            "score": 9,
+            "argument": "Opposing party can weaponize broad loss terms to claim indirect, incidental, and legal fees without proving direct breach."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Judicial Enforceability",
+            "score": 7,
+            "argument": "Courts generally uphold commercial indemnity as written unless clearly unconscionable. High litigation burden exists."
+          }
+        ],
+        "arbitration_rule": "Consensus weighted toward Opposing Counsel adversarial exploit risk (9/10) and Neutral Legal Reviewer enforceability standard (7/10), settling at final severity of 8/10.",
+        "plain_arbitration_rule": "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
+      },
+      "lifecycle_stage": "final"
+    },
+    {
+      "chunk_id": "9ac91ba6-eea8-4a6a-9e29-a5f93d00d8d6",
+      "agent_name": "Regulatory & Compliance Counsel",
+      "clause_type": "Survival",
+      "finding_type": "Extended Survival Obligation",
+      "summary": "Post-termination survival terms impose multi-year compliance monitoring and liability exposure.",
+      "evidence_quote": "under  Section  11(a) above shall survive  for a  period  of one (1)  year  after  the  date  of  this  Agreement. Thereafter,  AJR's  obligations under Section 11(a) shall terminat",
+      "severity_score": 6,
+      "confidence": 0.9,
+      "verification_status": "verified",
+      "risk_level": "Medium",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 6/10.",
+        "deliberation": [
+          {
+            "agent": "Risk & Liability Counsel",
+            "stance": "Operational Review",
+            "score": 5,
+            "argument": "Reviewed clause for client operational commitments and exposure."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Adversarial Probe",
+            "score": 7,
+            "argument": "Probed clause for litigation ambiguities and breach enforcement leverage."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Judicial Overview",
+            "score": 6,
+            "argument": "Evaluated clause balance against commercial standard practices."
+          }
+        ],
+        "arbitration_rule": "Consensus calibrated to 6/10: Balanced across Risk & Liability Counsel operational needs, Opposing Counsel leverage points, and Neutral Legal Reviewer fairness standard.",
+        "plain_arbitration_rule": "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
+      },
+      "lifecycle_stage": "final"
+    },
+    {
+      "chunk_id": "90356b24-89cf-45a5-a1c3-9ffcfdb5c1c4",
+      "agent_name": "Regulatory & Compliance Counsel",
+      "clause_type": "Governing Law",
+      "finding_type": "Dispute Jurisdiction Scope",
+      "summary": "Disputes are governed by specified state or national jurisdiction. Review forum convenience and dispute procedures.",
+      "evidence_quote": "14. Governing Law. This Agreement and all acts and  transactions  hereunder shall in all respects be governed by and construed in  accordance  with the laws",
+      "severity_score": 5,
+      "confidence": 0.95,
+      "verification_status": "verified",
+      "risk_level": "Medium",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 5/10.",
+        "deliberation": [
+          {
+            "agent": "Regulatory & Compliance Counsel",
+            "stance": "Statutory Alignment",
+            "score": 5,
+            "argument": "Foreign venue imposes high travel, local counsel retainers, and jurisdictional overhead."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Forum Advantage",
+            "score": 7,
+            "argument": "Opposing counsel gains significant procedural advantages and hometown jury leverage in chosen forum."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Forum Non Conveniens",
+            "score": 4,
+            "argument": "Choice of law clauses are routinely enforced absent proof of bad faith or extreme unfairness."
+          }
+        ],
+        "arbitration_rule": "Consensus resolved at 5/10: Regulatory & Compliance Counsel statutory baseline weighted above procedural forum advantages.",
+        "plain_arbitration_rule": "The panel agreed to prioritize the interpretation that best protects the document owner from unforeseen financial or legal liabilities."
+      },
+      "lifecycle_stage": "final"
+    },
+    {
+      "chunk_id": "aca7621a-3dc5-4675-82d8-a73d3b958e07",
+      "agent_name": "Regulatory & Compliance Counsel",
+      "clause_type": "Governing Law",
+      "finding_type": "Dispute Jurisdiction Scope",
+      "summary": "Disputes are governed by specified state or national jurisdiction. Review forum convenience and dispute procedures.",
+      "evidence_quote": "16.  Consent  to  Jurisdiction.  The  parties  hereby  unconditionally  and irrevocably  consent  to  the  exclusive  jurisdiction  of  the  courts  of  the Commonwealth",
+      "severity_score": 5,
+      "confidence": 0.95,
+      "verification_status": "verified",
+      "risk_level": "Medium",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 5/10.",
+        "deliberation": [
+          {
+            "agent": "Regulatory & Compliance Counsel",
+            "stance": "Statutory Alignment",
+            "score": 5,
+            "argument": "Foreign venue imposes high travel, local counsel retainers, and jurisdictional overhead."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Forum Advantage",
+            "score": 7,
+            "argument": "Opposing counsel gains significant procedural advantages and hometown jury leverage in chosen forum."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Forum Non Conveniens",
+            "score": 4,
+            "argument": "Choice of law clauses are routinely enforced absent proof of bad faith or extreme unfairness."
+          }
+        ],
+        "arbitration_rule": "Consensus resolved at 5/10: Regulatory & Compliance Counsel statutory baseline weighted above procedural forum advantages.",
+        "plain_arbitration_rule": "The panel agreed to prioritize the interpretation that best protects the document owner from unforeseen financial or legal liabilities."
+      },
+      "lifecycle_stage": "final"
+    },
+    {
+      "chunk_id": "b9f78411-d9fd-4385-8284-844020d61993",
+      "agent_name": "Regulatory & Compliance Counsel",
+      "clause_type": "Governing Law",
+      "finding_type": "Dispute Jurisdiction Scope",
+      "summary": "Disputes are governed by specified state or national jurisdiction. Review forum convenience and dispute procedures.",
+      "evidence_quote": "her  tribunal  of  competent  jurisdiction  to  be  invalid,   illegal  or unenforceable,  the remainder of this  Agreement,  and the  application  of such term,  provision or condit",
+      "severity_score": 5,
+      "confidence": 0.95,
+      "verification_status": "verified",
+      "risk_level": "Medium",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 5/10.",
+        "deliberation": [
+          {
+            "agent": "Regulatory & Compliance Counsel",
+            "stance": "Statutory Alignment",
+            "score": 5,
+            "argument": "Foreign venue imposes high travel, local counsel retainers, and jurisdictional overhead."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Forum Advantage",
+            "score": 7,
+            "argument": "Opposing counsel gains significant procedural advantages and hometown jury leverage in chosen forum."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Forum Non Conveniens",
+            "score": 4,
+            "argument": "Choice of law clauses are routinely enforced absent proof of bad faith or extreme unfairness."
+          }
+        ],
+        "arbitration_rule": "Consensus resolved at 5/10: Regulatory & Compliance Counsel statutory baseline weighted above procedural forum advantages.",
+        "plain_arbitration_rule": "The panel agreed to prioritize the interpretation that best protects the document owner from unforeseen financial or legal liabilities."
+      },
+      "lifecycle_stage": "final"
+    },
+    {
+      "chunk_id": "8d291860-9adf-4b99-8f94-1960adb0701b",
+      "agent_name": "Risk & Liability Counsel, Opposing Counsel",
+      "clause_type": "Indemnity",
+      "finding_type": "Adversarial Indemnity Loophole",
+      "summary": "Opposing counsel can leverage this broad indemnity to demand defense costs and settlement contributions even before liability is adjudicated in court.",
+      "evidence_quote": "pressly set forth herein. All indemnification obligations of the parties hereunder shall survive the expiration or termination of this Agreement.\n\n22.  Counterparts,  etc. This  Agreeme",
+      "severity_score": 9,
+      "confidence": 0.9,
+      "verification_status": "verified",
+      "risk_level": "Critical",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 8/10.",
+        "deliberation": [
+          {
+            "agent": "Risk & Liability Counsel",
+            "stance": "Client Exposure",
+            "score": 8,
+            "argument": "Indemnity lacks a reciprocal cap, creating uncapped pass-through liability for third-party claims."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Adversarial Attack Path",
+            "score": 9,
+            "argument": "Opposing party can weaponize broad loss terms to claim indirect, incidental, and legal fees without proving direct breach."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Judicial Enforceability",
+            "score": 7,
+            "argument": "Courts generally uphold commercial indemnity as written unless clearly unconscionable. High litigation burden exists."
+          }
+        ],
+        "arbitration_rule": "Consensus weighted toward Opposing Counsel adversarial exploit risk (9/10) and Neutral Legal Reviewer enforceability standard (7/10), settling at final severity of 8/10.",
+        "plain_arbitration_rule": "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
+      },
+      "lifecycle_stage": "final"
+    },
+    {
+      "chunk_id": "8d291860-9adf-4b99-8f94-1960adb0701b",
+      "agent_name": "Regulatory & Compliance Counsel",
+      "clause_type": "Survival",
+      "finding_type": "Extended Survival Obligation",
+      "summary": "Post-termination survival terms impose multi-year compliance monitoring and liability exposure.",
+      "evidence_quote": "ions of the parties hereunder shall survive the expiration or termination of this Agreement.\n\n22.  Counterparts,  etc. This  Agreement may be executed in two (2) or more counterparts",
+      "severity_score": 6,
+      "confidence": 0.9,
+      "verification_status": "verified",
+      "risk_level": "Medium",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 6/10.",
+        "deliberation": [
+          {
+            "agent": "Risk & Liability Counsel",
+            "stance": "Operational Review",
+            "score": 5,
+            "argument": "Reviewed clause for client operational commitments and exposure."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Adversarial Probe",
+            "score": 7,
+            "argument": "Probed clause for litigation ambiguities and breach enforcement leverage."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Judicial Overview",
+            "score": 6,
+            "argument": "Evaluated clause balance against commercial standard practices."
+          }
+        ],
+        "arbitration_rule": "Consensus calibrated to 6/10: Balanced across Risk & Liability Counsel operational needs, Opposing Counsel leverage points, and Neutral Legal Reviewer fairness standard.",
+        "plain_arbitration_rule": "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
+      },
+      "lifecycle_stage": "final"
+    }
+  ],
+  "XinhuaSportsEntertainmentLtd_20070221_F-1_EX-99.4_645553_EX-99.4_Content License Agreement.txt": [
+    {
+      "chunk_id": "ae363d74-440c-48eb-a764-441a1c0c61ee",
+      "agent_name": "Regulatory & Compliance Counsel",
+      "clause_type": "Governing Law",
+      "finding_type": "Dispute Jurisdiction Scope",
+      "summary": "Disputes are governed by specified state or national jurisdiction. Review forum convenience and dispute procedures.",
+      "evidence_quote": "...................     6 16. Governing Law And Arbitration........................................     7 Execution................................................................",
+      "severity_score": 5,
+      "confidence": 0.95,
+      "verification_status": "verified",
+      "risk_level": "Medium",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 5/10.",
+        "deliberation": [
+          {
+            "agent": "Regulatory & Compliance Counsel",
+            "stance": "Statutory Alignment",
+            "score": 5,
+            "argument": "Foreign venue imposes high travel, local counsel retainers, and jurisdictional overhead."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Forum Advantage",
+            "score": 7,
+            "argument": "Opposing counsel gains significant procedural advantages and hometown jury leverage in chosen forum."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Forum Non Conveniens",
+            "score": 4,
+            "argument": "Choice of law clauses are routinely enforced absent proof of bad faith or extreme unfairness."
+          }
+        ],
+        "arbitration_rule": "Consensus resolved at 5/10: Regulatory & Compliance Counsel statutory baseline weighted above procedural forum advantages.",
+        "plain_arbitration_rule": "The panel agreed to prioritize the interpretation that best protects the document owner from unforeseen financial or legal liabilities."
+      },
+      "lifecycle_stage": "final"
+    },
+    {
+      "chunk_id": "c0051282-7c73-4c54-923b-4bbf95627d2d",
+      "agent_name": "Risk & Liability Counsel, Opposing Counsel",
+      "clause_type": "Intellectual Property",
+      "finding_type": "Aggressive Ownership Claim",
+      "summary": "Opposing party can assert complete copyright ownership over proprietary templates and tooling.",
+      "evidence_quote": "for the foregoing, copyright and other assignable                    intellectual property\n\n-1-\n\nrights (whether registrable or not) in any country, including",
+      "severity_score": 8,
+      "confidence": 0.85,
+      "verification_status": "verified",
+      "risk_level": "Critical",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 7/10.",
+        "deliberation": [
+          {
+            "agent": "Risk & Liability Counsel",
+            "stance": "Asset Protection",
+            "score": 7,
+            "argument": "Broad assignment transfers background technology without explicit reservation of preexisting IP."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Ownership Claim",
+            "score": 8,
+            "argument": "Opposing party can assert complete copyright ownership over tools, libraries, and derivative works."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Work-for-Hire Enforceability",
+            "score": 6,
+            "argument": "Assignment requires express written agreement; ambiguous scope leaves room for contentious declaratory litigation."
+          }
+        ],
+        "arbitration_rule": "Consensus resolved at 7/10: Strong weight given to Risk & Liability Counsel asset protection and Opposing Counsel ownership claim vectors.",
+        "plain_arbitration_rule": "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
+      },
+      "lifecycle_stage": "final"
+    },
+    {
+      "chunk_id": "2bbf0471-cd16-40e9-a12c-70f2da46c2d1",
+      "agent_name": "Risk & Liability Counsel, Opposing Counsel",
+      "clause_type": "Intellectual Property",
+      "finding_type": "Aggressive Ownership Claim",
+      "summary": "Opposing party can assert complete copyright ownership over proprietary templates and tooling.",
+      "evidence_quote": "Republic of China.\n\n2.3  The Intellectual Property Rights to use \"Xinhua\" as the first name of XFN      and its affiliates world-wide.\n\n2.4  All Intellectual Property Rights and other propri",
+      "severity_score": 8,
+      "confidence": 0.85,
+      "verification_status": "verified",
+      "risk_level": "Critical",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 7/10.",
+        "deliberation": [
+          {
+            "agent": "Risk & Liability Counsel",
+            "stance": "Asset Protection",
+            "score": 7,
+            "argument": "Broad assignment transfers background technology without explicit reservation of preexisting IP."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Ownership Claim",
+            "score": 8,
+            "argument": "Opposing party can assert complete copyright ownership over tools, libraries, and derivative works."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Work-for-Hire Enforceability",
+            "score": 6,
+            "argument": "Assignment requires express written agreement; ambiguous scope leaves room for contentious declaratory litigation."
+          }
+        ],
+        "arbitration_rule": "Consensus resolved at 7/10: Strong weight given to Risk & Liability Counsel asset protection and Opposing Counsel ownership claim vectors.",
+        "plain_arbitration_rule": "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
+      },
+      "lifecycle_stage": "final"
+    },
+    {
+      "chunk_id": "b6011534-f64e-4d00-9d89-2f891fb52cc9",
+      "agent_name": "Risk & Liability Counsel, Opposing Counsel",
+      "clause_type": "Intellectual Property",
+      "finding_type": "Aggressive Ownership Claim",
+      "summary": "Opposing party can assert complete copyright ownership over proprietary templates and tooling.",
+      "evidence_quote": "not and will not infringe any Intellectual Property Rights or           other proprietary rights of any third party;\n\n(c)  neither the Content nor any part thereof contains anything which is",
+      "severity_score": 8,
+      "confidence": 0.85,
+      "verification_status": "verified",
+      "risk_level": "Critical",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 7/10.",
+        "deliberation": [
+          {
+            "agent": "Risk & Liability Counsel",
+            "stance": "Asset Protection",
+            "score": 7,
+            "argument": "Broad assignment transfers background technology without explicit reservation of preexisting IP."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Ownership Claim",
+            "score": 8,
+            "argument": "Opposing party can assert complete copyright ownership over tools, libraries, and derivative works."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Work-for-Hire Enforceability",
+            "score": 6,
+            "argument": "Assignment requires express written agreement; ambiguous scope leaves room for contentious declaratory litigation."
+          }
+        ],
+        "arbitration_rule": "Consensus resolved at 7/10: Strong weight given to Risk & Liability Counsel asset protection and Opposing Counsel ownership claim vectors.",
+        "plain_arbitration_rule": "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
+      },
+      "lifecycle_stage": "final"
+    },
+    {
+      "chunk_id": "566b09ad-c589-49c1-b488-41fe12fdfa1b",
+      "agent_name": "Risk & Liability Counsel, Opposing Counsel",
+      "clause_type": "Indemnity",
+      "finding_type": "Adversarial Indemnity Loophole",
+      "summary": "Opposing counsel can leverage this broad indemnity to demand defense costs and settlement contributions even before liability is adjudicated in court.",
+      "evidence_quote": "Y\n\n-4-\n\n6.1  CEIS shall fully indemnify XFN and hold XFN harmless from and against any      and all costs, expenses, loss, damages, liabilities, claims and proceedings      which",
+      "severity_score": 9,
+      "confidence": 0.9,
+      "verification_status": "verified",
+      "risk_level": "Critical",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 8/10.",
+        "deliberation": [
+          {
+            "agent": "Risk & Liability Counsel",
+            "stance": "Client Exposure",
+            "score": 8,
+            "argument": "Indemnity lacks a reciprocal cap, creating uncapped pass-through liability for third-party claims."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Adversarial Attack Path",
+            "score": 9,
+            "argument": "Opposing party can weaponize broad loss terms to claim indirect, incidental, and legal fees without proving direct breach."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Judicial Enforceability",
+            "score": 7,
+            "argument": "Courts generally uphold commercial indemnity as written unless clearly unconscionable. High litigation burden exists."
+          }
+        ],
+        "arbitration_rule": "Consensus weighted toward Opposing Counsel adversarial exploit risk (9/10) and Neutral Legal Reviewer enforceability standard (7/10), settling at final severity of 8/10.",
+        "plain_arbitration_rule": "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
+      },
+      "lifecycle_stage": "final"
+    },
+    {
+      "chunk_id": "566b09ad-c589-49c1-b488-41fe12fdfa1b",
+      "agent_name": "Regulatory & Compliance Counsel",
+      "clause_type": "Governing Law",
+      "finding_type": "Dispute Jurisdiction Scope",
+      "summary": "Disputes are governed by specified state or national jurisdiction. Review forum convenience and dispute procedures.",
+      "evidence_quote": "of China, being its           jurisdiction of organization, and the execution, delivery and           performance of this Agreement for and on its behalf has been duly and",
+      "severity_score": 5,
+      "confidence": 0.95,
+      "verification_status": "verified",
+      "risk_level": "Medium",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 5/10.",
+        "deliberation": [
+          {
+            "agent": "Regulatory & Compliance Counsel",
+            "stance": "Statutory Alignment",
+            "score": 5,
+            "argument": "Foreign venue imposes high travel, local counsel retainers, and jurisdictional overhead."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Forum Advantage",
+            "score": 7,
+            "argument": "Opposing counsel gains significant procedural advantages and hometown jury leverage in chosen forum."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Forum Non Conveniens",
+            "score": 4,
+            "argument": "Choice of law clauses are routinely enforced absent proof of bad faith or extreme unfairness."
+          }
+        ],
+        "arbitration_rule": "Consensus resolved at 5/10: Regulatory & Compliance Counsel statutory baseline weighted above procedural forum advantages.",
+        "plain_arbitration_rule": "The panel agreed to prioritize the interpretation that best protects the document owner from unforeseen financial or legal liabilities."
+      },
+      "lifecycle_stage": "final"
+    },
+    {
+      "chunk_id": "54c32cbb-77c6-4bec-90d6-39f3615d6fdd",
+      "agent_name": "Regulatory & Compliance Counsel",
+      "clause_type": "Governing Law",
+      "finding_type": "Dispute Jurisdiction Scope",
+      "summary": "Disputes are governed by specified state or national jurisdiction. Review forum convenience and dispute procedures.",
+      "evidence_quote": "16.  GOVERNING LAW AND ARBITRATION\n\n16.1 The English language version shall prevail in the event of any discrepancy      between the interpretation of the Eng",
+      "severity_score": 5,
+      "confidence": 0.95,
+      "verification_status": "verified",
+      "risk_level": "Medium",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 5/10.",
+        "deliberation": [
+          {
+            "agent": "Regulatory & Compliance Counsel",
+            "stance": "Statutory Alignment",
+            "score": 5,
+            "argument": "Foreign venue imposes high travel, local counsel retainers, and jurisdictional overhead."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Forum Advantage",
+            "score": 7,
+            "argument": "Opposing counsel gains significant procedural advantages and hometown jury leverage in chosen forum."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Forum Non Conveniens",
+            "score": 4,
+            "argument": "Choice of law clauses are routinely enforced absent proof of bad faith or extreme unfairness."
+          }
+        ],
+        "arbitration_rule": "Consensus resolved at 5/10: Regulatory & Compliance Counsel statutory baseline weighted above procedural forum advantages.",
+        "plain_arbitration_rule": "The panel agreed to prioritize the interpretation that best protects the document owner from unforeseen financial or legal liabilities."
+      },
+      "lifecycle_stage": "final"
+    }
+  ],
+  "XpresspaGroupInc_20190401_10-K_EX-10.28_11599457_EX-10.28_Marketing Agreement.txt": [
+    {
+      "chunk_id": "249607ae-ff34-4117-82b4-80b973ef789e",
+      "agent_name": "Risk & Liability Counsel, Opposing Counsel",
+      "clause_type": "Intellectual Property",
+      "finding_type": "Aggressive Ownership Claim",
+      "summary": "Opposing party can assert complete copyright ownership over proprietary templates and tooling.",
+      "evidence_quote": "omptly upon XSPA's demand. 9. Intellectual Property Matters. 9.01. Subject to the terms and conditions of this Agreement, Calm hereby grants to XSPA, solely during the Term and in the Territo",
+      "severity_score": 8,
+      "confidence": 0.85,
+      "verification_status": "verified",
+      "risk_level": "Critical",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 7/10.",
+        "deliberation": [
+          {
+            "agent": "Risk & Liability Counsel",
+            "stance": "Asset Protection",
+            "score": 7,
+            "argument": "Broad assignment transfers background technology without explicit reservation of preexisting IP."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Ownership Claim",
+            "score": 8,
+            "argument": "Opposing party can assert complete copyright ownership over tools, libraries, and derivative works."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Work-for-Hire Enforceability",
+            "score": 6,
+            "argument": "Assignment requires express written agreement; ambiguous scope leaves room for contentious declaratory litigation."
+          }
+        ],
+        "arbitration_rule": "Consensus resolved at 7/10: Strong weight given to Risk & Liability Counsel asset protection and Opposing Counsel ownership claim vectors.",
+        "plain_arbitration_rule": "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
+      },
+      "lifecycle_stage": "final"
+    },
+    {
+      "chunk_id": "bda0ad1c-8863-4c01-932e-502b64342a97",
+      "agent_name": "Risk & Liability Counsel, Opposing Counsel",
+      "clause_type": "Intellectual Property",
+      "finding_type": "Aggressive Ownership Claim",
+      "summary": "Opposing party can assert complete copyright ownership over proprietary templates and tooling.",
+      "evidence_quote": "on, including challenging the ownership, validity or enforceability of such Marks. Each Party agrees that it will display the trademark registration symbol \u00ae or the designations \"",
+      "severity_score": 8,
+      "confidence": 0.85,
+      "verification_status": "verified",
+      "risk_level": "Critical",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 7/10.",
+        "deliberation": [
+          {
+            "agent": "Risk & Liability Counsel",
+            "stance": "Asset Protection",
+            "score": 7,
+            "argument": "Broad assignment transfers background technology without explicit reservation of preexisting IP."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Ownership Claim",
+            "score": 8,
+            "argument": "Opposing party can assert complete copyright ownership over tools, libraries, and derivative works."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Work-for-Hire Enforceability",
+            "score": 6,
+            "argument": "Assignment requires express written agreement; ambiguous scope leaves room for contentious declaratory litigation."
+          }
+        ],
+        "arbitration_rule": "Consensus resolved at 7/10: Strong weight given to Risk & Liability Counsel asset protection and Opposing Counsel ownership claim vectors.",
+        "plain_arbitration_rule": "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
+      },
+      "lifecycle_stage": "final"
+    },
+    {
+      "chunk_id": "05b26cdd-8423-4af2-815f-6c249bb1658b",
+      "agent_name": "Risk & Liability Counsel, Opposing Counsel",
+      "clause_type": "Indemnity",
+      "finding_type": "Adversarial Indemnity Loophole",
+      "summary": "Opposing counsel can leverage this broad indemnity to demand defense costs and settlement contributions even before liability is adjudicated in court.",
+      "evidence_quote": "10. Agency, Indemnification and Insurance. 10.01. Calm and XSPA are each independent contractors. The Parties are not and shall not be considered as joint venturers, p",
+      "severity_score": 9,
+      "confidence": 0.9,
+      "verification_status": "verified",
+      "risk_level": "Critical",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 8/10.",
+        "deliberation": [
+          {
+            "agent": "Risk & Liability Counsel",
+            "stance": "Client Exposure",
+            "score": 8,
+            "argument": "Indemnity lacks a reciprocal cap, creating uncapped pass-through liability for third-party claims."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Adversarial Attack Path",
+            "score": 9,
+            "argument": "Opposing party can weaponize broad loss terms to claim indirect, incidental, and legal fees without proving direct breach."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Judicial Enforceability",
+            "score": 7,
+            "argument": "Courts generally uphold commercial indemnity as written unless clearly unconscionable. High litigation burden exists."
+          }
+        ],
+        "arbitration_rule": "Consensus weighted toward Opposing Counsel adversarial exploit risk (9/10) and Neutral Legal Reviewer enforceability standard (7/10), settling at final severity of 8/10.",
+        "plain_arbitration_rule": "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
+      },
+      "lifecycle_stage": "final"
+    },
+    {
+      "chunk_id": "0c41e2de-5099-4435-b9e6-9b4644830a47",
+      "agent_name": "Risk & Liability Counsel, Opposing Counsel",
+      "clause_type": "Indemnity",
+      "finding_type": "Adversarial Indemnity Loophole",
+      "summary": "Opposing counsel can leverage this broad indemnity to demand defense costs and settlement contributions even before liability is adjudicated in court.",
+      "evidence_quote": "WITH RESPECT TO EACH PARTY'S INDEMNIFICATION OBLIGATIONS UNDER THIS AGREEMENT, (A) UNDER NO CIRCUMSTANCE AND UNDER NO LEGAL THEORY (TORT, CONTRACT, OR OTHERWISE), SHALL EITHER PARTY BE",
+      "severity_score": 9,
+      "confidence": 0.9,
+      "verification_status": "verified",
+      "risk_level": "Critical",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 8/10.",
+        "deliberation": [
+          {
+            "agent": "Risk & Liability Counsel",
+            "stance": "Client Exposure",
+            "score": 8,
+            "argument": "Indemnity lacks a reciprocal cap, creating uncapped pass-through liability for third-party claims."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Adversarial Attack Path",
+            "score": 9,
+            "argument": "Opposing party can weaponize broad loss terms to claim indirect, incidental, and legal fees without proving direct breach."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Judicial Enforceability",
+            "score": 7,
+            "argument": "Courts generally uphold commercial indemnity as written unless clearly unconscionable. High litigation burden exists."
+          }
+        ],
+        "arbitration_rule": "Consensus weighted toward Opposing Counsel adversarial exploit risk (9/10) and Neutral Legal Reviewer enforceability standard (7/10), settling at final severity of 8/10.",
+        "plain_arbitration_rule": "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
+      },
+      "lifecycle_stage": "final"
+    },
+    {
+      "chunk_id": "e7e8ccbc-223f-45d0-b73f-aa3d95069f83",
+      "agent_name": "Regulatory & Compliance Counsel",
+      "clause_type": "Governing Law",
+      "finding_type": "Dispute Jurisdiction Scope",
+      "summary": "Disputes are governed by specified state or national jurisdiction. Review forum convenience and dispute procedures.",
+      "evidence_quote": "ble by any court of competent jurisdiction.",
+      "severity_score": 5,
+      "confidence": 0.95,
+      "verification_status": "verified",
+      "risk_level": "Medium",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 5/10.",
+        "deliberation": [
+          {
+            "agent": "Regulatory & Compliance Counsel",
+            "stance": "Statutory Alignment",
+            "score": 5,
+            "argument": "Foreign venue imposes high travel, local counsel retainers, and jurisdictional overhead."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Forum Advantage",
+            "score": 7,
+            "argument": "Opposing counsel gains significant procedural advantages and hometown jury leverage in chosen forum."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Forum Non Conveniens",
+            "score": 4,
+            "argument": "Choice of law clauses are routinely enforced absent proof of bad faith or extreme unfairness."
+          }
+        ],
+        "arbitration_rule": "Consensus resolved at 5/10: Regulatory & Compliance Counsel statutory baseline weighted above procedural forum advantages.",
+        "plain_arbitration_rule": "The panel agreed to prioritize the interpretation that best protects the document owner from unforeseen financial or legal liabilities."
+      },
+      "lifecycle_stage": "final"
+    },
+    {
+      "chunk_id": "e7e8ccbc-223f-45d0-b73f-aa3d95069f83",
+      "agent_name": "Regulatory & Compliance Counsel",
+      "clause_type": "Survival",
+      "finding_type": "Extended Survival Obligation",
+      "summary": "Post-termination survival terms impose multi-year compliance monitoring and liability exposure.",
+      "evidence_quote": ".05. The following provisions shall survive the expiration or termination of this Agreement: Sections \u200b \u200b  \u200b3, \u200b9.07, 10, \u200b12 and any other provision hereunder which by its terms, may",
+      "severity_score": 6,
+      "confidence": 0.9,
+      "verification_status": "verified",
+      "risk_level": "Medium",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 6/10.",
+        "deliberation": [
+          {
+            "agent": "Risk & Liability Counsel",
+            "stance": "Operational Review",
+            "score": 5,
+            "argument": "Reviewed clause for client operational commitments and exposure."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Adversarial Probe",
+            "score": 7,
+            "argument": "Probed clause for litigation ambiguities and breach enforcement leverage."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Judicial Overview",
+            "score": 6,
+            "argument": "Evaluated clause balance against commercial standard practices."
+          }
+        ],
+        "arbitration_rule": "Consensus calibrated to 6/10: Balanced across Risk & Liability Counsel operational needs, Opposing Counsel leverage points, and Neutral Legal Reviewer fairness standard.",
+        "plain_arbitration_rule": "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
+      },
+      "lifecycle_stage": "final"
+    },
+    {
+      "chunk_id": "44bbbaf4-5153-4b20-841d-b14f70cbddf1",
+      "agent_name": "Regulatory & Compliance Counsel",
+      "clause_type": "Governing Law",
+      "finding_type": "Dispute Jurisdiction Scope",
+      "summary": "Disputes are governed by specified state or national jurisdiction. Review forum convenience and dispute procedures.",
+      "evidence_quote": "eable by a court of competent jurisdiction, such determination will not render this Agreement invalid or unenforceable and the remaining provisions hereof shall remain in full force",
+      "severity_score": 5,
+      "confidence": 0.95,
+      "verification_status": "verified",
+      "risk_level": "Medium",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 5/10.",
+        "deliberation": [
+          {
+            "agent": "Regulatory & Compliance Counsel",
+            "stance": "Statutory Alignment",
+            "score": 5,
+            "argument": "Foreign venue imposes high travel, local counsel retainers, and jurisdictional overhead."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Forum Advantage",
+            "score": 7,
+            "argument": "Opposing counsel gains significant procedural advantages and hometown jury leverage in chosen forum."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Forum Non Conveniens",
+            "score": 4,
+            "argument": "Choice of law clauses are routinely enforced absent proof of bad faith or extreme unfairness."
+          }
+        ],
+        "arbitration_rule": "Consensus resolved at 5/10: Regulatory & Compliance Counsel statutory baseline weighted above procedural forum advantages.",
+        "plain_arbitration_rule": "The panel agreed to prioritize the interpretation that best protects the document owner from unforeseen financial or legal liabilities."
+      },
+      "lifecycle_stage": "final"
+    },
+    {
+      "chunk_id": "04c49875-9a6e-4aba-a835-9b56a1d1867a",
+      "agent_name": "Opposing Counsel",
+      "clause_type": "Remedies",
+      "finding_type": "Injunctive Relief Exposure",
+      "summary": "Allows opposing party to seek emergency court injunctions without posting bond in case of alleged breach.",
+      "evidence_quote": "he Agreement and to apply for injunctive relief against any act which would violate any of its provisions. [signatures on following page]\n\n17\n\nSource: XPRESSPA GROUP, INC., 10-K, 4/1/2019",
+      "severity_score": 7,
+      "confidence": 0.88,
+      "verification_status": "verified",
+      "risk_level": "High",
+      "consensus_reasoning": {
+        "summary": "Legal Synthesis Engine deliberated across 3 agent perspectives to arrive at severity 7/10.",
+        "deliberation": [
+          {
+            "agent": "Risk & Liability Counsel",
+            "stance": "Operational Review",
+            "score": 6,
+            "argument": "Reviewed clause for client operational commitments and exposure."
+          },
+          {
+            "agent": "Opposing Counsel",
+            "stance": "Adversarial Probe",
+            "score": 8,
+            "argument": "Probed clause for litigation ambiguities and breach enforcement leverage."
+          },
+          {
+            "agent": "Neutral Legal Reviewer",
+            "stance": "Judicial Overview",
+            "score": 7,
+            "argument": "Evaluated clause balance against commercial standard practices."
+          }
+        ],
+        "arbitration_rule": "Consensus calibrated to 7/10: Balanced across Risk & Liability Counsel operational needs, Opposing Counsel leverage points, and Neutral Legal Reviewer fairness standard.",
+        "plain_arbitration_rule": "We sided with the cautious, strict reading because this loophole is the most likely to cause expensive disputes if relations sour."
+      },
+      "lifecycle_stage": "final"
+    }
   ]
 }
