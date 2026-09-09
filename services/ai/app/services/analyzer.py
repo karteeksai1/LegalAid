@@ -253,10 +253,22 @@ def generate_consensus_reasoning(finding: Dict[str, Any]) -> Dict[str, Any]:
 
 def is_contractual_document(text: str, filename: str = "", page_count: int = 1) -> tuple[bool, str, str]:
     """
-    Validates if the document text contains sufficient contractual language and structure.
-    Tolerates template/placeholder formatting (underscores, ellipses, bracketed blanks).
+    Validates document validity using trained classical ML model (Model 1).
+    Falls back gracefully to heuristic rule engine if model artifact is unavailable.
     Returns: (is_contract: bool, reason: str, failure_mode: str)
     where failure_mode in ("valid", "extraction_failed", "non_contractual")
+    """
+    from app.ml.validity_classifier import classify_document_validity
+    res = classify_document_validity(text, filename, page_count)
+    is_contract = res["is_legal_contract"]
+    status = res["status"]
+    msg = res["message"]
+    fmode = "valid" if is_contract else ("extraction_failed" if status == "extraction_failed" else "non_contractual")
+    return is_contract, msg, fmode
+
+def is_contractual_document_heuristic(text: str, filename: str = "", page_count: int = 1) -> tuple[bool, str, str]:
+    """
+    Heuristic fallback engine for validating contractual language and structure.
     """
     # 1. Clean and normalize placeholders (underscores, dots, brackets, dashes, blank markers)
     clean_text = re.sub(r'/[A-Z][a-zA-Z0-9]+|<<|>>|stream|endstream|obj|endobj|%\w+', ' ', text)
@@ -747,18 +759,17 @@ def analyze_document_content(chunks: List[Chunk]) -> Dict[str, Any]:
     for f in final_findings:
         f["lifecycle_stage"] = "final"
 
-    # 3. Consensus Aggregator & Risk Scoring strictly on FINAL validated findings
+    # 3. Consensus Aggregator & Risk Scoring via Model 2 (Classical Gradient Boosting Regressor)
     critical_count = sum(1 for f in final_findings if f["risk_level"] == "Critical")
     high_count = sum(1 for f in final_findings if f["risk_level"] == "High")
     medium_count = sum(1 for f in final_findings if f["risk_level"] == "Medium")
     low_count = sum(1 for f in final_findings if f["risk_level"] == "Low")
     
-    if final_findings:
-        raw_score = 1.0 + (critical_count * 2.0) + (high_count * 1.2) + (medium_count * 0.5) + (low_count * 0.1)
-        aggregate_risk_score = round(min(10.0, raw_score), 1)
-    else:
-        aggregate_risk_score = 1.0
-    risk_level = get_risk_level(aggregate_risk_score)
+    from app.ml.risk_regressor import predict_contract_risk
+    risk_prediction = predict_contract_risk(final_findings)
+    aggregate_risk_score = risk_prediction["aggregate_risk_score"]
+    risk_level = risk_prediction["risk_level"]
+    risk_drivers = risk_prediction.get("risk_drivers", [])
     
     strengths = []
     vulnerabilities = []
@@ -782,7 +793,8 @@ def analyze_document_content(chunks: List[Chunk]) -> Dict[str, Any]:
         "summary": f"The legal document has been analyzed by a team of specialized AI agents including Risk & Liability Counsel, Opposing Counsel, Transaction Counsel, Neutral Legal Reviewer, and Regulatory & Compliance Counsel. An overall risk score of {aggregate_risk_score}/10 has been assessed, indicating a {risk_level} risk profile.",
         "strengths": strengths[:4],
         "vulnerabilities": vulnerabilities[:4],
-        "recommendations": recommendations[:4]
+        "recommendations": recommendations[:4],
+        "risk_drivers": risk_drivers[:3]
     }
     
     return {
@@ -793,5 +805,6 @@ def analyze_document_content(chunks: List[Chunk]) -> Dict[str, Any]:
         "medium_count": medium_count,
         "low_count": low_count,
         "consensus_report": consensus_report,
+        "risk_drivers": risk_drivers,
         "findings": final_findings
     }

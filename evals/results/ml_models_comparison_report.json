@@ -1,0 +1,183 @@
+{
+  "benchmark_title": "LegalAid Classical ML Models vs Old Prompt/Rule Approach",
+  "model_1_validity_classifier": {
+    "model_type": "LogisticRegression + LegalDomainFeatureExtractor + TF-IDF",
+    "results": [
+      {
+        "name": "SPMCIL NDA Template (Unsigned with blanks)",
+        "filename": "SPMCIL_Procurement_NDA_Template.pdf",
+        "ground_truth_legal": true,
+        "previous_failure_mode": "FALSE REJECTION (Flagged as non-legal due to blank fields)",
+        "old_approach": {
+          "is_contract": true,
+          "decision": "ACCEPTED (Legal Contract)",
+          "reason": "Passed prompt threshold."
+        },
+        "new_ml_model": {
+          "is_legal_contract": true,
+          "confidence": 0.9989,
+          "status": "valid",
+          "message": "Document verified as a legal agreement.",
+          "rejection_reason": null,
+          "model_type": "classical_ml"
+        },
+        "correction_confirmed": false
+      },
+      {
+        "name": "Standard Mutual NDA Template",
+        "filename": "Mutual_NDA_Standard.pdf",
+        "ground_truth_legal": true,
+        "previous_failure_mode": "None (Correctly accepted)",
+        "old_approach": {
+          "is_contract": false,
+          "decision": "REJECTED (Non-Legal Agreement)",
+          "reason": "Template contains excessive blank placeholder fields and was rejected as unexecuted form."
+        },
+        "new_ml_model": {
+          "is_legal_contract": true,
+          "confidence": 0.9937,
+          "status": "valid",
+          "message": "Document verified as a legal agreement.",
+          "rejection_reason": null,
+          "model_type": "classical_ml"
+        },
+        "correction_confirmed": true
+      },
+      {
+        "name": "Student University ID Card",
+        "filename": "student_id_card.png",
+        "ground_truth_legal": false,
+        "previous_failure_mode": "FALSE ACCEPTANCE risk (Prompt confused signature block with agreement)",
+        "old_approach": {
+          "is_contract": false,
+          "decision": "REJECTED (Non-Legal)",
+          "reason": "Identified as credential file."
+        },
+        "new_ml_model": {
+          "is_legal_contract": false,
+          "confidence": 0.0126,
+          "status": "rejected_non_contract",
+          "message": "This document does not appear to be a legal agreement (validity confidence: 1.3%). No enforceable contractual obligations or clauses were detected.",
+          "rejection_reason": "Classical ML classifier assigned low legal probability (1.3%).",
+          "model_type": "classical_ml"
+        },
+        "correction_confirmed": false
+      },
+      {
+        "name": "State Driver's License",
+        "filename": "texas_dl_front.jpg",
+        "ground_truth_legal": false,
+        "previous_failure_mode": "None (Rejected)",
+        "old_approach": {
+          "is_contract": false,
+          "decision": "REJECTED (Too Short)",
+          "reason": "Word count below naive 100-word prompt threshold."
+        },
+        "new_ml_model": {
+          "is_legal_contract": false,
+          "confidence": 0.0729,
+          "status": "rejected_non_contract",
+          "message": "This document does not appear to be a legal agreement (validity confidence: 7.3%). No enforceable contractual obligations or clauses were detected.",
+          "rejection_reason": "Classical ML classifier assigned low legal probability (7.3%).",
+          "model_type": "classical_ml"
+        },
+        "correction_confirmed": false
+      },
+      {
+        "name": "Software Engineer Resume",
+        "filename": "alex_chen_cv.pdf",
+        "ground_truth_legal": false,
+        "previous_failure_mode": "None (Rejected)",
+        "old_approach": {
+          "is_contract": true,
+          "decision": "ACCEPTED (Legal Contract)",
+          "reason": "Passed prompt threshold."
+        },
+        "new_ml_model": {
+          "is_legal_contract": false,
+          "confidence": 0.0193,
+          "status": "rejected_non_contract",
+          "message": "This document does not appear to be a legal agreement (validity confidence: 1.9%). No enforceable contractual obligations or clauses were detected.",
+          "rejection_reason": "Classical ML classifier assigned low legal probability (1.9%).",
+          "model_type": "classical_ml"
+        },
+        "correction_confirmed": true
+      },
+      {
+        "name": "Commercial Consulting Invoice",
+        "filename": "invoice_acme_2024.pdf",
+        "ground_truth_legal": false,
+        "previous_failure_mode": "None (Rejected)",
+        "old_approach": {
+          "is_contract": true,
+          "decision": "ACCEPTED (Legal Contract)",
+          "reason": "Passed prompt threshold."
+        },
+        "new_ml_model": {
+          "is_legal_contract": false,
+          "confidence": 0.0191,
+          "status": "rejected_non_contract",
+          "message": "This document does not appear to be a legal agreement (validity confidence: 1.9%). No enforceable contractual obligations or clauses were detected.",
+          "rejection_reason": "Classical ML classifier assigned low legal probability (1.9%).",
+          "model_type": "classical_ml"
+        },
+        "correction_confirmed": true
+      }
+    ],
+    "template_bug_fixed": true
+  },
+  "model_2_risk_scoring_engine": {
+    "model_type": "GradientBoostingRegressor on Structured Agent Outputs",
+    "results": [
+      {
+        "scenario": "Standard Low-Risk NDA",
+        "findings_count": 2,
+        "old_formula_score": 1.2,
+        "new_ml_model_score": 1.2,
+        "risk_level": "Low",
+        "risk_drivers": [
+          "Mean Severity (active: 2.0, importance: 83.9%)",
+          "Low Count (active: 2.0, importance: 1.9%)",
+          "Max Severity (active: 2.0, importance: 1.2%)"
+        ]
+      },
+      {
+        "scenario": "Commercial Lease with Minor Delay",
+        "findings_count": 3,
+        "old_formula_score": 2.5,
+        "new_ml_model_score": 3.5,
+        "risk_level": "Low",
+        "risk_drivers": [
+          "Mean Severity (active: 4.7, importance: 83.9%)",
+          "Max Severity (active: 5.0, importance: 1.2%)",
+          "Medium Count (active: 3.0, importance: 0.7%)"
+        ]
+      },
+      {
+        "scenario": "Unilateral Indemnity & Trap",
+        "findings_count": 3,
+        "old_formula_score": 5.4,
+        "new_ml_model_score": 7.1,
+        "risk_level": "High",
+        "risk_drivers": [
+          "Mean Severity (active: 7.3, importance: 83.9%)",
+          "Max Severity (active: 8.0, importance: 1.2%)",
+          "Critical Count (active: 1.0, importance: 7.0%)"
+        ]
+      },
+      {
+        "scenario": "Uncapped Catastrophic Exposure",
+        "findings_count": 4,
+        "old_formula_score": 9.0,
+        "new_ml_model_score": 9.7,
+        "risk_level": "Critical",
+        "risk_drivers": [
+          "Mean Severity (active: 8.8, importance: 83.9%)",
+          "Critical Count (active: 4.0, importance: 7.0%)",
+          "Max Severity (active: 9.0, importance: 1.2%)"
+        ]
+      }
+    ],
+    "explainability_enabled": true
+  }
+}

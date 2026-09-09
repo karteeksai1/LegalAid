@@ -175,16 +175,26 @@ async def upload_document(
     # 4. Extract text
     raw_text, page_count = extract_text(content, file.content_type)
     
-    # 4b. Contract Relevance & Extraction Integrity Gate
-    is_contract, contract_reason, failure_mode = is_contractual_document(raw_text, file.filename, page_count)
+    # 4b. Contract Relevance & Extraction Integrity Gate (Model 1: Classical ML Classifier)
+    from app.ml.validity_classifier import classify_document_validity
+    validity_res = classify_document_validity(raw_text, file.filename, page_count)
+    is_contract = validity_res["is_legal_contract"]
+    contract_reason = validity_res["message"]
+    validity_confidence = validity_res["confidence"]
+    validity_status = validity_res["status"]
+    failure_mode = "valid" if is_contract else ("extraction_failed" if validity_status == "extraction_failed" else "non_contractual")
+
     if not is_contract:
         status_label = "extraction_failed" if failure_mode == "extraction_failed" else "rejected_non_contract"
-        client_msg = (
-            f"We couldn't read this document properly ({page_count} pages detected). Try re-uploading or use a text-based PDF."
-            if failure_mode == "extraction_failed"
-            else "This document does not appear to be a legal agreement — no contractual clauses or obligations were detected."
-        )
-        logger.info(f"Document '{file.filename}' stopped [{status_label}]: {contract_reason}")
+        client_msg = contract_reason
+        logger.info(f"Document '{file.filename}' stopped by Model 1 [{status_label}]: {contract_reason} (P={validity_confidence:.1%})")
+        meta_payload = {
+            "rejection_reason": contract_reason,
+            "is_legal_contract": False,
+            "failure_mode": failure_mode,
+            "validity_confidence": validity_confidence,
+            "validity_status": validity_status
+        }
         if not existing:
             document = Document(
                 id=doc_id,
@@ -195,14 +205,14 @@ async def upload_document(
                 sha256=sha256,
                 status=status_label,
                 page_count=page_count,
-                metadata_json={"rejection_reason": contract_reason, "is_legal_contract": False, "failure_mode": failure_mode}
+                metadata_json=meta_payload
             )
             db.add(document)
             db.commit()
         else:
             existing.status = status_label
             existing.page_count = page_count
-            existing.metadata_json = {"rejection_reason": contract_reason, "is_legal_contract": False, "failure_mode": failure_mode}
+            existing.metadata_json = meta_payload
             db.commit()
 
         # Clean any old chunks/analysis
@@ -248,13 +258,23 @@ async def upload_document(
                 sha256=sha256,
                 status="processing",
                 page_count=page_count,
-                metadata_json={}
+                metadata_json={
+                    "is_legal_contract": True,
+                    "validity_confidence": validity_confidence,
+                    "validity_status": validity_status
+                }
             )
             db.add(document)
             db.commit()
         else:
             document = existing
             document.status = "processing"
+            document.metadata_json = {
+                **(document.metadata_json or {}),
+                "is_legal_contract": True,
+                "validity_confidence": validity_confidence,
+                "validity_status": validity_status
+            }
             db.commit()
             
         # 5. Save chunks
