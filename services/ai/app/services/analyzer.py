@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 AGENTS = {
     "Risk & Liability Counsel": {
         "role": "Risk & Liability Counsel",
-        "description": "Identifies liabilities, unfavorable clauses, loopholes, exposures, and potential claims against the client.",
+        "description": "Identifies liabilities, unfavorable clause, loopholes, exposures, and potential claims against the client.",
         "system_prompt": "You are a senior Risk & Liability Counsel. Analyze the following contract section strictly based on the provided text. Identify genuine liabilities, unfavorable commercial commitments, un-reciprocated obligations, and dispute exposure. Never infer an indemnity obligation or third-party claim liability unless explicit indemnification, defense, or hold-harmless language is present in the text. Provide output in clean JSON format."
     },
     "Opposing Counsel": {
